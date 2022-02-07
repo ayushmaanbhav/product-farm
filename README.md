@@ -1,8 +1,8 @@
 # Product-FARM
-## Product Functionality Attribute and Rule Management System
+## Product Functionality, Attribute and Rule Management System
 
 
-## local setup
+## Local setup
 #### DB setup
   - install postgres
   - create a user `postgres` with password `admin`
