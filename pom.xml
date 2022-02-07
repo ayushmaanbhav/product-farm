@@ -32,7 +32,7 @@
         <sonar.java.source>11</sonar.java.source>
         <sonar.java.binaries>target/classes</sonar.java.binaries>
         <sonar.host.url>https://sonarqube.cmd.navi-tech.in</sonar.host.url>
-        <sonar.login><!-- add SONAR-PROJECT-TOKEN here --></sonar.login>
+        <sonar.login>0833a51e70ac2747039b4467b5b323f149807427</sonar.login>
 
         <log4j2.version>2.17.0</log4j2.version>
     </properties>

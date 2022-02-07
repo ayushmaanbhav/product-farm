@@ -23,4 +23,4 @@ services:
         volumes:
             - .:/app
         working_dir: /app
-        command: bash -c "mvn clean verify && mvn sonar:sonar -Dsonar.login=${SONAR_PROJECT_TOKEN} -Dsonar.projectName=GI:Product-Farm"
+        command: bash -c "mvn clean verify && mvn sonar:sonar -Dsonar.login=${SONAR_PROJECT_TOKEN} -Dsonar.projectName=GI:product-farm"
