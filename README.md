@@ -6,7 +6,7 @@
 #### DB setup
   - install postgres
   - create a user `postgres` with password `admin`
-  - create db `template`
+  - create db `product_farm`
 
 
 #### Install env plugin for intelliJ
