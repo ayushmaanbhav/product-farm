@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api")
 class HelloWorld {
-
     @GetMapping
     fun findAll() = "Hello World!"
 }

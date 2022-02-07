@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 @EntityScan("com.navi.insurance.productFarm")
 @EnableJpaRepositories("com.navi.insurance.productFarm")
 class ProductFarmApplication {
-
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
