@@ -30,7 +30,7 @@ class SwaggerConfig {
             "Terms of service",
             Contact(
                 "GI Product POD",
-                "https://navihq.atlassian.net/wiki/spaces/NG/pages/384270503/payment-service",
+                "https://navihq.atlassian.net/wiki/spaces/NG/pages/462324048/Attribute+Management+System",
                 "gi-tech@navi.com"
             ),
             "Apache License Version 2.0",
