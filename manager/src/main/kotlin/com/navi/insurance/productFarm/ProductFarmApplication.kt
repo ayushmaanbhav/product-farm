@@ -18,3 +18,8 @@ class ProductFarmApplication {
         }
     }
 }
+
+
+fun main(vararg args: String) {
+
+}

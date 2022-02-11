@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 
-NOW=$(date +%s)
+NOW=$(echo $(date +%s) | xargs printf "%x")
 MIGRATION_NAME=""
 MIGRATIONS_DIR='database/src/main/resources/db/changelog/migrations'
 
 print_usage() {
   printf "Usage: ..."
   printf "\n"
-  printf " bin/create-migration.sh -n create-table-mandates"
+  printf " bin/create-migration.sh -n \"create-table-mandates\""
   printf "\n"
 }
 
 while getopts 'n:' flag; do
   case "${flag}" in
-  n) MIGRATION_NAME="${OPTARG}" ;;
+  n) MIGRATION_NAME=$(echo "${OPTARG}" | tr -s '[:blank:]' '-' | tr '[:upper:]' '[:lower:]') ;;
   *)
     print_usage
     exit 1
@@ -25,7 +25,7 @@ if [ -z "$MIGRATION_NAME" ]; then
   print_usage
   exit 1
 else
-  FILE_NAME=${MIGRATIONS_DIR}/"changelog-version"-${NOW}-${MIGRATION_NAME}.xml
+  FILE_NAME=${MIGRATIONS_DIR}/"v"${NOW}-${MIGRATION_NAME}.xml
   USER_NAME=$(git config user.name)
   touch "${FILE_NAME}"
 

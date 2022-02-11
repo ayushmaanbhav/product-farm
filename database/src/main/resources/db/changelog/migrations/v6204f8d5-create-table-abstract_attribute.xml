@@ -1,0 +1,130 @@
+<databaseChangeLog
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="6204f8d5" author="Ayush Jain">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="abstract_attribute"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="abstract_attribute">
+            <column name="abstract_path" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="product_id" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="component_type" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="component_id" type="varchar">
+                <constraints nullable="true"/>
+            </column>
+            <column name="datatype" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enumeration_id" type="varchar">
+                <constraints nullable="true"/>
+            </column>
+            <column name="constraint_expression" type="varchar">
+                <constraints nullable="true"/>
+            </column>
+            <column name="immutable" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="product_display_name">
+            <column name="product_id" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="display_name" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="abstract_path" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="abstract_attribute_tag">
+            <column name="abstract_path" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="tag" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="product_id" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="abstract_attribute_reference_attribute">
+            <column name="abstract_path" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="reference_abstract_path" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="created_at" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="abstract_attribute"
+                     indexName="abstract_attribute_product_id_component_type_id">
+            <column name="product_id"/>
+            <column name="component_type"/>
+            <column name="component_id"/>
+        </createIndex>
+        <createIndex tableName="product_display_name"
+                     indexName="abstract_attribute_display_name_display_name_product_id"
+                     unique="true">
+            <column name="abstract_path"/>
+            <column name="display_name"/>
+        </createIndex>
+        <createIndex tableName="abstract_attribute_tag"
+                     indexName="abstract_attribute_tag_product_id_tag">
+            <column name="product_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
