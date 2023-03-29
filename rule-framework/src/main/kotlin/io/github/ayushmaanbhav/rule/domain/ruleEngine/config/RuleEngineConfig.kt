@@ -1,4 +1,4 @@
-package io.github.ayushmaanbhav.rule.domain.ruleEngine.model
+package io.github.ayushmaanbhav.rule.domain.ruleEngine.config
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.github.ayushmaanbhav.jsonLogic.config.MathContext
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.CachePolicy
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 
 data class RuleEngineConfig(

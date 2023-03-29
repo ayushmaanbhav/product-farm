@@ -22,8 +22,8 @@ class RuleDependencyGraphBuilder {
 
     private fun buildAdjacencyList(): LinkedHashMap<Node<Rule>, LinkedHashSet<Node<Rule>>> {
         val adjacencyList = LinkedHashMap<Node<Rule>, LinkedHashSet<Node<Rule>>>()
-        val inputPathToRulesMap: MutableMap<String, MutableSet<Node<Rule>>> = HashMap()
-        val outputPathToRuleMap: MutableMap<String, Node<Rule>> = HashMap()
+        val inputPathToRulesMap: MutableMap<String, MutableSet<Node<Rule>>> = LinkedHashMap()
+        val outputPathToRuleMap: MutableMap<String, Node<Rule>> = LinkedHashMap()
         ruleNodes.forEach { ruleNode: Node<Rule> ->
             val inputPaths = ruleNode.value.getInputAttributePaths()
             val outputPaths = ruleNode.value.getOutputAttributePaths()

@@ -6,9 +6,8 @@ import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.api.EvaluationEngine
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.exception.RuleEngineException
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.RuleEngineConfig
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.RuleEngineConfig
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
-import java.util.LinkedHashMap
 import org.apache.logging.log4j.kotlin.Logging
 
 class JsonLogicEvaluator(config: RuleEngineConfig) : EvaluationEngine, Logging {
@@ -54,6 +53,6 @@ class JsonLogicEvaluator(config: RuleEngineConfig) : EvaluationEngine, Logging {
     }
 
     companion object {
-        private val mapTypeReference = object : TypeReference<Map<String, Any?>>() {}
+        private val mapTypeReference = object : TypeReference<LinkedHashMap<String, Any?>>() {}
     }
 }

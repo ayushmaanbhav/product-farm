@@ -2,7 +2,7 @@ package io.github.ayushmaanbhav.rule.domain.ruleEngine
 
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.RuleDependencyGraphBuilder
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.Query
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.RuleEngineConfig
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.RuleEngineConfig
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryContext
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryIdentifier
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryInput

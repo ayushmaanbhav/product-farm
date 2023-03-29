@@ -4,7 +4,7 @@ import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.CachePolicy
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryIdentifier
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.RuleEngineConfig
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.RuleEngineConfig
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
 
 class RuleEngineCache(config: RuleEngineConfig) {
