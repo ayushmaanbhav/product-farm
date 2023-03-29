@@ -27,27 +27,33 @@ class JsonLogicEvaluator(config: RuleEngineConfig) : EvaluationEngine, Logging {
         private val allOutput: LinkedHashMap<String, Any?> = LinkedHashMap()
 
         fun visit(rule: Rule) {
-            runCatching {
-                val expression = objectMapper.readValue(rule.getExpression(), mapTypeReference)
-                when (val jsonLogicResult = jsonLogic.evaluate(expression, context)) {
-                    is JsonLogicResult.Failure.NullResult -> logger.debug("Ignoring rule gave empty output: ${rule.getId()}")
-                    is JsonLogicResult.Failure -> throw RuleEngineException(
-                        "Error occurred while running rule: ${rule.getId()}, ${jsonLogicResult.javaClass.name}"
-                    )
+            val expression = readExpression(rule.getId(), rule.getExpression())
+            val result = runCatching { jsonLogic.evaluate(expression, context) }
+                .getOrElse { throw RuleEngineException("Error occurred while running rule: ${rule.getId()}", it) }
+            when (result) {
+                is JsonLogicResult.Failure.NullResult -> logger.debug("Ignoring rule gave empty output: ${rule.getId()}")
+                is JsonLogicResult.Failure -> throw RuleEngineException("Got failure on running rule: ${rule.getId()}, ${result.javaClass.name}")
 
-                    is JsonLogicResult.Success -> {
-                        val output = objectMapper.convertValue(jsonLogicResult.value, mapTypeReference)
-                        output.forEach { (key: String, value: Any?) ->
-                            if (context.containsKey(key)) {
-                                throw RuleEngineException("Duplicate context key while running rule: ${rule.getId()}")
-                            }
-                            context[key] = value
-                            allOutput[key] = value
+                is JsonLogicResult.Success -> {
+                    val output = readOutput(rule.getId(), result.value)
+                    output.forEach { (key: String, value: Any?) ->
+                        if (context.containsKey(key)) {
+                            throw RuleEngineException("Duplicate context key found in rule output: ${rule.getId()}")
                         }
+                        context[key] = value
+                        allOutput[key] = value
                     }
                 }
-            }.onFailure { throw RuleEngineException("Error occurred while running rule: ${rule.getId()}", it) }
+            }
         }
+
+        private fun readExpression(ruleId: String, expression: String): LinkedHashMap<String, Any?> =
+            runCatching { objectMapper.readValue(expression, mapTypeReference) }
+                .getOrElse { throw RuleEngineException("Error occurred while reading rule expression: $ruleId", it) }
+
+        private fun readOutput(ruleId: String, output: Any): LinkedHashMap<String, Any?> =
+            runCatching { objectMapper.convertValue(output, mapTypeReference) }
+                .getOrElse { throw RuleEngineException("Error occurred while reading rule engine output: $ruleId", it) }
 
         fun result(): LinkedHashMap<String, Any?> = allOutput
     }
