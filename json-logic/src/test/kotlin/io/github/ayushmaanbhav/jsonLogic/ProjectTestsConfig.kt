@@ -1,0 +1,9 @@
+package io.github.ayushmaanbhav.jsonLogic
+
+import io.kotest.core.config.AbstractProjectConfig
+import io.kotest.core.extensions.Extension
+import io.kotest.core.names.DuplicateTestNameMode
+
+object ProjectTestsConfig : AbstractProjectConfig() {
+    override val duplicateTestNameMode = DuplicateTestNameMode.Silent
+}

@@ -23,6 +23,9 @@
             <column name="description" type="varchar">
                 <constraints nullable="true"/>
             </column>
+            <column name="order" type="int">
+                <constraints nullable="false"/>
+            </column>
             <column name="created_at" type="datetime">
                 <constraints nullable="true"/>
             </column>

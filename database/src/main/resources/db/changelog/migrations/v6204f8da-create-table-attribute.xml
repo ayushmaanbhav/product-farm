@@ -39,5 +39,10 @@
                 <constraints nullable="true"/>
             </column>
         </createTable>
+
+        <createIndex tableName="attribute"
+                     indexName="attribute_product_id">
+            <column name="product_id"/>
+        </createIndex>
     </changeSet>
 </databaseChangeLog>

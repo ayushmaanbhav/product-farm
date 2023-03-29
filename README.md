@@ -1,13 +1,13 @@
 # Product-FARM
 ## Product Functionality, Attribute and Rule Management System
 
+ADR: <link to ADR>
 
 ## Local setup
 #### DB setup
   - install postgres
   - create a user `postgres` with password `admin`
   - create db `product_farm`
-
 
 #### Install env plugin for intelliJ
  - https://plugins.jetbrains.com/plugin/7861-envfile

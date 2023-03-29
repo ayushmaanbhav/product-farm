@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
     db:
-        image: "registry.cmd.navi-tech.in/navi-postgres-11:latest"
+        image: "registry.ayushmaanbhav.in/postgres-11:latest"
         ports:
             - "5432:5432"
         environment:
@@ -13,7 +13,7 @@ services:
     spring-boot-app:
         depends_on:
             - db
-        image: "registry.cmd.navi-tech.in/navi-maven-3:latest"
+        image: "registry.ayushmaanbhav.in/maven-3:latest"
         ports:
             - "8080:8080"
         environment:
