@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.model
 
 import io.github.ayushmaanbhav.productFarm.util.generateUUID
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.generic.rule.Rule
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
 
 data class Rule(
     val type: String,
@@ -16,5 +16,7 @@ data class Rule(
     override fun ruleType() = type
     override fun getInputAttributePaths() = inputAttributes
     override fun getOutputAttributePaths() = outputAttributes
+    override fun getTags() = HashSet<String>()
+
     override fun getExpression() = compiledExpression
 }

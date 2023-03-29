@@ -49,7 +49,7 @@
         <dependency>
             <groupId>io.github.ayushmaanbhav</groupId>
             <artifactId>rule-framework</artifactId>
-            <version>1.40-RELEASE</version>
+            <version>0.1-RELEASE</version>
         </dependency>
         <dependency>
             <groupId>io.github.ayushmaanbhav</groupId>
