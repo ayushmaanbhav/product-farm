@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping
 interface AbstractAttributeApi {
     @PutMapping("/{productId}/abstractAttribute")
     fun create(
-            @PathVariable productId: String,
-            @RequestBody createRequest: CreateAbstractAttributeRequest,
+        @PathVariable productId: String,
+        @RequestBody createRequest: CreateAbstractAttributeRequest,
     ): ResponseEntity<GenericResponse<Nothing>>
-    
+
     @GetMapping("/{productId}/abstractAttribute/{displayName}")
     fun get(
         @PathVariable productId: String,

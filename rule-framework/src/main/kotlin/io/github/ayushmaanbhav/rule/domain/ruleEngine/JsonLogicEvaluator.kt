@@ -6,15 +6,14 @@ import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.api.EvaluationEngine
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.exception.RuleEngineException
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.RuleEngineConfig
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.Config
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
 import org.apache.logging.log4j.kotlin.Logging
+import org.springframework.stereotype.Component
 
-class JsonLogicEvaluator(config: RuleEngineConfig) : EvaluationEngine, Logging {
+@Component
+class JsonLogicEvaluator(config: Config, private val jsonLogic: JsonLogicEngine) : EvaluationEngine, Logging {
     private val objectMapper: ObjectMapper = config.objectMapper
-    private val jsonLogic = JsonLogicEngine.Builder()
-        .addLogger { any -> logger.debug("json logic log : $any") }
-        .addMathContext(config.mathContext).build()
 
     override fun evaluate(rules: List<Rule>, attributes: LinkedHashMap<String, Any?>): LinkedHashMap<String, Any?> {
         val visitor = Visitor(attributes)

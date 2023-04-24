@@ -36,7 +36,7 @@ class AttributeService(
     ): Optional<GetFunctionalityAttributeListResponse> {
     }
     
-    fun getAttributeByTag(productId: String, tag: String): Optional<io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAttributeListByTagResponse> {
+    fun getAttributeByTag(productId: String, tag: String): Optional<GetAttributeListByTagResponse> {
     }
     
     fun clone(parentProductId: String, productId: String) {

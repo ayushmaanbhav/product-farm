@@ -1,10 +1,10 @@
 package io.github.ayushmaanbhav.productFarm.service
 
-import io.github.ayushmaanbhav.common.validator.exception.ValidatorException
+import io.github.ayushmaanbhav.common.exception.ValidatorException
 import io.github.ayushmaanbhav.productFarm.api.product.dto.ProductApprovalRequest
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductApprovalRepo
 import io.github.ayushmaanbhav.productFarm.transformer.ProductApprovalTransformer
-import io.github.ayushmaanbhav.productFarm.validation.createError
+import io.github.ayushmaanbhav.productFarm.util.createError
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import jakarta.transaction.Transactional

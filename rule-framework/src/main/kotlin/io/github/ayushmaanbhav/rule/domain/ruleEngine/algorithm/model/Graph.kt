@@ -1,4 +1,4 @@
-package io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.api
+package io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model
 
 interface Graph<T> {
     fun getTopologicalSort(startNodes: Collection<Node<T>>, sortOrder: SortOrder): List<Node<T>>

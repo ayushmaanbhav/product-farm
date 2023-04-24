@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component
 @Component
 class GetAbstractAttributeTransformer(
     private val getRuleTransformer: GetRuleTransformer,
-) : Transformer<AbstractAttribute, io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAbstractAttributeResponse>() {
+) : Transformer<AbstractAttribute, GetAbstractAttributeResponse>() {
     
     override fun forward(input: AbstractAttribute) =
-            io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAbstractAttributeResponse(
+            GetAbstractAttributeResponse(
                     abstractPath = input.abstractPath,
                     displayName = input.displayNames.find { it.displayNameFormat == HUMAN }!!.id.displayName,
                     componentType = input.componentType,
@@ -27,6 +27,6 @@ class GetAbstractAttributeTransformer(
                     description = input.description,
             )
     
-    override fun reverse(input: io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAbstractAttributeResponse) =
+    override fun reverse(input: GetAbstractAttributeResponse) =
         throw ProductFarmServiceException("Operation not supported")
 }

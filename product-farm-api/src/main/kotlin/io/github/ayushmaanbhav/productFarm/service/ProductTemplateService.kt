@@ -1,11 +1,11 @@
 package io.github.ayushmaanbhav.productFarm.service
 
-import io.github.ayushmaanbhav.common.validator.exception.ValidatorException
+import io.github.ayushmaanbhav.common.exception.ValidatorException
 import io.github.ayushmaanbhav.productFarm.api.productTemplate.dto.ProductTemplateEnumerationDto
 import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductTemplateEnumerationRepo
 import io.github.ayushmaanbhav.productFarm.transformer.ProductTemplateEnumerationTransformer
-import io.github.ayushmaanbhav.productFarm.validation.createError
+import io.github.ayushmaanbhav.productFarm.util.createError
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import java.util.*

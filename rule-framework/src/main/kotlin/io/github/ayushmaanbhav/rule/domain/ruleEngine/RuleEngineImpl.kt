@@ -2,13 +2,13 @@ package io.github.ayushmaanbhav.rule.domain.ruleEngine
 
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.api.RuleEngine
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.Query
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.RuleEngineConfig
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryContext
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryInput
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryOutput
+import org.springframework.stereotype.Component
 
-class RuleEngineImpl(ruleEngineConfig: RuleEngineConfig) : RuleEngine {
-    private val ruleEngine = CacheEnabledRuleEngine(ruleEngineConfig)
+@Component
+class RuleEngineImpl(private val ruleEngine: CacheEnabledRuleEngine) : RuleEngine {
 
     override fun evaluate(context: QueryContext, queries: List<Query>, input: QueryInput): QueryOutput {
         return ruleEngine.evaluate(context, queries, input)

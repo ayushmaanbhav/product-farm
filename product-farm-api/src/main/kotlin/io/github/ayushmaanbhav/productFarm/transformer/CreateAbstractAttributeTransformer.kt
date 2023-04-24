@@ -25,17 +25,17 @@ class CreateAbstractAttributeTransformer(
     private val productRepo: ProductRepo,
     private val enumerationRepo: ProductTemplateEnumerationRepo,
     private val createRuleTransformer: CreateRuleTransformer,
-) : Transformer<Pair<String, io.github.ayushmaanbhav.productFarm.api.attribute.dto.CreateAbstractAttributeRequest>, AbstractAttribute>() {
+) : Transformer<Pair<String, CreateAbstractAttributeRequest>, AbstractAttribute>() {
     
-    override fun forward(input: Pair<String, io.github.ayushmaanbhav.productFarm.api.attribute.dto.CreateAbstractAttributeRequest>): AbstractAttribute {
+    override fun forward(input: Pair<String, CreateAbstractAttributeRequest>): AbstractAttribute {
         val productId = input.first
         val request = input.second
         val componentType = getComponentType(request.componentType)
         val componentId = request.componentId?.let { getComponentId(it) }
         val abstractPath = generatePath(productId, request.componentType, request.componentId, request.name)
         val displayNames = generateDisplayNames(productId, request.componentType, request.componentId, request.name)
-        val datatype = datatypeRepo.getById(request.datatype)
-        val product = productRepo.getById(productId)
+        val datatype = datatypeRepo.getReferenceById(request.datatype)
+        val product = productRepo.getReferenceById(productId)
         val enumeration = request.enumeration?.let {
             enumerationRepo.getByProductTemplateTypeAndName(product.templateType, it)
         }

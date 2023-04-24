@@ -4,6 +4,7 @@ data class StandardLogicOperationConfig(val mathContext: MathContext, val nested
     constructor(mathContext: MathContext) : this(mathContext, DEFAULT_NESTED_VARIABLE_PATH_DELIMITER)
 
     companion object {
-        const val DEFAULT_NESTED_VARIABLE_PATH_DELIMITER = '.'
+        private const val DEFAULT_NESTED_VARIABLE_PATH_DELIMITER = '.'
+        val DEFAULT = StandardLogicOperationConfig(MathContext.DEFAULT, DEFAULT_NESTED_VARIABLE_PATH_DELIMITER)
     }
 }

@@ -17,6 +17,5 @@ data class Rule(
     override fun getInputAttributePaths() = inputAttributes
     override fun getOutputAttributePaths() = outputAttributes
     override fun getTags() = HashSet<String>()
-
     override fun getExpression() = compiledExpression
 }

@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 interface AttributeApi {
     @PutMapping("/{productId}/attribute")
     fun create(
-            @PathVariable productId: String,
-            @RequestBody createRequest: CreateAttributeRequest,
+        @PathVariable productId: String,
+        @RequestBody createRequest: CreateAttributeRequest,
     ): ResponseEntity<GenericResponse<Nothing>>
     
     @GetMapping("/{productId}/attribute/{displayName}")

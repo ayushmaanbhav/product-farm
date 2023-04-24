@@ -1,30 +1,30 @@
 package io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.api.Node
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Node
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.RuleDependencyGraph
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.DependencyGraph
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.Query
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryType
 
-class RuleDependencyGraphBuilder {
-    private val ruleNodes: MutableSet<Node<Rule>> = HashSet()
+class DependencyGraphBuilder<R : Rule> {
+    private val ruleNodes: MutableSet<Node<R>> = HashSet()
 
-    fun visit(rule: Rule) {
+    fun visit(rule: R) {
         ruleNodes.add(Node(rule))
     }
 
-    fun build(): RuleDependencyGraph {
+    fun build(): DependencyGraph<R> {
         val adjacencyList = buildAdjacencyList()
         val dependencyGraph = AcyclicDirectedGraph.AcyclicDirectedGraphBuilder(adjacencyList).build()
         val startNodesByQuery = buildQueryIndexes()
-        return RuleDependencyGraph(dependencyGraph, startNodesByQuery)
+        return DependencyGraph(dependencyGraph, startNodesByQuery)
     }
 
-    private fun buildAdjacencyList(): LinkedHashMap<Node<Rule>, LinkedHashSet<Node<Rule>>> {
-        val adjacencyList = LinkedHashMap<Node<Rule>, LinkedHashSet<Node<Rule>>>()
-        val inputPathToRulesMap: MutableMap<String, MutableSet<Node<Rule>>> = LinkedHashMap()
-        val outputPathToRuleMap: MutableMap<String, Node<Rule>> = LinkedHashMap()
-        ruleNodes.forEach { ruleNode: Node<Rule> ->
+    private fun buildAdjacencyList(): LinkedHashMap<Node<R>, LinkedHashSet<Node<R>>> {
+        val adjacencyList = LinkedHashMap<Node<R>, LinkedHashSet<Node<R>>>()
+        val inputPathToRulesMap: MutableMap<String, MutableSet<Node<R>>> = LinkedHashMap()
+        val outputPathToRuleMap: MutableMap<String, Node<R>> = LinkedHashMap()
+        ruleNodes.forEach { ruleNode: Node<R> ->
             val inputPaths = ruleNode.value.getInputAttributePaths()
             val outputPaths = ruleNode.value.getOutputAttributePaths()
             outputPaths.forEach { outputPath: String -> outputPathToRuleMap[outputPath] = ruleNode }
@@ -34,17 +34,17 @@ class RuleDependencyGraphBuilder {
             }
             adjacencyList.putIfAbsent(ruleNode, LinkedHashSet())
         }
-        outputPathToRuleMap.forEach { (outputPath: String, ruleNode: Node<Rule>) ->
+        outputPathToRuleMap.forEach { (outputPath: String, ruleNode: Node<R>) ->
             inputPathToRulesMap[outputPath]?.let {
-                it.forEach { parentRuleNode: Node<Rule> -> adjacencyList[parentRuleNode]!!.add(ruleNode) }
+                it.forEach { parentRuleNode: Node<R> -> adjacencyList[parentRuleNode]!!.add(ruleNode) }
             }
         }
         return adjacencyList
     }
 
-    private fun buildQueryIndexes(): LinkedHashMap<Query, LinkedHashSet<Node<Rule>>> {
-        val startNodesByQuery = LinkedHashMap<Query, LinkedHashSet<Node<Rule>>>()
-        ruleNodes.forEach { ruleNode: Node<Rule> ->
+    private fun buildQueryIndexes(): LinkedHashMap<Query, LinkedHashSet<Node<R>>> {
+        val startNodesByQuery = LinkedHashMap<Query, LinkedHashSet<Node<R>>>()
+        ruleNodes.forEach { ruleNode: Node<R> ->
             val queries = mutableListOf<Query>()
             ruleNode.value.ruleType().let { queries.add(Query(it, QueryType.RULE_TYPE)) }
             ruleNode.value.getOutputAttributePaths().forEach { queries.add(Query(it, QueryType.ATTRIBUTE_PATH)) }

@@ -11,8 +11,8 @@ internal interface EqualsOperation : ComparingOperation, EqualsUnwrapStrategy, S
         with(values.asList) {
             val firstUnwrappedValue = unwrapSingleNestedValueOrDefault(firstOrNull())
             val secondUnwrappedValue = unwrapSingleNestedValueOrDefault(secondOrNull())
-            val firstPossibleTrueValues = io.github.ayushmaanbhav.jsonLogic.operations.logic.equals.EqualsTableOfTruth[firstUnwrappedValue]
-            val secondPossibleTrueValues = io.github.ayushmaanbhav.jsonLogic.operations.logic.equals.EqualsTableOfTruth[secondUnwrappedValue]
+            val firstPossibleTrueValues = EqualsTableOfTruth[firstUnwrappedValue]
+            val secondPossibleTrueValues = EqualsTableOfTruth[secondUnwrappedValue]
 
             if (firstPossibleTrueValues != null || secondPossibleTrueValues != null) {
                 firstPossibleTrueValues?.contains(secondUnwrappedValue) ?: false

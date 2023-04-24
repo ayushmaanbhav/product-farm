@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.api.Node
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.api.SortOrder
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Node
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.SortOrder
 import java.util.*
 
 internal class TopologicalSort {

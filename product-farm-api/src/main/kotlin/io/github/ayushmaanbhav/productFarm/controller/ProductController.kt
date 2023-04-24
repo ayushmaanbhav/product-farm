@@ -1,7 +1,8 @@
-package io.github.ayushmaanbhav.productFarm.api.product
+package io.github.ayushmaanbhav.productFarm.controller
 
 import com.github.lkqm.spring.api.version.ApiVersion
 import io.github.ayushmaanbhav.common.model.response.GenericResponse
+import io.github.ayushmaanbhav.productFarm.api.product.ProductApi
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CloneProductRequest
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CreateProductRequest
 import io.github.ayushmaanbhav.productFarm.api.product.dto.GetProductResponse

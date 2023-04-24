@@ -1,6 +1,6 @@
 package io.github.ayushmaanbhav.productFarm.service
 
-import io.github.ayushmaanbhav.common.validator.exception.ValidatorException
+import io.github.ayushmaanbhav.common.exception.ValidatorException
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CloneProductRequest
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CreateProductRequest
 import io.github.ayushmaanbhav.productFarm.api.product.dto.GetProductResponse
@@ -11,7 +11,7 @@ import io.github.ayushmaanbhav.productFarm.constant.ProductStatus
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductRepo
 import io.github.ayushmaanbhav.productFarm.transformer.CreateProductTransformer
 import io.github.ayushmaanbhav.productFarm.transformer.GetProductTransformer
-import io.github.ayushmaanbhav.productFarm.validation.createError
+import io.github.ayushmaanbhav.productFarm.util.createError
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import java.util.*
@@ -45,7 +45,7 @@ class ProductService(
                 HttpStatus.NOT_FOUND.value(), listOf(createError("Product does not exist for this id"))
             )
         }
-        val product = productRepo.getById(id)
+        val product = productRepo.getReferenceById(id)
         if (product.status != ProductStatus.DRAFT) {
             throw ValidatorException(
                 HttpStatus.BAD_REQUEST.value(), listOf(createError("Product is not in draft status"))
@@ -63,7 +63,7 @@ class ProductService(
                 HttpStatus.NOT_FOUND.value(), listOf(createError("Product does not exist for this id"))
             )
         }
-        val product = productRepo.getById(id)
+        val product = productRepo.getReferenceById(id)
         if (product.status != ProductStatus.PENDING_APPROVAL) {
             throw ValidatorException(
                 HttpStatus.BAD_REQUEST.value(), listOf(createError("Product is not in pending approval status"))
@@ -75,7 +75,7 @@ class ProductService(
                     HttpStatus.NOT_FOUND.value(), listOf(createError("Product to discontinue does not exist for id"))
                 )
             }
-            val productToDiscontinue = productRepo.getById(it)
+            val productToDiscontinue = productRepo.getReferenceById(it)
             if (productToDiscontinue.status != ProductStatus.ACTIVE) {
                 throw ValidatorException(
                     HttpStatus.BAD_REQUEST.value(), listOf(createError("Product to discontinue not in active status"))
@@ -109,7 +109,7 @@ class ProductService(
                 HttpStatus.NOT_FOUND.value(), listOf(createError("Product does not exist for this id"))
             )
         }
-        val parentProduct = productRepo.getById(parentProductId)
+        val parentProduct = productRepo.getReferenceById(parentProductId)
         val createProductRequest = CreateProductRequest(
             id = request.productId,
             name = request.name,

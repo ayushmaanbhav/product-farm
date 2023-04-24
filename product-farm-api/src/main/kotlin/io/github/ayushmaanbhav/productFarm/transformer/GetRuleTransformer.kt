@@ -8,11 +8,11 @@ import org.springframework.stereotype.Component
 @Component
 class GetRuleTransformer(
     private val ruleTransformer: RuleTransformer,
-) : Transformer<Rule, io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetRuleResponse>() {
+) : Transformer<Rule, GetRuleResponse>() {
     
-    override fun forward(input: Rule): io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetRuleResponse {
+    override fun forward(input: Rule): GetRuleResponse {
         val rule = ruleTransformer.forward(input)
-        return io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetRuleResponse(
+        return GetRuleResponse(
                 type = rule.type,
                 inputAttributes = rule.inputAttributes,
                 outputAttributes = rule.outputAttributes,
@@ -21,5 +21,5 @@ class GetRuleTransformer(
         )
     }
     
-    override fun reverse(input: io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetRuleResponse) = throw ProductFarmServiceException("Operation not supported")
+    override fun reverse(input: GetRuleResponse) = throw ProductFarmServiceException("Operation not supported")
 }

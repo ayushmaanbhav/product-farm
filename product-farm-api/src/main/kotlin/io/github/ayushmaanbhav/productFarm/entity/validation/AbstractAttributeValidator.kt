@@ -2,15 +2,15 @@ package io.github.ayushmaanbhav.productFarm.entity.validation
 
 import ValidAbstractAttribute
 import io.github.ayushmaanbhav.common.model.response.ErrorDetail
-import io.github.ayushmaanbhav.common.validator.exception.ValidatorException
+import io.github.ayushmaanbhav.common.exception.ValidatorException
 import io.github.ayushmaanbhav.productFarm.constant.Constant
 import io.github.ayushmaanbhav.productFarm.constant.ProductStatus.DRAFT
 import io.github.ayushmaanbhav.productFarm.entity.AbstractAttribute
 import io.github.ayushmaanbhav.productFarm.entity.repository.AbstractAttributeRepo
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductRepo
 import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
-import io.github.ayushmaanbhav.productFarm.validation.createError
-import io.github.ayushmaanbhav.productFarm.validation.populateProperty
+import io.github.ayushmaanbhav.productFarm.util.createError
+import io.github.ayushmaanbhav.productFarm.util.populateProperty
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -71,7 +71,7 @@ class AbstractAttributeValidator(
                     createError()
                         .takeUnless {
                             abstractAttribute.immutable
-                            && (productRepo.getById(abstractAttribute.productId).status == DRAFT
+                            && (productRepo.getReferenceById(abstractAttribute.productId).status == DRAFT
                                 || abstractAttributeRepo.existsById(abstractAttribute.abstractPath).not())
                         }
                 AbstractAttribute::productId -> null // fk

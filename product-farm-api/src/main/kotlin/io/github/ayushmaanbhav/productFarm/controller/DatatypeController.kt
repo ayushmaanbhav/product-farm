@@ -1,7 +1,8 @@
-package io.github.ayushmaanbhav.productFarm.api.datatype
+package io.github.ayushmaanbhav.productFarm.controller
 
 import com.github.lkqm.spring.api.version.ApiVersion
 import io.github.ayushmaanbhav.common.model.response.GenericResponse
+import io.github.ayushmaanbhav.productFarm.api.datatype.DatatypeApi
 import io.github.ayushmaanbhav.productFarm.api.datatype.dto.DatatypeDto
 import io.github.ayushmaanbhav.productFarm.constant.Constant
 import io.github.ayushmaanbhav.productFarm.service.DatatypeService

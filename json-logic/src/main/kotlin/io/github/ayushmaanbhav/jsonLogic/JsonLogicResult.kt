@@ -7,6 +7,8 @@ sealed class JsonLogicResult {
         object NullResult : Failure()
         object EmptyExpression : Failure()
         object MissingOperation : Failure()
+        object InvalidFormat : Failure()
+        object StreamIOError : Failure()
     }
 
 }

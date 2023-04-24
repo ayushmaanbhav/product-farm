@@ -9,13 +9,13 @@ import io.github.ayushmaanbhav.jsonLogic.config.MathContext
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.CachePolicy
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 
-data class RuleEngineConfig(
-    val mathContext: MathContext = MathContext.DEFAULT,
-    val objectMapper: ObjectMapper = objectMapperBuilder().build(),
-    val cachePolicy: CachePolicy = DEFAULT_USE_CACHE_POLICY,
-    val maxRuleDgCacheSize: Long = DEFAULT_MAX_CACHE_SIZE,
-    val maxQueryCacheSize: Long = DEFAULT_MAX_CACHE_SIZE
-) {
+interface Config {
+    val mathContext: MathContext
+    val objectMapper: ObjectMapper
+    val cachePolicy: CachePolicy
+    val maxRuleDgCacheSize: Long
+    val maxQueryCacheSize: Long
+
     companion object {
         val DEFAULT_USE_CACHE_POLICY = CachePolicy.DISABLED
         const val DEFAULT_MAX_CACHE_SIZE = -1L // no-limit

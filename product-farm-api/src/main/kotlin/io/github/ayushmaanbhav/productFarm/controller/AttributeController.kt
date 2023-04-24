@@ -1,7 +1,8 @@
-package io.github.ayushmaanbhav.productFarm.api.attribute
+package io.github.ayushmaanbhav.productFarm.controller
 
 import com.github.lkqm.spring.api.version.ApiVersion
 import io.github.ayushmaanbhav.common.model.response.GenericResponse
+import io.github.ayushmaanbhav.productFarm.api.attribute.AttributeApi
 import io.github.ayushmaanbhav.productFarm.api.attribute.dto.CreateAttributeRequest
 import io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAttributeListByTagResponse
 import io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAttributeResponse

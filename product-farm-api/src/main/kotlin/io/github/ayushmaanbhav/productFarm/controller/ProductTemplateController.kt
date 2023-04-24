@@ -1,7 +1,8 @@
-package io.github.ayushmaanbhav.productFarm.api.productTemplate
+package io.github.ayushmaanbhav.productFarm.controller
 
 import com.github.lkqm.spring.api.version.ApiVersion
 import io.github.ayushmaanbhav.common.model.response.GenericResponse
+import io.github.ayushmaanbhav.productFarm.api.productTemplate.ProductTemplateApi
 import io.github.ayushmaanbhav.productFarm.api.productTemplate.dto.ProductTemplateEnumerationDto
 import io.github.ayushmaanbhav.productFarm.constant.Constant
 import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType

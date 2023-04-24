@@ -1,10 +1,10 @@
 package io.github.ayushmaanbhav.productFarm.service
 
-import io.github.ayushmaanbhav.common.validator.exception.ValidatorException
+import io.github.ayushmaanbhav.common.exception.ValidatorException
 import io.github.ayushmaanbhav.productFarm.api.datatype.dto.DatatypeDto
 import io.github.ayushmaanbhav.productFarm.entity.repository.DatatypeRepo
 import io.github.ayushmaanbhav.productFarm.transformer.DatatypeTransformer
-import io.github.ayushmaanbhav.productFarm.validation.createError
+import io.github.ayushmaanbhav.productFarm.util.createError
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.stereotype.Component
 import java.util.*

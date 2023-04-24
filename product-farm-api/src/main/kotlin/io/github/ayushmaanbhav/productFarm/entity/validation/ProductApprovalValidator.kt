@@ -2,15 +2,15 @@ package io.github.ayushmaanbhav.productFarm.entity.validation
 
 import ValidProductApproval
 import io.github.ayushmaanbhav.common.model.response.ErrorDetail
-import io.github.ayushmaanbhav.common.validator.exception.ValidatorException
+import io.github.ayushmaanbhav.common.exception.ValidatorException
 import io.github.ayushmaanbhav.productFarm.constant.Constant
 import io.github.ayushmaanbhav.productFarm.constant.ProductStatus.ACTIVE
 import io.github.ayushmaanbhav.productFarm.constant.ProductStatus.DISCONTINUED
 import io.github.ayushmaanbhav.productFarm.entity.ProductApproval
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductRepo
 import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
-import io.github.ayushmaanbhav.productFarm.validation.createError
-import io.github.ayushmaanbhav.productFarm.validation.populateProperty
+import io.github.ayushmaanbhav.productFarm.util.createError
+import io.github.ayushmaanbhav.productFarm.util.populateProperty
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -37,14 +37,14 @@ class ProductApprovalValidator(
                     createError()
                         .takeUnless {
                             productApproval.discontinuedProductId?.let { id ->
-                                val discontinuedProduct = productRepo.getById(id)
+                                val discontinuedProduct = productRepo.getReferenceById(id)
                                 discontinuedProduct.status == DISCONTINUED
                             } ?: true
                         }
                 ProductApproval::productId ->
                     createError()
                         .takeUnless {
-                            val approvedProduct = productRepo.getById(productApproval.productId)
+                            val approvedProduct = productRepo.getReferenceById(productApproval.productId)
                             approvedProduct.status == ACTIVE
                         }
                 else -> throw ProductFarmServiceException(

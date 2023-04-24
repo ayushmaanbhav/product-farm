@@ -5,7 +5,7 @@ import io.github.ayushmaanbhav.jsonLogic.evaluation.LogicOperations
 import io.github.ayushmaanbhav.jsonLogic.api.operation.FunctionalLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.api.operation.StandardLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
-import io.github.ayushmaanbhav.jsonLogic.config.MathContext
+import io.github.ayushmaanbhav.jsonLogic.config.StreamProcessingConfig
 import io.github.ayushmaanbhav.jsonLogic.operations.In
 import io.github.ayushmaanbhav.jsonLogic.operations.Log
 import io.github.ayushmaanbhav.jsonLogic.operations.array.Filter
@@ -39,15 +39,22 @@ import io.github.ayushmaanbhav.jsonLogic.operations.numeric.compare.LessThan
 import io.github.ayushmaanbhav.jsonLogic.operations.numeric.compare.LessThanOrEqualTo
 import io.github.ayushmaanbhav.jsonLogic.operations.string.Cat
 import io.github.ayushmaanbhav.jsonLogic.operations.string.Substr
+import io.github.ayushmaanbhav.jsonLogic.stream.JsonLogicStreamProcessor
+import java.io.InputStream
 import kotlin.collections.Map
 import io.github.ayushmaanbhav.jsonLogic.operations.array.Map as LogicMap
 
 interface JsonLogicEngine {
     fun evaluate(expression: Map<String, Any?>, data: Any?): JsonLogicResult
 
+    fun evaluate(inputStream: InputStream, data: Any?): JsonLogicResult {
+        throw UnsupportedOperationException("Not supported by default, pls set the streaming flag")
+    }
+
     class Builder {
         private var logger: ((Any?) -> Unit)? = null
-        private var standardLogicOperationConfig: StandardLogicOperationConfig = StandardLogicOperationConfig(MathContext.DEFAULT)
+        private var standardLogicOperationConfig: StandardLogicOperationConfig = StandardLogicOperationConfig.DEFAULT
+        private var streamProcessingConfig: StreamProcessingConfig = StreamProcessingConfig.DEFAULT
         private val standardOperations: MutableMap<String, StandardLogicOperation> = mutableMapOf(
             // data
             "var" to Var,
@@ -122,12 +129,12 @@ interface JsonLogicEngine {
             logger = loggingCallback
         }
 
-        fun addMathContext(mathContext: MathContext) = apply {
-            standardLogicOperationConfig = StandardLogicOperationConfig(mathContext)
+        fun addStandardConfig(config: StandardLogicOperationConfig) = apply {
+            standardLogicOperationConfig = config
         }
 
-        fun addConfigValues(mathContext: MathContext, variablePathDelimiter: Char) = apply {
-            standardLogicOperationConfig = StandardLogicOperationConfig(mathContext, variablePathDelimiter)
+        fun addStreamProcessingConfig(config: StreamProcessingConfig) = apply {
+            streamProcessingConfig = config
         }
 
         private fun isNotOperationDuplicate(operationName: String) =
@@ -138,7 +145,7 @@ interface JsonLogicEngine {
             val evaluator = CommonLogicEvaluator(
                 standardLogicOperationConfig, LogicOperations(standardOperations, functionalOperations)
             )
-            return CommonJsonLogicEngine(evaluator)
+            return StreamingJsonLogicEngine(CommonJsonLogicEngine(evaluator), JsonLogicStreamProcessor(streamProcessingConfig))
         }
     }
 }

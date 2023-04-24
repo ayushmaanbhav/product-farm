@@ -5,10 +5,9 @@ import ValidAttributeDirectedAcyclicGraph
 import com.fasterxml.jackson.databind.JsonNode
 import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayName
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType
+import com.vladmihalcea.hibernate.type.json.JsonType
 import org.hibernate.annotations.NaturalId
 import org.hibernate.annotations.Type
-import org.hibernate.annotations.TypeDef
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -24,7 +23,6 @@ import jakarta.persistence.Table
 
 @Entity
 @Table(name = "attribute")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType::class)
 @ValidAttribute
 @ValidAttributeDirectedAcyclicGraph
 data class Attribute(
@@ -37,7 +35,7 @@ data class Attribute(
     val abstractAttribute: AbstractAttribute,
     @Enumerated(EnumType.STRING)
     val type: AttributeValueType,
-    @Type(type = "jsonb")
+    @Type(JsonType::class)
     @Column(columnDefinition = "jsonb")
     val value: JsonNode?,
     @OneToOne(cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)

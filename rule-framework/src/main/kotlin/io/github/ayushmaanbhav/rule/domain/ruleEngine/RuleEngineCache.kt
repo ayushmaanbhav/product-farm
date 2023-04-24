@@ -4,23 +4,25 @@ import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.CachePolicy
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryIdentifier
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.RuleEngineConfig
+import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.Config
 import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import org.springframework.stereotype.Component
 
-class RuleEngineCache(config: RuleEngineConfig) {
+@Component
+class RuleEngineCache(config: Config) {
     private val cachePolicy = config.cachePolicy
-    private val ruleDgByContextIdentifier: Cache<String, RuleDependencyGraph> = CacheBuilder.newBuilder()
+    private val ruleDgByContextIdentifier: Cache<String, DependencyGraph<Rule>> = CacheBuilder.newBuilder()
         .let { if (config.maxRuleDgCacheSize > 0) it.maximumSize(config.maxRuleDgCacheSize) else it }.build()
     private val rulesByQueryIdentifier: Cache<QueryIdentifier, List<Rule>> = CacheBuilder.newBuilder()
         .let { if (config.maxQueryCacheSize > 0) it.maximumSize(config.maxQueryCacheSize) else it }.build()
 
     fun get(
         contextIdentifier: String, queryIdentifier: QueryIdentifier,
-        createRdg: () -> RuleDependencyGraph, createExecutableRules: (RuleDependencyGraph) -> List<Rule>
+        createRdg: () -> DependencyGraph<Rule>, createExecutableRules: (DependencyGraph<Rule>) -> List<Rule>
     ): List<Rule> {
         return when (cachePolicy) {
             CachePolicy.DISABLED -> createExecutableRules(createRdg())
-            else -> checkAndGetExecutableRulesFromCache(queryIdentifier) {
+            CachePolicy.LRU_CACHE -> checkAndGetExecutableRulesFromCache(queryIdentifier) {
                 createExecutableRules(checkAndGetRuleDgFromCache(contextIdentifier, createRdg))
             }
         }
@@ -36,7 +38,7 @@ class RuleEngineCache(config: RuleEngineConfig) {
             else -> cachedExecutableRules
         }
 
-    private fun checkAndGetRuleDgFromCache(contextIdentifier: String, default: () -> RuleDependencyGraph): RuleDependencyGraph =
+    private fun checkAndGetRuleDgFromCache(contextIdentifier: String, default: () -> DependencyGraph<Rule>): DependencyGraph<Rule> =
         when (val cachedRuleDg = ruleDgByContextIdentifier.getIfPresent(contextIdentifier)) {
             null -> {
                 val newRuleDg = default()
