@@ -13,5 +13,5 @@ class DependencyGraph<R : Rule>(
     fun getGraph(): AcyclicDirectedGraph<R> = ruleGraph
     fun computeExecutableRules(queries: List<Query>): List<R> = queries
         .flatMap { startNodesByQuery[it]!! }
-        .let { ruleGraph.getTopologicalSort(it, SortOrder.DSC).map { node -> node.value } }
+        .let { ruleGraph.getTopologicalSort(LinkedHashSet(it), SortOrder.DSC).map { node -> node.value } }
 }

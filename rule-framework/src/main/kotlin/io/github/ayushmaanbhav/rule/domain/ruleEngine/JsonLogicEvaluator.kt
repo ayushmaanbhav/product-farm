@@ -15,15 +15,15 @@ import org.springframework.stereotype.Component
 class JsonLogicEvaluator(config: Config, private val jsonLogic: JsonLogicEngine) : EvaluationEngine, Logging {
     private val objectMapper: ObjectMapper = config.objectMapper
 
-    override fun evaluate(rules: List<Rule>, attributes: LinkedHashMap<String, Any?>): LinkedHashMap<String, Any?> {
+    override fun evaluate(rules: List<Rule>, attributes: LinkedHashMap<String, Any>): LinkedHashMap<String, Any> {
         val visitor = Visitor(attributes)
         rules.forEach(visitor::visit)
         return visitor.result()
     }
 
-    private inner class Visitor(attributes: LinkedHashMap<String, Any?>) {
-        private val context: LinkedHashMap<String, Any?> = LinkedHashMap(attributes)
-        private val allOutput: LinkedHashMap<String, Any?> = LinkedHashMap()
+    private inner class Visitor(attributes: LinkedHashMap<String, Any>) {
+        private val context: LinkedHashMap<String, Any> = LinkedHashMap(attributes)
+        private val allOutput: LinkedHashMap<String, Any> = LinkedHashMap()
 
         fun visit(rule: Rule) {
             val expression = readExpression(rule.getId(), rule.getExpression())
@@ -46,18 +46,18 @@ class JsonLogicEvaluator(config: Config, private val jsonLogic: JsonLogicEngine)
             }
         }
 
-        private fun readExpression(ruleId: String, expression: String): LinkedHashMap<String, Any?> =
+        private fun readExpression(ruleId: String, expression: String): LinkedHashMap<String, Any> =
             runCatching { objectMapper.readValue(expression, mapTypeReference) }
                 .getOrElse { throw RuleEngineException("Error occurred while reading rule expression: $ruleId", it) }
 
-        private fun readOutput(ruleId: String, output: Any): LinkedHashMap<String, Any?> =
+        private fun readOutput(ruleId: String, output: Any): LinkedHashMap<String, Any> =
             runCatching { objectMapper.convertValue(output, mapTypeReference) }
                 .getOrElse { throw RuleEngineException("Error occurred while reading rule engine output: $ruleId", it) }
 
-        fun result(): LinkedHashMap<String, Any?> = allOutput
+        fun result(): LinkedHashMap<String, Any> = allOutput
     }
 
     companion object {
-        private val mapTypeReference = object : TypeReference<LinkedHashMap<String, Any?>>() {}
+        private val mapTypeReference = object : TypeReference<LinkedHashMap<String, Any>>() {}
     }
 }

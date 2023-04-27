@@ -10,7 +10,7 @@ class AcyclicDirectedGraph<T>(
     private val adjacencyList: LinkedHashMap<Node<T>, LinkedHashSet<Node<T>>>
 ) : Graph<T> {
 
-    override fun getTopologicalSort(startNodes: Collection<Node<T>>, sortOrder: SortOrder): List<Node<T>> =
+    override fun getTopologicalSort(startNodes: Set<Node<T>>, sortOrder: SortOrder): List<Node<T>> =
         TopologicalSort.sort(adjacencyList, startNodes, sortOrder)
 
     class AcyclicDirectedGraphBuilder<T>(private val adjacencyList: LinkedHashMap<Node<T>, LinkedHashSet<Node<T>>>) {
