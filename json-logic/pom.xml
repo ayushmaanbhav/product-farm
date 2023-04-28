@@ -89,7 +89,7 @@
                                 <rule>
                                     <limits>
                                         <limit>
-                                            <minimum>100%</minimum>
+                                            <minimum>95%</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

@@ -2,8 +2,8 @@ package io.github.ayushmaanbhav.productFarm.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.ayushmaanbhav.jsonLogic.config.MathContext
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.Config
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.CachePolicy
+import io.github.ayushmaanbhav.ruleEngine.config.Config
+import io.github.ayushmaanbhav.ruleEngine.model.CachePolicy
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 

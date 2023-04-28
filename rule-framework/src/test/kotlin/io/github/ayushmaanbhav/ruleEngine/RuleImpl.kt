@@ -1,6 +1,6 @@
 package io.github.ayushmaanbhav.ruleEngine
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 
 class RuleImpl(
     private val id: String, private val type: String, private val inpa: Set<String>,

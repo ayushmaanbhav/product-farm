@@ -1,5 +1,5 @@
 package io.github.ayushmaanbhav.ruleEngine.model
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 
 data class QueryContext(val identifier: String, val rules: Collection<Rule>)

@@ -1,9 +1,9 @@
 package io.github.ayushmaanbhav.ruleEngine.algorithm
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Graph
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Node
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.SortOrder
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.exception.GraphContainsCycleException
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Graph
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.SortOrder
+import io.github.ayushmaanbhav.ruleEngine.exception.GraphContainsCycleException
 import java.util.*
 
 class AcyclicDirectedGraph<T>(

@@ -31,7 +31,7 @@ data class Rule(
     val displayExpressionVersion: String,
     val compiledExpression: String,
     val description: String?,
-) : AbstractEntity<Rule>(Rule::class), io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule {
+) : AbstractEntity<Rule>(Rule::class), io.github.ayushmaanbhav.ruleEngine.model.rule.Rule {
     override fun equals(other: Any?) = super.equals(other)
     override fun hashCode() = super.hashCode()
 

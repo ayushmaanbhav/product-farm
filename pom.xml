@@ -34,7 +34,7 @@
         <kotest.version>5.6.1</kotest.version>
         <mockk.version>1.13.5</mockk.version>
         <jacoco.version>0.8.10</jacoco.version>
-        <sonar.java.source>17</sonar.java.source>
+        <sonar.java.source>${java.version}</sonar.java.source>
         <sonar.java.binaries>target/classes</sonar.java.binaries>
         <sonar.host.url>http://localhost</sonar.host.url>
         <sonar.login>dummy</sonar.login>
@@ -148,7 +148,7 @@
                             <option>all-open:annotation=javax.persistence.Embeddable</option>
                             <option>all-open:annotation=javax.persistence.MappedSuperclass</option>
                         </pluginOptions>
-                        <jvmTarget>17</jvmTarget>
+                        <jvmTarget>${java.version}</jvmTarget>
                     </configuration>
                     <dependencies>
                         <dependency>

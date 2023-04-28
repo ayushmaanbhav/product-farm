@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.ruleEngine.algorithm
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Node
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.SortOrder
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.SortOrder
 import java.util.*
 import kotlin.collections.LinkedHashSet
 

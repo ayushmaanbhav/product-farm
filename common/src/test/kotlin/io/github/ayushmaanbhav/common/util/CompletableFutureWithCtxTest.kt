@@ -17,6 +17,9 @@ class CompletableFutureWithCtxTest : StringSpec({
         CompletableFutureWithCtx.runAsync(executorService) {
             correlationId shouldBe ThreadContext.get(RequestMetadata.CORRELATION_ID)
         }.join()
+        CompletableFutureWithCtx.runAsync {
+            correlationId shouldBe ThreadContext.get(RequestMetadata.CORRELATION_ID)
+        }.join()
     }
 
     "supplyAsync should execute the given supplier in a new thread with the ThreadContext variables set and removed correctly" {
@@ -24,10 +27,15 @@ class CompletableFutureWithCtxTest : StringSpec({
         val randomString = UUID.randomUUID().toString()
         ThreadContext.put(RequestMetadata.CORRELATION_ID, correlationId)
         val executorService = Executors.newCachedThreadPool()
-        val completableFuture: CompletableFuture<String> = CompletableFutureWithCtx.supplyAsync(executorService)         {
+        val completableFuture: CompletableFuture<String> = CompletableFutureWithCtx.supplyAsync(executorService) {
             correlationId shouldBe ThreadContext.get(RequestMetadata.CORRELATION_ID)
             randomString
         }
         randomString shouldBe completableFuture.get()
+        val completableFuture2: CompletableFuture<String> = CompletableFutureWithCtx.supplyAsync {
+            correlationId shouldBe ThreadContext.get(RequestMetadata.CORRELATION_ID)
+            randomString
+        }
+        randomString shouldBe completableFuture2.get()
     }
 })

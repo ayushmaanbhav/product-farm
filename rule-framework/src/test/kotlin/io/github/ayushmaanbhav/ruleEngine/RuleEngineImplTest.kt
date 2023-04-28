@@ -1,6 +1,6 @@
 package io.github.ayushmaanbhav.ruleEngine
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.*
+import io.github.ayushmaanbhav.ruleEngine.model.*
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
@@ -8,7 +8,7 @@ import io.mockk.mockk
 
 class RuleEngineImplTest : BehaviorSpec({
 
-    val cacheEnabledRuleEngineMock = mockk<io.github.ayushmaanbhav.ruleEngine.CacheEnabledRuleEngine>()
+    val cacheEnabledRuleEngineMock = mockk<CacheEnabledRuleEngine>()
     val ruleEngine = RuleEngineImpl(cacheEnabledRuleEngineMock)
     val context = QueryContext("id", emptyList())
     val queries = listOf(Query("query1", QueryType.RULE_TYPE), Query("query2", QueryType.RULE_TYPE))

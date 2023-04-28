@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.model
 
 import io.github.ayushmaanbhav.productFarm.util.generateUUID
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 
 data class Rule(
     val type: String,

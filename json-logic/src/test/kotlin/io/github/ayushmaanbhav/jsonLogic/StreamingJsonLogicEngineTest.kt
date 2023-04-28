@@ -11,12 +11,9 @@ import java.io.IOException
 import java.io.InputStream
 
 class StreamingJsonLogicEngineTest : BehaviorSpec({
-    val successResult: JsonLogicResult = JsonLogicResult.Success(true)
-    val streamProcessor: JsonLogicStreamProcessor = mockk()
-
-    beforeTest { clearAllMocks() }
-
     given("Json logic expression") {
+        val successResult: JsonLogicResult = JsonLogicResult.Success(true)
+        val streamProcessor: JsonLogicStreamProcessor = mockk()
         val engine = StreamingJsonLogicEngine(MockJsonLogicEngine(successResult), streamProcessor)
         val expression: Map<String, Any?> = mapOf()
 
@@ -30,12 +27,14 @@ class StreamingJsonLogicEngineTest : BehaviorSpec({
     }
 
     given("Json logic input stream and stream processor returns success") {
+        val successResult: JsonLogicResult = JsonLogicResult.Success(true)
+        val streamProcessor: JsonLogicStreamProcessor = mockk()
         val engine = StreamingJsonLogicEngine(MockJsonLogicEngine(successResult), streamProcessor)
         val inputStream: InputStream = "{}".byteInputStream()
 
-        `when`("on evaluation") {
-            every { streamProcessor.processTokens(any(), any()) } returns successResult
+        every { streamProcessor.processTokens(any(), any()) } returns successResult
 
+        `when`("on evaluation") {
             val result = engine.evaluate(inputStream, null)
 
             then("returns expected result") {
@@ -45,12 +44,14 @@ class StreamingJsonLogicEngineTest : BehaviorSpec({
     }
 
     given("Json logic input stream and stream processor returns null") {
+        val successResult: JsonLogicResult = JsonLogicResult.Success(true)
+        val streamProcessor: JsonLogicStreamProcessor = mockk()
         val engine = StreamingJsonLogicEngine(MockJsonLogicEngine(successResult), streamProcessor)
         val inputStream: InputStream = "{}".byteInputStream()
 
-        `when`("on evaluation") {
-            every { streamProcessor.processTokens(any(), any()) } returns null
+        every { streamProcessor.processTokens(any(), any()) } returns null
 
+        `when`("on evaluation") {
             val result = engine.evaluate(inputStream, null)
 
             then("returns null result") {
@@ -60,12 +61,14 @@ class StreamingJsonLogicEngineTest : BehaviorSpec({
     }
 
     given("Json logic input stream and stream processor throws invalid json exception") {
+        val successResult: JsonLogicResult = JsonLogicResult.Success(true)
+        val streamProcessor: JsonLogicStreamProcessor = mockk()
         val engine = StreamingJsonLogicEngine(MockJsonLogicEngine(successResult), streamProcessor)
         val inputStream: InputStream = "{}".byteInputStream()
 
-        `when`("on evaluation") {
-            every { streamProcessor.processTokens(any(), any()) } throws InvalidJsonLogicException("")
+        every { streamProcessor.processTokens(any(), any()) } throws InvalidJsonLogicException("")
 
+        `when`("on evaluation") {
             val result = engine.evaluate(inputStream, null)
 
             then("returns null result") {
@@ -75,12 +78,14 @@ class StreamingJsonLogicEngineTest : BehaviorSpec({
     }
 
     given("Json logic input stream and stream processor throws io exception") {
+        val successResult: JsonLogicResult = JsonLogicResult.Success(true)
+        val streamProcessor: JsonLogicStreamProcessor = mockk()
         val engine = StreamingJsonLogicEngine(MockJsonLogicEngine(successResult), streamProcessor)
         val inputStream: InputStream = "{}".byteInputStream()
 
-        `when`("on evaluation") {
-            every { streamProcessor.processTokens(any(), any()) } throws IOException("")
+        every { streamProcessor.processTokens(any(), any()) } throws IOException("")
 
+        `when`("on evaluation") {
             val result = engine.evaluate(inputStream, null)
 
             then("returns null result") {

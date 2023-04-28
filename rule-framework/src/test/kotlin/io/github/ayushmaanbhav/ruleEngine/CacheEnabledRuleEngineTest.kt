@@ -1,54 +1,53 @@
 package io.github.ayushmaanbhav.ruleEngine
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryContext
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryIdentifier
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryInput
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryOutput
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.datatest.withData
+import io.github.ayushmaanbhav.ruleEngine.model.*
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
+import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.slot
+import org.apache.logging.log4j.kotlin.Logging
 
-class CacheEnabledRuleEngineTest : FunSpec({
-    val cache = mockk<RuleEngineCache>()
-    val evaluator = mockk<JsonLogicEvaluator>()
-    val ruleEngine = io.github.ayushmaanbhav.ruleEngine.CacheEnabledRuleEngine(cache, evaluator)
+class CacheEnabledRuleEngineTest : DescribeSpec(), Logging {
+    private val cache = mockk<RuleEngineCache>()
+    private val evaluator = mockk<JsonLogicEvaluator>()
+    private val cacheEnabledRuleEngine = CacheEnabledRuleEngine(cache, evaluator)
+    private val rdgBuilder = slot<() -> DependencyGraph<Rule>>()
+    private val ruleBuilder = slot<(DependencyGraph<Rule>) -> List<Rule>>()
 
-    withData(
-        nameFn = { input -> "On any $input invoke cache and evaluator once" },
-        ts = listOf(
-            TestInput(
-                queryContext = QueryContext("1", listOf()),
-                queries = listOf(),
-                queryInput = QueryInput(LinkedHashMap()),
-                queryOutput = QueryOutput(LinkedHashMap())
-            ),
-            TestInput(
-                queryContext = QueryContext("2", listOf(mockk())),
-                queries = listOf(mockk(), mockk()),
-                queryInput = QueryInput(LinkedHashMap(mapOf("a" to "a1"))),
-                queryOutput = QueryOutput(LinkedHashMap(mapOf("a" to "a1", "b" to "b1")))
-            ),
-        )
-        // given
-    ) { testInput: TestInput ->
-        // when
-        every { cache.get(any(), any(), any(), any()) } returns ArrayList(testInput.queryContext!!.rules)
-        every { evaluator.evaluate(any(), any()) } returns testInput.queryOutput!!.attributes
+    init {
+        describe("evaluate") {
+            val rule1 = RuleImpl("rule1", "type-1", setOf("attribute-0"), setOf("attribute-1"), setOf("tag-1", "tag-2"))
+            val rule2 = RuleImpl("rule2", "type-1", setOf("attribute-1"), setOf("attribute-2"), setOf("tag-1", "tag-2"))
+            val rules = listOf(rule1, rule2)
+            val queryContext = QueryContext("test_context", rules)
+            val queries = listOf(Query("attribute-2", QueryType.ATTRIBUTE_PATH))
+            val queryIdentifier = QueryIdentifier("test_context", queries)
+            val queryInput = QueryInput(LinkedHashMap(mapOf("attribute-0" to "value")))
 
-        val output = ruleEngine.evaluate(testInput.queryContext, testInput.queries!!, testInput.queryInput!!)
+            it("should return expected output when cache is empty") {
+                val expectedOutput = QueryOutput(LinkedHashMap(mapOf("attribute-2" to true)))
+                every { cache.get(queryContext.identifier, queryIdentifier, capture(rdgBuilder), capture(ruleBuilder)) } answers {
+                    val rdg = rdgBuilder.captured.invoke()
+                    ruleBuilder.captured.invoke(rdg)
+                }
+                every { evaluator.evaluate(rules, queryInput.attributes) } returns LinkedHashMap(mapOf("attribute-2" to true))
 
-        // then
-        verify(exactly = 1) {
-            cache.get(testInput.queryContext.identifier,
-                QueryIdentifier(testInput.queryContext.identifier, testInput.queries), any(), any())
-            evaluator.evaluate(ArrayList(testInput.queryContext.rules), testInput.queryInput.attributes)
+                val actualOutput = cacheEnabledRuleEngine.evaluate(queryContext, queries, queryInput)
+
+                actualOutput shouldBe expectedOutput
+            }
+
+            it("should return expected output when cache is not empty") {
+                val expectedOutput = QueryOutput(LinkedHashMap(mapOf("attribute-2" to false)))
+                every { cache.get(queryContext.identifier, queryIdentifier, any(), any()) } returns rules
+                every { evaluator.evaluate(rules, queryInput.attributes) } returns LinkedHashMap(mapOf("attribute-2" to false))
+
+                val actualOutput = cacheEnabledRuleEngine.evaluate(queryContext, queries, queryInput)
+
+                actualOutput shouldBe expectedOutput
+            }
         }
-        output shouldBe testInput.queryOutput
     }
-
-    afterTest { clearAllMocks() }
-})
+}

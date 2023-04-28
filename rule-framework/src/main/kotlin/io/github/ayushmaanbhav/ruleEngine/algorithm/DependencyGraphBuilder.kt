@@ -1,10 +1,11 @@
 package io.github.ayushmaanbhav.ruleEngine.algorithm
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Node
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.DependencyGraph
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.Query
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryType
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.DependencyGraph
+import io.github.ayushmaanbhav.ruleEngine.exception.MultilpleRulesOutputAttributeException
+import io.github.ayushmaanbhav.ruleEngine.model.Query
+import io.github.ayushmaanbhav.ruleEngine.model.QueryType
 
 class DependencyGraphBuilder<R : Rule> {
     private val ruleNodes: MutableSet<Node<R>> = HashSet()
@@ -22,14 +23,22 @@ class DependencyGraphBuilder<R : Rule> {
 
     private fun buildAdjacencyList(): LinkedHashMap<Node<R>, LinkedHashSet<Node<R>>> {
         val adjacencyList = LinkedHashMap<Node<R>, LinkedHashSet<Node<R>>>()
-        val inputPathToRulesMap: MutableMap<String, MutableSet<Node<R>>> = LinkedHashMap()
+        val inputPathToRulesMap: MutableMap<String, LinkedHashSet<Node<R>>> = LinkedHashMap()
         val outputPathToRuleMap: MutableMap<String, Node<R>> = LinkedHashMap()
         ruleNodes.forEach { ruleNode: Node<R> ->
             val inputPaths = ruleNode.value.getInputAttributePaths()
             val outputPaths = ruleNode.value.getOutputAttributePaths()
-            outputPaths.forEach { outputPath: String -> outputPathToRuleMap[outputPath] = ruleNode }
+            outputPaths.forEach { outputPath: String ->
+                val existingNode = outputPathToRuleMap[outputPath]
+                if (existingNode != null) {
+                    throw MultilpleRulesOutputAttributeException(
+                        "Attribute $outputPath has multiple producers: ${existingNode.value.getId()}, ${ruleNode.value.getId()}"
+                    )
+                }
+                outputPathToRuleMap[outputPath] = ruleNode
+            }
             inputPaths.forEach { inputPath: String ->
-                inputPathToRulesMap.putIfAbsent(inputPath, HashSet())
+                inputPathToRulesMap.putIfAbsent(inputPath, LinkedHashSet())
                 inputPathToRulesMap[inputPath]!!.add(ruleNode)
             }
             adjacencyList.putIfAbsent(ruleNode, LinkedHashSet())

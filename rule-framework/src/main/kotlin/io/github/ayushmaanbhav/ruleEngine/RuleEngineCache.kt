@@ -2,10 +2,10 @@ package io.github.ayushmaanbhav.ruleEngine
 
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.CachePolicy
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.QueryIdentifier
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.Config
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.model.CachePolicy
+import io.github.ayushmaanbhav.ruleEngine.model.QueryIdentifier
+import io.github.ayushmaanbhav.ruleEngine.config.Config
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 import org.springframework.stereotype.Component
 
 @Component

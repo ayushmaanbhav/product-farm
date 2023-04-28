@@ -1,10 +1,10 @@
 package io.github.ayushmaanbhav.ruleEngine
 
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.AcyclicDirectedGraph
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.Node
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.algorithm.model.SortOrder
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.Query
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.algorithm.AcyclicDirectedGraph
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.SortOrder
+import io.github.ayushmaanbhav.ruleEngine.model.Query
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 
 class DependencyGraph<R : Rule>(
     private val ruleGraph: AcyclicDirectedGraph<R>,

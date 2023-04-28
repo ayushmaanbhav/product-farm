@@ -4,10 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.api.EvaluationEngine
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.exception.RuleEngineException
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.config.Config
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.model.rule.Rule
+import io.github.ayushmaanbhav.ruleEngine.api.EvaluationEngine
+import io.github.ayushmaanbhav.ruleEngine.exception.RuleEngineException
+import io.github.ayushmaanbhav.ruleEngine.config.Config
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 import org.apache.logging.log4j.kotlin.Logging
 import org.springframework.stereotype.Component
 

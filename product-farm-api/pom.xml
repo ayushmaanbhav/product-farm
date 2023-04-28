@@ -36,16 +36,11 @@
             <version>1.4.0</version>
         </dependency>
 
-        <!--<dependency>
-            <groupId>io.github.ayushmaanbhav</groupId>
-            <artifactId>common</artifactId>
-            <version>3.0-RELEASE</version>
-        </dependency>
         <dependency>
             <groupId>io.github.ayushmaanbhav</groupId>
-            <artifactId>metric</artifactId>
-            <version>1.2.9-RELEASE</version>
-        </dependency>-->
+            <artifactId>common</artifactId>
+            <version>0.1-RELEASE</version>
+        </dependency>
         <dependency>
             <groupId>io.github.ayushmaanbhav</groupId>
             <artifactId>rule-framework</artifactId>
@@ -141,7 +136,7 @@
                                 <rule>
                                     <limits>
                                         <limit>
-                                            <minimum>75%</minimum>
+                                            <minimum>100%</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

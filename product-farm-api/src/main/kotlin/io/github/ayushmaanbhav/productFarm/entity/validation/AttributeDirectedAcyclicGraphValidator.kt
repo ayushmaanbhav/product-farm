@@ -7,7 +7,7 @@ import io.github.ayushmaanbhav.productFarm.entity.Rule
 import io.github.ayushmaanbhav.productFarm.entity.repository.AttributeRepo
 import io.github.ayushmaanbhav.productFarm.util.RuleUtil
 import io.github.ayushmaanbhav.productFarm.util.createError
-import io.github.ayushmaanbhav.rule.domain.ruleEngine.exception.GraphContainsCycleException
+import io.github.ayushmaanbhav.ruleEngine.exception.GraphContainsCycleException
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.stereotype.Component
