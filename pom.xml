@@ -33,6 +33,7 @@
         <log4j2.version>2.17.0</log4j2.version>
         <kotest.version>5.6.1</kotest.version>
         <mockk.version>1.13.5</mockk.version>
+        <jacoco.version>0.8.10</jacoco.version>
         <sonar.java.source>17</sonar.java.source>
         <sonar.java.binaries>target/classes</sonar.java.binaries>
         <sonar.host.url>http://localhost</sonar.host.url>
