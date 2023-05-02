@@ -1,13 +1,13 @@
 package io.github.ayushmaanbhav.jsonLogic.operations.numeric.unwrap
 
-import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
-import java.math.BigDecimal
 import io.github.ayushmaanbhav.jsonLogic.config.MathContext
+import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
 import io.github.ayushmaanbhav.jsonLogic.utils.asBigDecimal
 import io.github.ayushmaanbhav.jsonLogic.utils.asList
+import io.github.ayushmaanbhav.jsonLogic.utils.setScale
 import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimal
 import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimalOrNull
-import io.github.ayushmaanbhav.jsonLogic.utils.setScale
+import java.math.BigDecimal
 
 internal interface LenientUnwrapStrategy {
     fun unwrapValueAsBigDecimal(config: StandardLogicOperationConfig, wrappedValue: Any?): List<BigDecimal?> =

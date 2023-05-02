@@ -1,10 +1,10 @@
 package io.github.ayushmaanbhav.jsonLogic.evaluation
 
+import io.github.ayushmaanbhav.jsonLogic.api.JsonLogicException
+import io.github.ayushmaanbhav.jsonLogic.config.MathContext
+import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
-import io.github.ayushmaanbhav.jsonLogic.api.JsonLogicException
-import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
-import io.github.ayushmaanbhav.jsonLogic.config.MathContext
 
 class CommonLogicEvaluatorTest : BehaviorSpec({
     val config = StandardLogicOperationConfig(MathContext.DEFAULT)

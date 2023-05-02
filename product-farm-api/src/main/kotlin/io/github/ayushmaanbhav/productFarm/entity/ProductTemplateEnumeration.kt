@@ -1,10 +1,8 @@
 package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidProductTemplateEnumeration
-import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
 import com.vladmihalcea.hibernate.type.json.JsonType
-import org.hibernate.annotations.NaturalId
-import org.hibernate.annotations.Type
+import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -12,6 +10,8 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
+import org.hibernate.annotations.Type
 
 @Entity
 @Table(

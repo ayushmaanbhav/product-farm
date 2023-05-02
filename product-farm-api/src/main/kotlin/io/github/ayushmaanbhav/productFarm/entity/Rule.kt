@@ -3,7 +3,6 @@ package io.github.ayushmaanbhav.productFarm.entity
 import ValidRule
 import io.github.ayushmaanbhav.productFarm.entity.relationship.RuleInputAttribute
 import io.github.ayushmaanbhav.productFarm.entity.relationship.RuleOutputAttribute
-import org.hibernate.annotations.NaturalId
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -12,6 +11,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
 
 @Entity
 @Table(name = "rule")

@@ -4,7 +4,6 @@ import ValidAbstractAttribute
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AbstractAttributeRelatedAttribute
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AbstractAttributeTag
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayName
-import org.hibernate.annotations.NaturalId
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -15,6 +14,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
 
 @Entity
 @Table(
@@ -48,7 +48,7 @@ data class AbstractAttribute(
     @OneToOne(cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "constraintRuleId", referencedColumnName = "id")
     val constraintRule: Rule?,
-    val immutable: Boolean,
+    var immutable: Boolean,
     val description: String?,
     val productId: String,
 ) : AbstractEntity<AbstractAttribute>(AbstractAttribute::class) {

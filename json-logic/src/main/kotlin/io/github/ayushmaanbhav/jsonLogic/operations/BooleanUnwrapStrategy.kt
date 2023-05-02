@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.jsonLogic.operations
 
-import java.math.BigInteger
 import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimal
+import java.math.BigInteger
 
 internal interface BooleanUnwrapStrategy {
     fun unwrapValueAsBoolean(wrappedValue: Any?): Boolean? = when (wrappedValue) {

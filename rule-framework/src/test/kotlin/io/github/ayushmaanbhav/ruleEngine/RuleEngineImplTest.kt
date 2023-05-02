@@ -1,6 +1,10 @@
 package io.github.ayushmaanbhav.ruleEngine
 
-import io.github.ayushmaanbhav.ruleEngine.model.*
+import io.github.ayushmaanbhav.ruleEngine.model.Query
+import io.github.ayushmaanbhav.ruleEngine.model.QueryContext
+import io.github.ayushmaanbhav.ruleEngine.model.QueryInput
+import io.github.ayushmaanbhav.ruleEngine.model.QueryOutput
+import io.github.ayushmaanbhav.ruleEngine.model.QueryType
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every

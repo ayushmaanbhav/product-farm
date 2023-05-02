@@ -3,11 +3,9 @@ package io.github.ayushmaanbhav.productFarm.entity
 import ValidAttribute
 import ValidAttributeDirectedAcyclicGraph
 import com.fasterxml.jackson.databind.JsonNode
+import com.vladmihalcea.hibernate.type.json.JsonType
 import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayName
-import com.vladmihalcea.hibernate.type.json.JsonType
-import org.hibernate.annotations.NaturalId
-import org.hibernate.annotations.Type
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -20,6 +18,8 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
+import org.hibernate.annotations.Type
 
 @Entity
 @Table(name = "attribute")

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ProductTemplateEnumerationTransformer :
-    Transformer<ProductTemplateEnumeration, Pair<ProductTemplateEnumerationDto, ProductTemplateType>>() {
+    Transformer<ProductTemplateEnumeration, Pair<ProductTemplateEnumerationDto, ProductTemplateType>> {
     
     override fun forward(input: ProductTemplateEnumeration) =
         Pair(

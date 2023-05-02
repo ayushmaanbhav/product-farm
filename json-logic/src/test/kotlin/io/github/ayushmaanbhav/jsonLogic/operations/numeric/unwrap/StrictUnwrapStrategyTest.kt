@@ -1,11 +1,11 @@
 package io.github.ayushmaanbhav.jsonLogic.operations.numeric.unwrap
 
+import io.github.ayushmaanbhav.jsonLogic.config.MathContext
 import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
+import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimalDefaultContext
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.github.ayushmaanbhav.jsonLogic.config.MathContext
-import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimalDefaultContext
 
 class StrictUnwrapStrategyTest : BehaviorSpec({
     val config = StandardLogicOperationConfig(MathContext.DEFAULT)

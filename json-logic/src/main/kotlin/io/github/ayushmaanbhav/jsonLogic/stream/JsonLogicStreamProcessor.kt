@@ -11,7 +11,7 @@ import io.github.ayushmaanbhav.jsonLogic.utils.getValueFromJsonLogicResult
 import io.github.ayushmaanbhav.jsonLogic.utils.type.JsonObject
 import io.github.ayushmaanbhav.jsonLogic.utils.type.LinkList
 import io.github.ayushmaanbhav.jsonLogic.utils.type.MutablePair
-import java.util.LinkedList
+import java.util.*
 
 internal class JsonLogicStreamProcessor(private val streamProcessingConfig: StreamProcessingConfig) {
     fun processTokens(parser: JsonParser, evaluate: (Map<String, Any?>) -> JsonLogicResult): Any? {

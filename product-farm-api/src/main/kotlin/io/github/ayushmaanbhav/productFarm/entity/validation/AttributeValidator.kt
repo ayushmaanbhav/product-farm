@@ -2,11 +2,12 @@ package io.github.ayushmaanbhav.productFarm.entity.validation
 
 import ValidAttribute
 import com.fasterxml.jackson.databind.JsonNode
-import io.github.ayushmaanbhav.common.model.response.ErrorDetail
 import io.github.ayushmaanbhav.common.exception.ValidatorException
+import io.github.ayushmaanbhav.common.model.response.ErrorDetail
 import io.github.ayushmaanbhav.productFarm.constant.AttributeRelationshipType
-import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType.DYNAMIC
-import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType.STATIC
+import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType.FIXED_VALUE
+import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType.JUST_DEFINITION
+import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType.RULE_DRIVEN
 import io.github.ayushmaanbhav.productFarm.constant.Constant
 import io.github.ayushmaanbhav.productFarm.constant.DatatypeType.ARRAY
 import io.github.ayushmaanbhav.productFarm.constant.DatatypeType.BOOLEAN
@@ -23,11 +24,11 @@ import io.github.ayushmaanbhav.productFarm.transformer.RuleTransformer
 import io.github.ayushmaanbhav.productFarm.util.RuleUtil
 import io.github.ayushmaanbhav.productFarm.util.createError
 import io.github.ayushmaanbhav.productFarm.util.populateProperty
+import jakarta.validation.ConstraintValidator
+import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import jakarta.validation.ConstraintValidator
-import jakarta.validation.ConstraintValidatorContext
 import kotlin.reflect.full.memberProperties
 
 @Component
@@ -70,8 +71,9 @@ class AttributeValidator(
     private fun isValidType(attribute: Attribute): ErrorDetail? = createError()
         .takeUnless {
             when (attribute.type) {
-                STATIC -> attribute.value != null && attribute.rule == null
-                DYNAMIC -> attribute.value == null && attribute.rule != null
+                FIXED_VALUE -> attribute.value != null && attribute.rule == null
+                RULE_DRIVEN -> attribute.value == null && attribute.rule != null
+                JUST_DEFINITION -> attribute.value == null && attribute.rule == null
             }
         }
 
@@ -136,9 +138,10 @@ class AttributeValidator(
 
     private fun getAllPossibleRelatedAttributeValueNodes(relatedAttribute: Attribute): Collection<JsonNode> =
         when (relatedAttribute.type) {
-            STATIC -> relatedAttribute.value?.let { listOf(it) } ?: listOf()
-            DYNAMIC -> relatedAttribute.rule
+            FIXED_VALUE -> relatedAttribute.value?.let { listOf(it) } ?: listOf()
+            RULE_DRIVEN -> relatedAttribute.rule
                 ?.let { rule -> getAllPossibleOutputs(ruleTransformer.forward(rule), relatedAttribute.path) } ?: listOf()
+            JUST_DEFINITION -> listOf()
         }
 
     private fun isValidEnumerationIfPresent(attribute: Attribute, attributeValue: JsonNode): Boolean =

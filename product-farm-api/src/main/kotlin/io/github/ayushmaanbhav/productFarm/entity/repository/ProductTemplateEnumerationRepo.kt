@@ -2,9 +2,9 @@ package io.github.ayushmaanbhav.productFarm.entity.repository
 
 import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
 import io.github.ayushmaanbhav.productFarm.entity.ProductTemplateEnumeration
+import java.util.*
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
-import java.util.*
 
 @Repository
 interface ProductTemplateEnumerationRepo : JpaRepository<ProductTemplateEnumeration, String> {

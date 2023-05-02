@@ -1,12 +1,12 @@
 package io.github.ayushmaanbhav.jsonLogic
 
 import io.github.ayushmaanbhav.jsonLogic.api.LogicEvaluator
-import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeTypeOf
 import io.github.ayushmaanbhav.jsonLogic.api.operation.FunctionalLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.api.operation.StandardLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
+import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeTypeOf
 
 class JsonLogicEngineTest : BehaviorSpec({
 

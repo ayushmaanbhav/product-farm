@@ -4,7 +4,6 @@ import io.github.ayushmaanbhav.jsonLogic.stream.InvalidJsonLogicException
 import io.github.ayushmaanbhav.jsonLogic.stream.JsonLogicStreamProcessor
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import java.io.IOException

@@ -7,11 +7,10 @@ import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
 import io.github.ayushmaanbhav.ruleEngine.config.Config
 import io.github.ayushmaanbhav.ruleEngine.exception.RuleEngineException
 import io.kotest.assertions.throwables.shouldThrow
-import io.mockk.*
-import io.mockk.verifySequence
-import io.mockk.every
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.every
+import io.mockk.mockk
 
 class JsonLogicEvaluatorTest : BehaviorSpec({
     given("a JsonLogicEvaluator instance 1") {

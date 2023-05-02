@@ -1,9 +1,9 @@
 package io.github.ayushmaanbhav.jsonLogic.operations.string
 
-import java.math.BigDecimal
 import io.github.ayushmaanbhav.jsonLogic.utils.asList
 import io.github.ayushmaanbhav.jsonLogic.utils.isWhole
 import io.github.ayushmaanbhav.jsonLogic.utils.toStringOrEmpty
+import java.math.BigDecimal
 
 internal interface StringUnwrapStrategy {
     fun unwrapValueAsString(wrappedValue: Any?): List<String> = wrappedValue.asList.map(::stringify)

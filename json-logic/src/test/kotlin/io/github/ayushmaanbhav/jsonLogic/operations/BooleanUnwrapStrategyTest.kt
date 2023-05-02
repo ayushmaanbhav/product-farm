@@ -1,6 +1,5 @@
 package io.github.ayushmaanbhav.jsonLogic.operations
 
-import io.github.ayushmaanbhav.jsonLogic.operations.BooleanUnwrapStrategy
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 

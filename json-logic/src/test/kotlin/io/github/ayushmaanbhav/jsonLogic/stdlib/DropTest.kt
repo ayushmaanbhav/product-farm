@@ -3,10 +3,10 @@ package io.github.ayushmaanbhav.jsonLogic.stdlib
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult.Failure
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult.Success
+import io.github.ayushmaanbhav.jsonLogic.stdlib.string.Lowercase
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
-import io.github.ayushmaanbhav.jsonLogic.stdlib.string.Lowercase
 
 class DropTest : FunSpec({
     val operatorName = "drop"

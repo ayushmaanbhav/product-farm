@@ -1,8 +1,8 @@
 package io.github.ayushmaanbhav.jsonLogic.operations.array.occurence
 
 import io.github.ayushmaanbhav.jsonLogic.api.LogicEvaluator
-import io.github.ayushmaanbhav.jsonLogic.operations.array.NoInitialValueOperation
 import io.github.ayushmaanbhav.jsonLogic.operations.array.ArrayOperationInputData
+import io.github.ayushmaanbhav.jsonLogic.operations.array.NoInitialValueOperation
 import io.github.ayushmaanbhav.jsonLogic.operations.logic.unwrap.TruthyUnwrapStrategy
 
 internal interface OccurrenceCheckOperation : NoInitialValueOperation, TruthyUnwrapStrategy {

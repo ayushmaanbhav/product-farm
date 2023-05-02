@@ -11,7 +11,7 @@ import io.github.ayushmaanbhav.jsonLogic.utils.type.JsonStruct
 import io.github.ayushmaanbhav.jsonLogic.utils.type.JsonValue
 import io.github.ayushmaanbhav.jsonLogic.utils.type.LinkList
 import io.github.ayushmaanbhav.jsonLogic.utils.type.MutablePair
-import java.util.LinkedList
+import java.util.*
 
 internal fun getCurrentValueFromJsonParser(parser: JsonParser): Any? {
     return when (parser.currentToken) {

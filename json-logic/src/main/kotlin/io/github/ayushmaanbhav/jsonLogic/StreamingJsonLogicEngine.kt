@@ -1,10 +1,8 @@
 package io.github.ayushmaanbhav.jsonLogic
 
 import com.fasterxml.jackson.core.JsonFactory
-import io.github.ayushmaanbhav.jsonLogic.config.StreamProcessingConfig
 import io.github.ayushmaanbhav.jsonLogic.stream.InvalidJsonLogicException
 import io.github.ayushmaanbhav.jsonLogic.stream.JsonLogicStreamProcessor
-
 import java.io.InputStream
 
 internal class StreamingJsonLogicEngine(

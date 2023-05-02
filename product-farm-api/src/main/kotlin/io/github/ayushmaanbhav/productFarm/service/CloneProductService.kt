@@ -1,9 +1,8 @@
 package io.github.ayushmaanbhav.productFarm.service
 
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CloneProductRequest
-import io.github.ayushmaanbhav.productFarm.entity.repository.ProductFunctionalityRepo
-import org.springframework.stereotype.Component
 import jakarta.transaction.Transactional
+import org.springframework.stereotype.Component
 
 @Component
 class CloneProductService(

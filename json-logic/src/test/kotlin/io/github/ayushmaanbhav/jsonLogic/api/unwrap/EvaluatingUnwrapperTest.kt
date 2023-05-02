@@ -1,7 +1,6 @@
 package io.github.ayushmaanbhav.jsonLogic.api.unwrap
 
 import io.github.ayushmaanbhav.jsonLogic.api.LogicEvaluator
-import io.github.ayushmaanbhav.jsonLogic.api.unwrap.EvaluatingUnwrapper
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 

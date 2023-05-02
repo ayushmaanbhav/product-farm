@@ -5,7 +5,7 @@ import io.github.ayushmaanbhav.productFarm.entity.Datatype
 import org.springframework.stereotype.Component
 
 @Component
-class DatatypeTransformer : Transformer<Datatype, DatatypeDto>() {
+class DatatypeTransformer : Transformer<Datatype, DatatypeDto> {
     
     override fun forward(input: Datatype): DatatypeDto =
         DatatypeDto(name = input.name, type = input.type, description = input.description)

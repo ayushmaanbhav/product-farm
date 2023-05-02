@@ -1,6 +1,5 @@
 package io.github.ayushmaanbhav.jsonLogic
 
-import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
 import io.kotest.matchers.shouldBe
 
 infix fun JsonLogicResult.valueShouldBe(other: JsonLogicResult) {

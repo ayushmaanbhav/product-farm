@@ -1,7 +1,5 @@
 package io.github.ayushmaanbhav.jsonLogic.operations.logic.unwrap
 
-import io.github.ayushmaanbhav.jsonLogic.operations.logic.unwrap.SingleNestedValue
-import io.github.ayushmaanbhav.jsonLogic.operations.logic.unwrap.SingleNestedValueUnwrapStrategy
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 

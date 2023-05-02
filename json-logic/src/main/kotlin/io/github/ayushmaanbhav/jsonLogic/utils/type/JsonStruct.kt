@@ -1,7 +1,6 @@
 package io.github.ayushmaanbhav.jsonLogic.utils.type
 
 import java.util.*
-import kotlin.collections.LinkedHashMap
 
 internal sealed class JsonStruct(open val value: Any?)
 

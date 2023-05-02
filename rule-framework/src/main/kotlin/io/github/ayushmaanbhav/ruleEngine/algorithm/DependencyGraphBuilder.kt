@@ -1,11 +1,11 @@
 package io.github.ayushmaanbhav.ruleEngine.algorithm
 
-import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
-import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 import io.github.ayushmaanbhav.ruleEngine.DependencyGraph
+import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
 import io.github.ayushmaanbhav.ruleEngine.exception.MultilpleRulesOutputAttributeException
 import io.github.ayushmaanbhav.ruleEngine.model.Query
 import io.github.ayushmaanbhav.ruleEngine.model.QueryType
+import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
 
 class DependencyGraphBuilder<R : Rule> {
     private val ruleNodes: MutableSet<Node<R>> = HashSet()

@@ -1,8 +1,8 @@
 package io.github.ayushmaanbhav.jsonLogic.operations.numeric
 
-import java.math.BigDecimal
 import io.github.ayushmaanbhav.jsonLogic.config.MathContext
 import io.github.ayushmaanbhav.jsonLogic.utils.asBigDecimalList
+import java.math.BigDecimal
 
 internal interface BigDecimalTypeSensitiveOperation {
     fun bigDecimalResultOrNull(

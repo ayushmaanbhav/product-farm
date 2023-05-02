@@ -1,11 +1,11 @@
 package io.github.ayushmaanbhav.jsonLogic
 
-import io.github.ayushmaanbhav.jsonLogic.evaluation.CommonLogicEvaluator
-import io.github.ayushmaanbhav.jsonLogic.evaluation.LogicOperations
 import io.github.ayushmaanbhav.jsonLogic.api.operation.FunctionalLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.api.operation.StandardLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
 import io.github.ayushmaanbhav.jsonLogic.config.StreamProcessingConfig
+import io.github.ayushmaanbhav.jsonLogic.evaluation.CommonLogicEvaluator
+import io.github.ayushmaanbhav.jsonLogic.evaluation.LogicOperations
 import io.github.ayushmaanbhav.jsonLogic.operations.In
 import io.github.ayushmaanbhav.jsonLogic.operations.Log
 import io.github.ayushmaanbhav.jsonLogic.operations.array.Filter

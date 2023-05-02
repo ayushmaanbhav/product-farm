@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 class RuleTransformer(
     private val objectMapper: ObjectMapper,
     private val ruleUtil: RuleUtil,
-) : Transformer<Rule, io.github.ayushmaanbhav.productFarm.model.Rule>() {
+) : Transformer<Rule, io.github.ayushmaanbhav.productFarm.model.Rule> {
     
     override fun forward(input: Rule) =
         io.github.ayushmaanbhav.productFarm.model.Rule(

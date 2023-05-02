@@ -1,8 +1,8 @@
 package io.github.ayushmaanbhav.jsonLogic.utils
 
-import java.math.BigDecimal
 import io.github.ayushmaanbhav.jsonLogic.config.MathContext
 import io.github.ayushmaanbhav.jsonLogic.utils.type.JsonLogicList
+import java.math.BigDecimal
 
 val Any?.asList: List<Any?>
     get() = (this as? List<*>)?.let {

@@ -9,11 +9,11 @@ import io.github.ayushmaanbhav.productFarm.transformer.RuleTransformer
 import io.github.ayushmaanbhav.productFarm.util.RuleUtil
 import io.github.ayushmaanbhav.productFarm.util.createError
 import io.github.ayushmaanbhav.ruleEngine.exception.GraphContainsCycleException
+import jakarta.validation.ConstraintValidator
+import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.stereotype.Component
-import jakarta.validation.ConstraintValidator
-import jakarta.validation.ConstraintValidatorContext
 
 @Component
 class AttributeDirectedAcyclicGraphValidator(

@@ -3,9 +3,9 @@ package io.github.ayushmaanbhav.jsonLogic.operations.logic
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
 import io.github.ayushmaanbhav.jsonLogic.stdlib.TestInput
+import io.github.ayushmaanbhav.jsonLogic.valueShouldBe
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
-import io.github.ayushmaanbhav.jsonLogic.valueShouldBe
 
 class NegationTest : FunSpec({
     val logicEngine = JsonLogicEngine.Builder().build()

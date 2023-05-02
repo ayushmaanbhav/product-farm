@@ -3,13 +3,12 @@ package io.github.ayushmaanbhav.productFarm.transformer
 import io.github.ayushmaanbhav.productFarm.api.attribute.dto.GetAbstractAttributeResponse
 import io.github.ayushmaanbhav.productFarm.constant.DisplayNameFormat.HUMAN
 import io.github.ayushmaanbhav.productFarm.entity.AbstractAttribute
-import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
 import org.springframework.stereotype.Component
 
 @Component
 class GetAbstractAttributeTransformer(
     private val getRuleTransformer: GetRuleTransformer,
-) : Transformer<AbstractAttribute, GetAbstractAttributeResponse>() {
+) : OneWayTransformer<AbstractAttribute, GetAbstractAttributeResponse> {
     
     override fun forward(input: AbstractAttribute) =
         GetAbstractAttributeResponse(
@@ -26,7 +25,4 @@ class GetAbstractAttributeTransformer(
             immutable = input.immutable,
             description = input.description,
         )
-    
-    override fun reverse(input: GetAbstractAttributeResponse) =
-        throw ProductFarmServiceException("Operation not supported")
 }

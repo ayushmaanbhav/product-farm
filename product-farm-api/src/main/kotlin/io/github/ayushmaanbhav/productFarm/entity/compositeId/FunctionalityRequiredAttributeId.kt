@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.entity.compositeId
 
-import java.io.Serializable
 import jakarta.persistence.Embeddable
+import java.io.Serializable
 
 @Embeddable
 data class FunctionalityRequiredAttributeId(

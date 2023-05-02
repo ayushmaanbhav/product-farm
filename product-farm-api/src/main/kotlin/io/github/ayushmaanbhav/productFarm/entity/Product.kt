@@ -3,13 +3,13 @@ package io.github.ayushmaanbhav.productFarm.entity
 import ValidProduct
 import io.github.ayushmaanbhav.productFarm.constant.ProductStatus
 import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
-import org.hibernate.annotations.NaturalId
-import java.time.LocalDateTime
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.LocalDateTime
+import org.hibernate.annotations.NaturalId
 
 @Entity
 @Table(name = "product")

@@ -2,11 +2,10 @@ package io.github.ayushmaanbhav.productFarm.transformer
 
 import io.github.ayushmaanbhav.productFarm.api.product.dto.GetProductResponse
 import io.github.ayushmaanbhav.productFarm.entity.Product
-import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
 import org.springframework.stereotype.Component
 
 @Component
-class GetProductTransformer : Transformer<Product, GetProductResponse>() {
+class GetProductTransformer : OneWayTransformer<Product, GetProductResponse> {
     
     override fun forward(input: Product) =
         GetProductResponse(
@@ -18,6 +17,4 @@ class GetProductTransformer : Transformer<Product, GetProductResponse>() {
             templateType = input.templateType,
             description = input.description,
         )
-    
-    override fun reverse(input: GetProductResponse) = throw ProductFarmServiceException("Operation not supported")
 }

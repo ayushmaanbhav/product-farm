@@ -3,7 +3,6 @@ package io.github.ayushmaanbhav.productFarm.entity
 import ValidProductFunctionality
 import io.github.ayushmaanbhav.productFarm.constant.ProductFunctionalityStatus
 import io.github.ayushmaanbhav.productFarm.entity.relationship.FunctionalityRequiredAttribute
-import org.hibernate.annotations.NaturalId
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -13,6 +12,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
 
 @Entity
 @Table(
@@ -32,7 +32,7 @@ data class ProductFunctionality(
     @JoinColumn(name = "functionalityId", referencedColumnName = "id")
     @OrderBy("`order`")
     val requiredAttributes: List<FunctionalityRequiredAttribute>,
-    val status: ProductFunctionalityStatus,
+    var status: ProductFunctionalityStatus,
 ) : AbstractEntity<ProductFunctionality>(ProductFunctionality::class) {
     override fun equals(other: Any?) = super.equals(other)
     override fun hashCode() = super.hashCode()

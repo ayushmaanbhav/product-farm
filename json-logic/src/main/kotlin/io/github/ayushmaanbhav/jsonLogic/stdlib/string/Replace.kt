@@ -2,7 +2,6 @@ package io.github.ayushmaanbhav.jsonLogic.stdlib.string
 
 import io.github.ayushmaanbhav.jsonLogic.api.operation.StandardLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
-import kotlin.runCatching
 import io.github.ayushmaanbhav.jsonLogic.utils.asList
 
 object Replace: StandardLogicOperation, StringUnwrapStrategy {

@@ -3,10 +3,10 @@ package io.github.ayushmaanbhav.jsonLogic.stdlib.string
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult.Failure
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult.Success
+import io.github.ayushmaanbhav.jsonLogic.stdlib.TestInput
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
-import io.github.ayushmaanbhav.jsonLogic.stdlib.TestInput
 
 class MatchTest : FunSpec({
     val operatorName = "match"

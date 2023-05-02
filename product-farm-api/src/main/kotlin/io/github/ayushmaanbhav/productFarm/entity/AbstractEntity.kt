@@ -1,15 +1,15 @@
 package io.github.ayushmaanbhav.productFarm.entity
 
-import org.hibernate.annotations.CreationTimestamp
-import org.hibernate.annotations.UpdateTimestamp
-import org.springframework.data.util.ProxyUtils
-import java.time.LocalDateTime
-import java.util.*
 import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Id
 import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.Transient
 import jakarta.persistence.Version
+import java.time.LocalDateTime
+import java.util.*
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.UpdateTimestamp
+import org.springframework.data.util.ProxyUtils
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 import kotlin.reflect.full.memberProperties

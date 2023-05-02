@@ -3,9 +3,9 @@ package io.github.ayushmaanbhav.productFarm.api.product
 import io.github.ayushmaanbhav.common.model.response.GenericResponse
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CloneProductRequest
 import io.github.ayushmaanbhav.productFarm.api.product.dto.CreateProductRequest
+import io.github.ayushmaanbhav.productFarm.api.product.dto.GetProductResponse
 import io.github.ayushmaanbhav.productFarm.api.product.dto.ProductApprovalRequest
 import io.github.ayushmaanbhav.productFarm.api.product.dto.ProductApprovalResponse
-import io.github.ayushmaanbhav.productFarm.api.product.dto.GetProductResponse
 import io.github.ayushmaanbhav.productFarm.api.product.dto.SubmitProductResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

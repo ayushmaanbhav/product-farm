@@ -1,12 +1,10 @@
 package io.github.ayushmaanbhav.productFarm.transformer
 
 import io.github.ayushmaanbhav.productFarm.api.attribute.dto.CreateAttributeRequest
-import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType
 import io.github.ayushmaanbhav.productFarm.entity.Attribute
 import io.github.ayushmaanbhav.productFarm.entity.compositeId.AttributeDisplayNameId
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayName
 import io.github.ayushmaanbhav.productFarm.entity.repository.AbstractAttributeRepo
-import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
 import io.github.ayushmaanbhav.productFarm.util.dissectAttributeDisplayName
 import io.github.ayushmaanbhav.productFarm.util.generateDisplayNames
 import io.github.ayushmaanbhav.productFarm.util.generatePath
@@ -16,7 +14,7 @@ import org.springframework.stereotype.Component
 class CreateAttributeTransformer(
     private val createRuleTransformer: CreateRuleTransformer,
     private val abstractAttributeRepo: AbstractAttributeRepo,
-) : Transformer<Pair<String, CreateAttributeRequest>, Attribute>() {
+) : OneWayTransformer<Pair<String, CreateAttributeRequest>, Attribute> {
     
     override fun forward(input: Pair<String, CreateAttributeRequest>): Attribute {
         val productId = input.first
@@ -43,12 +41,10 @@ class CreateAttributeTransformer(
                 )
             },
             abstractAttribute = abstractAttribute,
-            type = request.value?.let { AttributeValueType.STATIC } ?: AttributeValueType.DYNAMIC,
+            type = request.type,
             value = request.value,
             rule = request.rule?.let { createRuleTransformer.forward(it) },
             productId = productId
         )
     }
-    
-    override fun reverse(input: Attribute) = throw ProductFarmServiceException("Operation not supported")
 }

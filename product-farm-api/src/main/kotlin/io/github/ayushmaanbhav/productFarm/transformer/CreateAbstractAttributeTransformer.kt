@@ -12,7 +12,6 @@ import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayN
 import io.github.ayushmaanbhav.productFarm.entity.repository.DatatypeRepo
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductRepo
 import io.github.ayushmaanbhav.productFarm.entity.repository.ProductTemplateEnumerationRepo
-import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
 import io.github.ayushmaanbhav.productFarm.util.generateDisplayNames
 import io.github.ayushmaanbhav.productFarm.util.generatePath
 import io.github.ayushmaanbhav.productFarm.util.getComponentId
@@ -25,7 +24,7 @@ class CreateAbstractAttributeTransformer(
     private val productRepo: ProductRepo,
     private val enumerationRepo: ProductTemplateEnumerationRepo,
     private val createRuleTransformer: CreateRuleTransformer,
-) : Transformer<Pair<String, CreateAbstractAttributeRequest>, AbstractAttribute>() {
+) : OneWayTransformer<Pair<String, CreateAbstractAttributeRequest>, AbstractAttribute> {
     
     override fun forward(input: Pair<String, CreateAbstractAttributeRequest>): AbstractAttribute {
         val productId = input.first
@@ -83,6 +82,4 @@ class CreateAbstractAttributeTransformer(
             productId = productId,
         )
     }
-    
-    override fun reverse(input: AbstractAttribute) = throw ProductFarmServiceException("Operation not supported")
 }

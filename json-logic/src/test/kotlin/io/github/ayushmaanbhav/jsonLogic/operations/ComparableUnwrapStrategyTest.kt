@@ -1,10 +1,9 @@
 package io.github.ayushmaanbhav.jsonLogic.operations
 
-import io.github.ayushmaanbhav.jsonLogic.operations.ComparableUnwrapStrategy
+import io.github.ayushmaanbhav.jsonLogic.utils.type.JsonLogicList
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import java.math.BigDecimal
-import io.github.ayushmaanbhav.jsonLogic.utils.type.JsonLogicList
 
 class ComparableUnwrapStrategyTest : BehaviorSpec({
     val strategyImplementation: ComparableUnwrapStrategy = object : ComparableUnwrapStrategy {}

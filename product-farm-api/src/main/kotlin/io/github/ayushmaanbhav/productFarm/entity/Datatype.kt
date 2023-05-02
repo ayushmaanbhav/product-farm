@@ -2,12 +2,12 @@ package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidDatatype
 import io.github.ayushmaanbhav.productFarm.constant.DatatypeType
-import org.hibernate.annotations.NaturalId
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
 
 @Entity
 @Table(name = "datatype")

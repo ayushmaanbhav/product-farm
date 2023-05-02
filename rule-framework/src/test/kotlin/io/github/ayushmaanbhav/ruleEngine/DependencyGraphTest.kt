@@ -13,7 +13,6 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlin.collections.LinkedHashSet
 
 class DependencyGraphTest : FunSpec({
     val ruleGraph = mockk<AcyclicDirectedGraph<Rule>>()

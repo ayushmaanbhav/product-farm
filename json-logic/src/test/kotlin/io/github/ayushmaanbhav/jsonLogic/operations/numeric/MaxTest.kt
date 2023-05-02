@@ -3,10 +3,10 @@ package io.github.ayushmaanbhav.jsonLogic.operations.numeric
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicEngine
 import io.github.ayushmaanbhav.jsonLogic.JsonLogicResult
 import io.github.ayushmaanbhav.jsonLogic.stdlib.TestInput
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.datatest.withData
 import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimalDefaultContext
 import io.github.ayushmaanbhav.jsonLogic.valueShouldBe
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 
 class MaxTest : FunSpec({
     val logicEngine = JsonLogicEngine.Builder().build()

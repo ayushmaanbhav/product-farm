@@ -2,8 +2,8 @@ package io.github.ayushmaanbhav.jsonLogic.operations.numeric
 
 import io.github.ayushmaanbhav.jsonLogic.api.operation.StandardLogicOperation
 import io.github.ayushmaanbhav.jsonLogic.config.StandardLogicOperationConfig
-import java.math.BigDecimal
 import io.github.ayushmaanbhav.jsonLogic.operations.numeric.unwrap.LenientUnwrapStrategy
+import java.math.BigDecimal
 
 internal object Subtraction : StandardLogicOperation, LenientUnwrapStrategy {
     override fun evaluateLogic(config: StandardLogicOperationConfig, expression: Any?, data: Any?) =

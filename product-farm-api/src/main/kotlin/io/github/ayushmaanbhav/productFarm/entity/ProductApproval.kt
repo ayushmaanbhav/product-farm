@@ -1,10 +1,10 @@
 package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidProductApproval
-import org.hibernate.annotations.NaturalId
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.NaturalId
 
 @Entity
 @Table(name = "product_approval")

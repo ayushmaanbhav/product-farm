@@ -1,9 +1,9 @@
 package io.github.ayushmaanbhav.jsonLogic.stdlib.format
 
-import java.math.BigDecimal
 import io.github.ayushmaanbhav.jsonLogic.utils.asList
 import io.github.ayushmaanbhav.jsonLogic.utils.secondOrNull
 import io.github.ayushmaanbhav.jsonLogic.utils.toBigDecimalOrNull
+import java.math.BigDecimal
 
 internal interface DecimalFormatter {
     fun formatDecimal(
