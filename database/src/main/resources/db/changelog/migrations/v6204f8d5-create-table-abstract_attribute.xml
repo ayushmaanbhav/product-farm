@@ -144,6 +144,7 @@
         <createIndex tableName="abstract_attribute_tag"
                      indexName="abstract_attribute_tag_product_id_tag">
             <column name="product_id"/>
+            <column name="tag"/>
         </createIndex>
         <sql>
             CREATE UNIQUE INDEX

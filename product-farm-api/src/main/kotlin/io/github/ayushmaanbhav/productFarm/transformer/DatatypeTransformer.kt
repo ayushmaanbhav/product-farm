@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 class DatatypeTransformer : Transformer<Datatype, DatatypeDto>() {
     
     override fun forward(input: Datatype): DatatypeDto =
-            DatatypeDto(name = input.name, type = input.type, description = input.description)
+        DatatypeDto(name = input.name, type = input.type, description = input.description)
     
     override fun reverse(input: DatatypeDto): Datatype =
         Datatype(name = input.name, type = input.type, description = input.description)

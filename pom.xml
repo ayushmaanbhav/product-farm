@@ -13,6 +13,7 @@
 
     <modules>
         <module>database</module>
+        <module>kv-store</module>
         <module>product-farm-api</module>
         <module>rule-framework</module>
         <module>json-logic</module>

@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface AbstractAttributeTagRepo : JpaRepository<AbstractAttributeTag, AbstractAttributeTagId>
+interface AbstractAttributeTagRepo : JpaRepository<AbstractAttributeTag, AbstractAttributeTagId>  {
+    fun getByProductIdAndTag(productId: String, tag: String): List<AbstractAttributeTag>
+}

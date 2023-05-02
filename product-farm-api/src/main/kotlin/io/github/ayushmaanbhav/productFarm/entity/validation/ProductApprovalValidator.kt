@@ -54,7 +54,7 @@ class ProductApprovalValidator(
             errorDetail?.let { errorList.add(populateProperty(it, property)) }
         }
         if (errorList.isNotEmpty()) {
-            log.info("Error: ", errorList)
+            log.info("Error: $errorList")
             throw ValidatorException(HttpStatus.BAD_REQUEST.value(), errorList)
         }
         return true

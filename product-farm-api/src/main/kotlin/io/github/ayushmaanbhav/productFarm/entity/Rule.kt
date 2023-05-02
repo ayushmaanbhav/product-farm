@@ -31,15 +31,7 @@ data class Rule(
     val displayExpressionVersion: String,
     val compiledExpression: String,
     val description: String?,
-) : AbstractEntity<Rule>(Rule::class), io.github.ayushmaanbhav.ruleEngine.model.rule.Rule {
+) : AbstractEntity<Rule>(Rule::class) {
     override fun equals(other: Any?) = super.equals(other)
     override fun hashCode() = super.hashCode()
-
-    // implements rule interface for checking acyclic graph
-    override fun getId(): String = id
-    override fun ruleType(): String = type
-    override fun getInputAttributePaths(): Set<String> = inputAttributes.map { it.id.path }.toSet()
-    override fun getOutputAttributePaths(): Set<String> = outputAttributes.map { it.id.path }.toSet()
-    override fun getTags(): Set<String> = emptySet()
-    override fun getExpression(): String = compiledExpression
 }

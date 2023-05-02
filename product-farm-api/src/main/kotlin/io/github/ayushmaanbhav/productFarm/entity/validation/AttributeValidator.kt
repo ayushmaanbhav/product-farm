@@ -15,6 +15,7 @@ import io.github.ayushmaanbhav.productFarm.constant.DatatypeType.NUMBER
 import io.github.ayushmaanbhav.productFarm.constant.DatatypeType.OBJECT
 import io.github.ayushmaanbhav.productFarm.constant.DatatypeType.STRING
 import io.github.ayushmaanbhav.productFarm.entity.Attribute
+import io.github.ayushmaanbhav.productFarm.entity.relationship.AbstractAttributeRelatedAttribute
 import io.github.ayushmaanbhav.productFarm.entity.repository.AttributeRepo
 import io.github.ayushmaanbhav.productFarm.exception.ProductFarmServiceException
 import io.github.ayushmaanbhav.productFarm.model.Rule
@@ -43,51 +44,13 @@ class AttributeValidator(
         val errorList = mutableListOf<ErrorDetail>()
         for (property in Attribute::class.memberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
-                Attribute::abstractAttribute ->
-                    createError()
-                        .takeUnless { abstractAttributeValidator.isValid(attribute.abstractAttribute, cxt) }
-                        .takeUnless {
-                            attribute.abstractAttribute.componentId?.let(Constant.COMPONENT_ID_REGEX::matches) ?: false
-                        }
-                Attribute::displayNames ->
-                    createError()
-                        .takeUnless {
-                            attribute.displayNames.all {
-                                it.id.displayName.let(Constant.DISPLAY_NAME_REGEX::matches)
-                            }
-                        }
-                Attribute::path ->
-                    createError()
-                        .takeUnless { attribute.path.let(Constant.PATH_REGEX::matches) }
+                Attribute::abstractAttribute -> isValidAbstractAttribute(attribute, cxt)
+                Attribute::displayNames -> isValidDisplayNames(attribute)
+                Attribute::path -> createError().takeUnless { attribute.path.let(Constant.PATH_REGEX::matches) }
                 Attribute::productId -> null // fk
-                Attribute::rule ->
-                    createError()
-                        .takeUnless {
-                            attribute.rule?.let { rule -> ruleValidator.isValid(rule, cxt) } ?: true
-                        }
-                        .takeUnless {
-                            attribute.rule?.let { rule ->
-                                getAllPossibleOutputs(ruleTransformer.forward(rule), attribute.path)
-                            }?.all { possibleOutput ->
-                                isValidAttributeValue(attribute, possibleOutput)
-                            } ?: true
-                        }
-                        .takeUnless { attributeGraphValidator.isValid(attribute, cxt) }
-                Attribute::type ->
-                    createError()
-                        .takeUnless {
-                            when (attribute.type) {
-                                STATIC -> attribute.value != null && attribute.rule == null
-                                DYNAMIC -> attribute.value == null && attribute.rule != null
-                            }
-                        }
-                Attribute::value ->
-                    createError()
-                        .takeUnless {
-                            attribute.value?.let { attributeValue ->
-                                isValidAttributeValue(attribute, attributeValue)
-                            } ?: true
-                        }
+                Attribute::rule -> idValidRule(attribute, cxt)
+                Attribute::type -> isValidType(attribute)
+                Attribute::value -> isValidValue(attribute)
                 else -> throw ProductFarmServiceException(
                     "Missing validation for property", arrayOf(property.name, property.javaClass.name)
                 )
@@ -95,25 +58,91 @@ class AttributeValidator(
             errorDetail?.let { errorList.add(populateProperty(it, property)) }
         }
         if (errorList.isNotEmpty()) {
-            log.info("Error: ", errorList)
+            log.info("Error: $errorList")
             throw ValidatorException(HttpStatus.BAD_REQUEST.value(), errorList)
         }
         return true
     }
-    
-    fun isValidAttributeValue(attribute: Attribute, attributeValue: JsonNode): Boolean {
-        val validDatatype = when (attribute.abstractAttribute.datatype.type) {
-            OBJECT -> attributeValue.isObject
-            ARRAY -> attributeValue.isArray
-            INT -> attributeValue.isIntegralNumber
-            NUMBER -> attributeValue.isNumber
-            BOOLEAN -> attributeValue.isBoolean
-            STRING -> attributeValue.isTextual
+
+    private fun isValidValue(attribute: Attribute): ErrorDetail? = createError()
+        .takeUnless { attribute.value?.let { attributeValue -> isValidAttributeValue(attribute, attributeValue) } ?: true }
+
+    private fun isValidType(attribute: Attribute): ErrorDetail? = createError()
+        .takeUnless {
+            when (attribute.type) {
+                STATIC -> attribute.value != null && attribute.rule == null
+                DYNAMIC -> attribute.value == null && attribute.rule != null
+            }
         }
-        val validConstraintRule = attribute.abstractAttribute.constraintRule?.let { constraintRule ->
-            ruleUtil.executeConstraint(ruleTransformer.forward(constraintRule), attributeValue)
-        } ?: true
-        val validEnumeration = attribute.abstractAttribute.enumeration?.let { enumeration ->
+
+    private fun idValidRule(attribute: Attribute, cxt: ConstraintValidatorContext): ErrorDetail? = createError()
+        .takeUnless { attribute.rule?.let { rule -> ruleValidator.isValid(rule, cxt) } ?: true }
+        .takeUnless {
+            attribute.rule?.let { rule ->
+                getAllPossibleOutputs(ruleTransformer.forward(rule), attribute.path)
+            }?.all { possibleOutput ->
+                isValidAttributeValue(attribute, possibleOutput)
+            } ?: true
+        }
+        .takeUnless { attributeGraphValidator.isValid(attribute, cxt) }
+
+    private fun isValidDisplayNames(attribute: Attribute): ErrorDetail? = createError()
+        .takeUnless { attribute.displayNames.all { it.id.displayName.let(Constant.DISPLAY_NAME_REGEX::matches) } }
+
+    private fun isValidAbstractAttribute(attribute: Attribute, cxt: ConstraintValidatorContext): ErrorDetail? = createError()
+        .takeUnless { abstractAttributeValidator.isValid(attribute.abstractAttribute, cxt) }
+        .takeUnless { attribute.abstractAttribute.componentId?.let(Constant.COMPONENT_ID_REGEX::matches) ?: false }
+
+    fun isValidAttributeValue(attribute: Attribute, attributeValue: JsonNode): Boolean {
+        val validDatatype = isValidDatatype(attribute, attributeValue)
+        val validConstraintRule = isSatisfiesConstraintRuleIfPresent(attribute, attributeValue)
+        val validEnumeration = isValidEnumerationIfPresent(attribute, attributeValue)
+        val validReference = isValidReferenceIfPresent(attribute, attributeValue)
+        return validDatatype && validConstraintRule && validEnumeration && validReference
+    }
+
+    private fun isValidReferenceIfPresent(
+        attribute: Attribute, attributeValue: JsonNode
+    ) = attribute.abstractAttribute.relatedAttributes
+        .filter { relationshipsToValidate(it) }
+        .flatMap {
+            attributeRepo.findAllByAbstractAttribute_AbstractPath(it.id.referenceAbstractPath)
+                .map { i -> Pair(it.id.relationship, i) }
+        }
+        .any { relatedAttributePair ->
+            val relationship = relatedAttributePair.first
+            val relatedAttribute = relatedAttributePair.second
+            val possibleValueNodes = getAllPossibleRelatedAttributeValueNodes(relatedAttribute)
+            val possibleValues = getPossibleRelatedAttributeValues(possibleValueNodes, relatedAttribute)
+            return when (attribute.abstractAttribute.datatype.type) {
+                ARRAY -> isEnumeration(relationship) && attributeValue.all { possibleValues.contains(it.toString()) }
+                OBJECT -> attributeValue.fieldNames().asSequence().all {
+                    (isKeyEnumeration(relationship) && possibleValues.contains(it))
+                        || (isValueEnumeration(relationship) && possibleValues.contains(attributeValue.get(it).toString()))
+                }
+                else -> isEnumeration(relationship) && possibleValues.contains(attributeValue.toString())
+            }
+        }
+
+    private fun getPossibleRelatedAttributeValues(
+        possibleRelatedAttributeValueNodes: Collection<JsonNode>, relatedAttribute: Attribute
+    ): List<String> = possibleRelatedAttributeValueNodes.flatMap {
+        when (relatedAttribute.abstractAttribute.datatype.type) {
+            ARRAY -> it.map { element -> element.toString() }
+            OBJECT -> it.fieldNames().asSequence().toList()
+            else -> listOf(it.toString())
+        }
+    }
+
+    private fun getAllPossibleRelatedAttributeValueNodes(relatedAttribute: Attribute): Collection<JsonNode> =
+        when (relatedAttribute.type) {
+            STATIC -> relatedAttribute.value?.let { listOf(it) } ?: listOf()
+            DYNAMIC -> relatedAttribute.rule
+                ?.let { rule -> getAllPossibleOutputs(ruleTransformer.forward(rule), relatedAttribute.path) } ?: listOf()
+        }
+
+    private fun isValidEnumerationIfPresent(attribute: Attribute, attributeValue: JsonNode): Boolean =
+        attribute.abstractAttribute.enumeration?.let { enumeration ->
             when (attribute.abstractAttribute.datatype.type) {
                 STRING -> enumeration.values.contains(attributeValue.textValue())
                 ARRAY -> attributeValue.all { it.isTextual && enumeration.values.contains(it.textValue()) }
@@ -122,49 +151,31 @@ class AttributeValidator(
                 else -> false
             }
         } ?: true
-        val validReference = attribute.abstractAttribute.relatedAttributes
-            .filter {
-                it.id.relationship == AttributeRelationshipType.enumeration.name
-                || it.id.relationship == AttributeRelationshipType.`key-enumeration`.name
-                || it.id.relationship == AttributeRelationshipType.`value-enumeration`.name
-            }
-            .flatMap {
-                attributeRepo.findAllByAbstractAttribute_AbstractPath(it.id.referenceAbstractPath)
-                    .map { i -> Pair(it.id.relationship, i) }
-            }
-            .any { relatedAttributePair ->
-                val relationship = relatedAttributePair.first
-                val relatedAttribute = relatedAttributePair.second
-                val possibleRelatedAttributeValueNodes = when (relatedAttribute.type) {
-                    STATIC -> relatedAttribute.value?.let { listOf(it) } ?: listOf()
-                    DYNAMIC -> relatedAttribute.rule?.let { rule ->
-                        getAllPossibleOutputs(ruleTransformer.forward(rule), relatedAttribute.path)
-                    } ?: listOf()
-                }
-                val possibleRelatedAttributeValues: List<String> = possibleRelatedAttributeValueNodes.flatMap {
-                    when (relatedAttribute.abstractAttribute.datatype.type) {
-                        ARRAY -> it.map { element -> element.toString() }
-                        OBJECT -> it.fieldNames().asSequence().toList()
-                        else -> listOf(it.toString())
-                    }
-                }
-                return when (attribute.abstractAttribute.datatype.type) {
-                    ARRAY -> relationship == AttributeRelationshipType.enumeration.name && attributeValue
-                        .all { possibleRelatedAttributeValues.contains(it.toString()) }
-                    OBJECT -> attributeValue.fieldNames().asSequence()
-                        .all {
-                            (relationship == AttributeRelationshipType.`key-enumeration`.name
-                             && possibleRelatedAttributeValues.contains(it))
-                            || (relationship == AttributeRelationshipType.`value-enumeration`.name
-                                && possibleRelatedAttributeValues.contains(attributeValue.get(it).toString()))
-                        }
-                    else -> relationship == AttributeRelationshipType.enumeration.name
-                            && possibleRelatedAttributeValues.contains(attributeValue.toString())
-                }
-            }
-        return validDatatype && validConstraintRule && validEnumeration && validReference
-    }
-    
+
+    private fun isSatisfiesConstraintRuleIfPresent(attribute: Attribute, attributeValue: JsonNode): Boolean =
+        attribute.abstractAttribute.constraintRule?.let { constraintRule ->
+            ruleUtil.executeConstraint(ruleTransformer.forward(constraintRule), attributeValue)
+        } ?: true
+
+    private fun isValidDatatype(attribute: Attribute, attributeValue: JsonNode): Boolean =
+        when (attribute.abstractAttribute.datatype.type) {
+            OBJECT -> attributeValue.isObject
+            ARRAY -> attributeValue.isArray
+            INT -> attributeValue.isIntegralNumber
+            NUMBER -> attributeValue.isNumber
+            BOOLEAN -> attributeValue.isBoolean
+            STRING -> attributeValue.isTextual
+        }
+
+    private fun relationshipsToValidate(it: AbstractAttributeRelatedAttribute): Boolean =
+        (isEnumeration(it.id.relationship) || isKeyEnumeration(it.id.relationship) || isValueEnumeration(it.id.relationship))
+
+    private fun isValueEnumeration(relationship: String): Boolean = relationship == AttributeRelationshipType.`value-enumeration`.name
+
+    private fun isKeyEnumeration(relationship: String): Boolean = relationship == AttributeRelationshipType.`key-enumeration`.name
+
+    private fun isEnumeration(relationship: String): Boolean = relationship == AttributeRelationshipType.enumeration.name
+
     fun getAllPossibleOutputs(rule: Rule, path: String): LinkedHashSet<JsonNode> {
         val outputIndex = rule.outputAttributes.indexOf(path)
         val output = LinkedHashSet<List<JsonNode>>()

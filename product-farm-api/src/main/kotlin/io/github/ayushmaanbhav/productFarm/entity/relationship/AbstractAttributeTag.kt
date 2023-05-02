@@ -12,7 +12,7 @@ import jakarta.persistence.Table
 @Table(
     name = "abstract_attribute_tag",
     indexes = [
-        Index(columnList = "productId")
+        Index(columnList = "productId,tag")
     ],
 )
 data class AbstractAttributeTag(

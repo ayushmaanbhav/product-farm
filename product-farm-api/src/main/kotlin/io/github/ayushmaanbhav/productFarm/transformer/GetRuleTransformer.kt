@@ -13,11 +13,11 @@ class GetRuleTransformer(
     override fun forward(input: Rule): GetRuleResponse {
         val rule = ruleTransformer.forward(input)
         return GetRuleResponse(
-                type = rule.type,
-                inputAttributes = rule.inputAttributes,
-                outputAttributes = rule.outputAttributes,
-                displayExpression = rule.displayExpression,
-                description = rule.description,
+            type = rule.type,
+            inputAttributes = rule.inputAttributes,
+            outputAttributes = rule.outputAttributes,
+            displayExpression = rule.displayExpression,
+            description = rule.description,
         )
     }
     

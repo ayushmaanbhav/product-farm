@@ -24,16 +24,18 @@ class RuleUtil(
         // can implement custom expression compilation/parsing here
         return when {
             input.displayExpression.expression != null -> {
-                objectMapper.readTree(input.displayExpression.expression) // try parsing for validation
+                try {
+                    objectMapper.readTree(input.displayExpression.expression) // try parsing for validation
+                } catch (e: Exception) {
+                    throw ValidatorException(BAD_REQUEST.value(), listOf(createError("unknown display expression type, all values null")))
+                }
                 input.displayExpression.expression
             }
             input.displayExpression.slab != null -> {
-                TODO()
+                // TODO()
                 throw NotImplementedError("slab compilation not implemented")
             }
-            else -> throw ValidatorException(
-                BAD_REQUEST.value(), listOf(createError("unknown display expression type, all values null"))
-            )
+            else -> throw ValidatorException(BAD_REQUEST.value(), listOf(createError("unknown display expression type, all values null")))
         }
     }
     
