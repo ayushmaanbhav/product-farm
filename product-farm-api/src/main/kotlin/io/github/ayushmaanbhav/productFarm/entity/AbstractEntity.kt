@@ -11,10 +11,11 @@ import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.Transient
 import jakarta.persistence.Version
 import kotlin.reflect.KClass
+import kotlin.reflect.cast
 import kotlin.reflect.full.memberProperties
 
 @MappedSuperclass
-abstract class AbstractEntity<T : AbstractEntity<T>>(type: KClass<T>) {
+abstract class AbstractEntity<T : AbstractEntity<T>>(@Transient val _type: KClass<T>) {
     @CreationTimestamp
     private lateinit var createdAt: LocalDateTime
     @UpdateTimestamp
@@ -34,8 +35,8 @@ abstract class AbstractEntity<T : AbstractEntity<T>>(type: KClass<T>) {
             this.javaClass != ProxyUtils.getUserClass(other) -> false
             else -> {
                 return idProperties.all {
-                    val property = it.get(this as T)
-                    val otherProperty = it.get(other as T)
+                    val property = it.get(_type.cast(this))
+                    val otherProperty = it.get(_type.cast(other))
                     property == otherProperty
                 }
             }
@@ -48,12 +49,12 @@ abstract class AbstractEntity<T : AbstractEntity<T>>(type: KClass<T>) {
      * this one computes only on @Id annotated properties
      */
     override fun hashCode(): Int {
-        val values = idProperties.map { it.get(this as T) }
+        val values = idProperties.map { it.get(_type.cast(this)) }
         return Objects.hash(values)
     }
     
     @Transient
-    private val idProperties = type.memberProperties.filter {
+    private val idProperties = _type.memberProperties.filter {
         it.annotations.any { annotation ->
             annotation.annotationClass in setOf(Id::class, EmbeddedId::class)
         }
