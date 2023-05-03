@@ -3,6 +3,7 @@ package io.github.ayushmaanbhav.ruleEngine.algorithm
 import io.github.ayushmaanbhav.ruleEngine.DependencyGraph
 import io.github.ayushmaanbhav.ruleEngine.algorithm.model.Node
 import io.github.ayushmaanbhav.ruleEngine.exception.MultilpleRulesOutputAttributeException
+import io.github.ayushmaanbhav.ruleEngine.exception.Rule_SameOutputAsInputAttributeException
 import io.github.ayushmaanbhav.ruleEngine.model.Query
 import io.github.ayushmaanbhav.ruleEngine.model.QueryType
 import io.github.ayushmaanbhav.ruleEngine.model.rule.Rule
@@ -28,6 +29,12 @@ class DependencyGraphBuilder<R : Rule> {
         ruleNodes.forEach { ruleNode: Node<R> ->
             val inputPaths = ruleNode.value.getInputAttributePaths()
             val outputPaths = ruleNode.value.getOutputAttributePaths()
+            val commonElements = inputPaths.intersect(outputPaths)
+            if (commonElements.isNotEmpty()) {
+                throw Rule_SameOutputAsInputAttributeException(
+                    "Rule cannot produce same attribute to output as its input ${ruleNode.value.getId()}"
+                )
+            }
             outputPaths.forEach { outputPath: String ->
                 val existingNode = outputPathToRuleMap[outputPath]
                 if (existingNode != null) {

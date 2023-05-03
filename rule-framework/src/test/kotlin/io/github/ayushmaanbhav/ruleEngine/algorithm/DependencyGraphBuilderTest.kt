@@ -3,6 +3,7 @@ package io.github.ayushmaanbhav.ruleEngine.algorithm
 import io.github.ayushmaanbhav.ruleEngine.RuleImpl
 import io.github.ayushmaanbhav.ruleEngine.exception.GraphContainsCycleException
 import io.github.ayushmaanbhav.ruleEngine.exception.MultilpleRulesOutputAttributeException
+import io.github.ayushmaanbhav.ruleEngine.exception.Rule_SameOutputAsInputAttributeException
 import io.github.ayushmaanbhav.ruleEngine.model.Query
 import io.github.ayushmaanbhav.ruleEngine.model.QueryType
 import io.kotest.assertions.throwables.shouldThrow
@@ -128,6 +129,15 @@ class DependencyGraphBuilderTest : StringSpec() {
             builder.visit(rule9)
 
             shouldThrow<GraphContainsCycleException> { builder.build() }
+        }
+
+        "build should throw Rule_SameOutputAsInputAttributeException when rule takes same input as output" {
+            val rule1 = RuleImpl("rule1", "type-1", setOf("attribute-0"), setOf("attribute-0"), setOf("tag-1", "tag-2"))
+
+            val builder = DependencyGraphBuilder<RuleImpl>()
+            builder.visit(rule1)
+
+            shouldThrow<Rule_SameOutputAsInputAttributeException> { builder.build() }
         }
     }
 }

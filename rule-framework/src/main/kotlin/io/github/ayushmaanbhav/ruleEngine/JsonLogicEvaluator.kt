@@ -36,11 +36,12 @@ class JsonLogicEvaluator(config: Config, private val jsonLogic: JsonLogicEngine)
                 is JsonLogicResult.Success -> {
                     val output = readOutput(rule.getId(), result.value)
                     output.forEach { (key: String, value: Any?) ->
-                        if (context.containsKey(key)) {
-                            throw RuleEngineException("Duplicate context key found in rule output: ${rule.getId()}")
+                        // since "there is only one rule that outputs a particular attribute" and "there are no cycles then"
+                        // override the context with input context
+                        if (context.containsKey(key).not()) {
+                            context[key] = value
+                            allOutput[key] = value
                         }
-                        context[key] = value
-                        allOutput[key] = value
                     }
                 }
             }

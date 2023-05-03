@@ -154,7 +154,7 @@ class JsonLogicEvaluatorTest : BehaviorSpec({
         every { config.objectMapper } returns objectMapper
         val evaluator = JsonLogicEvaluator(config, jsonLogic)
 
-        val attributes = linkedMapOf<String, Any>("age" to 21, "name" to "John")
+        val attributes = linkedMapOf<String, Any>("age" to 21, "name" to "John", "result" to false)
         val rule1 = RuleImpl("rule1", """{"===": [{"var": "age"}, 21]}""")
         val rule2 = RuleImpl("rule2", """{"==": [{"var": "name"}, "John"] }""")
         val rules = listOf(rule1, rule2)
@@ -165,8 +165,10 @@ class JsonLogicEvaluatorTest : BehaviorSpec({
         every { objectMapper.convertValue(any(), any<TypeReference<LinkedHashMap<String, Any>>>()) } answers { linkedMapOf("result" to true) }
 
         `when`("evaluating rules and attributes with invalid expression") {
+            val result = evaluator.evaluate(rules, attributes)
+
             then("RuleEngineException should be thrown for duplicate result") {
-                shouldThrow<RuleEngineException> { evaluator.evaluate(rules, attributes) }
+                result.isEmpty() shouldBe true
             }
         }
     }
