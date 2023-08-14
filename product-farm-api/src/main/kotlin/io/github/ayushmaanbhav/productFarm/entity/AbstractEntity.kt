@@ -34,10 +34,10 @@ abstract class AbstractEntity<T : AbstractEntity<T>>(@Transient val _type: KClas
             this === other -> true
             this.javaClass != ProxyUtils.getUserClass(other) -> false
             else -> {
-                return idProperties.all {
-                    val property = it.get(_type.cast(this))
-                    val otherProperty = it.get(_type.cast(other))
-                    property == otherProperty
+                return idProperties.all { property ->
+                    val value = property.get(_type.cast(this))
+                    val otherValue = property.get(_type.cast(other))
+                    value != null && value == otherValue
                 }
             }
         }
@@ -49,7 +49,7 @@ abstract class AbstractEntity<T : AbstractEntity<T>>(@Transient val _type: KClas
      * this one computes only on @Id annotated properties
      */
     override fun hashCode(): Int {
-        val values = idProperties.map { it.get(_type.cast(this)) }
+        val values = idProperties.mapNotNull { it.get(_type.cast(this)) }
         return Objects.hash(values)
     }
     
