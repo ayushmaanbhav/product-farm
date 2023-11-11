@@ -1,6 +1,6 @@
 package io.github.ayushmaanbhav.productFarm.entity.relationship
 
-import io.github.ayushmaanbhav.productFarm.entity.AbstractEntity
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import io.github.ayushmaanbhav.productFarm.entity.ProductFunctionality
 import io.github.ayushmaanbhav.productFarm.entity.compositeId.FunctionalityRequiredAttributeId
 import jakarta.persistence.Column

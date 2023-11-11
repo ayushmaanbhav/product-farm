@@ -1,6 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidProductApproval
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table

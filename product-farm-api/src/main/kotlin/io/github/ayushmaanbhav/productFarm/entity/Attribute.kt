@@ -5,6 +5,7 @@ import ValidAttributeDirectedAcyclicGraph
 import com.fasterxml.jackson.databind.JsonNode
 import com.vladmihalcea.hibernate.type.json.JsonType
 import io.github.ayushmaanbhav.productFarm.constant.AttributeValueType
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayName
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column

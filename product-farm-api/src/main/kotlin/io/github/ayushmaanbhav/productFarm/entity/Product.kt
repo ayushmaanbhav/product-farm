@@ -3,6 +3,7 @@ package io.github.ayushmaanbhav.productFarm.entity
 import ValidProduct
 import io.github.ayushmaanbhav.productFarm.constant.ProductStatus
 import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated

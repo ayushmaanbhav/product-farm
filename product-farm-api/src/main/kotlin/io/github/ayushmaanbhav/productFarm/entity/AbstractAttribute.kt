@@ -1,6 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidAbstractAttribute
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AbstractAttributeRelatedAttribute
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AbstractAttributeTag
 import io.github.ayushmaanbhav.productFarm.entity.relationship.AttributeDisplayName

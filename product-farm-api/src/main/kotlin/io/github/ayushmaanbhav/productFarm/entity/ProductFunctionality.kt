@@ -2,6 +2,7 @@ package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidProductFunctionality
 import io.github.ayushmaanbhav.productFarm.constant.ProductFunctionalityStatus
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import io.github.ayushmaanbhav.productFarm.entity.relationship.FunctionalityRequiredAttribute
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity

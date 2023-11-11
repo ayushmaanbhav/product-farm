@@ -58,7 +58,7 @@ class AttributeService(
         }
     
     fun getAttributeByTag(productId: String, tag: String): Optional<GetAttributeListByTagResponse> {
-        return abstractAttributeTagRepo.getByProductIdAndTag(productId, tag)
+        return abstractAttributeTagRepo.getByProductIdAndIdTag(productId, tag)
             .flatMap { it.id.abstractPath.let { it1 -> attributeRepo.findAllByAbstractAttribute_AbstractPath(it1) } }
             .map { getAttributeByTagTransformer.forward(it) }
             .let { Optional.of(GetAttributeListByTagResponse(it.toCollection(LinkedHashSet()))) }

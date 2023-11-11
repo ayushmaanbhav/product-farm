@@ -3,6 +3,7 @@ package io.github.ayushmaanbhav.productFarm.entity
 import ValidProductTemplateEnumeration
 import com.vladmihalcea.hibernate.type.json.JsonType
 import io.github.ayushmaanbhav.productFarm.constant.ProductTemplateType
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

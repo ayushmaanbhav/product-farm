@@ -2,10 +2,9 @@ package io.github.ayushmaanbhav.database
 
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 import org.springframework.boot.runApplication
 
-@SpringBootApplication(exclude = [HibernateJpaAutoConfiguration::class])
+@SpringBootApplication
 class Database : CommandLineRunner {
     override fun run(vararg args: String) {}
 

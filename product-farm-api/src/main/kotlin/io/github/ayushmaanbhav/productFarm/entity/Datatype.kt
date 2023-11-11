@@ -2,6 +2,7 @@ package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidDatatype
 import io.github.ayushmaanbhav.productFarm.constant.DatatypeType
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated

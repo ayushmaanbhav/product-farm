@@ -1,6 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.entity
 
 import ValidRule
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import io.github.ayushmaanbhav.productFarm.entity.relationship.RuleInputAttribute
 import io.github.ayushmaanbhav.productFarm.entity.relationship.RuleOutputAttribute
 import jakarta.persistence.CascadeType

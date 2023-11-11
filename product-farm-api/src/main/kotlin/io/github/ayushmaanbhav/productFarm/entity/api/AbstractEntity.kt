@@ -1,4 +1,4 @@
-package io.github.ayushmaanbhav.productFarm.entity
+package io.github.ayushmaanbhav.productFarm.entity.api
 
 import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Id

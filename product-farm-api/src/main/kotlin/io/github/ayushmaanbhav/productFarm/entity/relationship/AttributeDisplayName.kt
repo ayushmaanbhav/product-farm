@@ -1,7 +1,7 @@
 package io.github.ayushmaanbhav.productFarm.entity.relationship
 
 import io.github.ayushmaanbhav.productFarm.constant.DisplayNameFormat
-import io.github.ayushmaanbhav.productFarm.entity.AbstractEntity
+import io.github.ayushmaanbhav.productFarm.entity.api.AbstractEntity
 import io.github.ayushmaanbhav.productFarm.entity.compositeId.AttributeDisplayNameId
 import jakarta.persistence.Column
 import jakarta.persistence.EmbeddedId
