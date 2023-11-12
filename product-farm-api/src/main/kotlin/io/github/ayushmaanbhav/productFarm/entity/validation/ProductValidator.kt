@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.declaredMemberProperties
 
 @Component
 class ProductValidator(
@@ -26,7 +26,7 @@ class ProductValidator(
     override fun isValid(product: Product, cxt: ConstraintValidatorContext): Boolean {
         val approved = productApprovalRepo.existsById(product.id)
         val errorList = mutableListOf<ErrorDetail>()
-        for (property in Product::class.memberProperties) {
+        for (property in Product::class.declaredMemberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
                 Product::description ->
                     createError()

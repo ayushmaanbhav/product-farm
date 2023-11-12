@@ -13,7 +13,7 @@ import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.declaredMemberProperties
 
 @Component
 class ProductTemplateEnumerationValidator
@@ -21,7 +21,7 @@ class ProductTemplateEnumerationValidator
     
     override fun isValid(enumeration: ProductTemplateEnumeration, cxt: ConstraintValidatorContext): Boolean {
         val errorList = mutableListOf<ErrorDetail>()
-        for (property in ProductTemplateEnumeration::class.memberProperties) {
+        for (property in ProductTemplateEnumeration::class.declaredMemberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
                 ProductTemplateEnumeration::description ->
                     createError()

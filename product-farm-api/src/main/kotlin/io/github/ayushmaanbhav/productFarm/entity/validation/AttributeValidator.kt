@@ -29,7 +29,7 @@ import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.declaredMemberProperties
 
 @Component
 class AttributeValidator(
@@ -43,7 +43,7 @@ class AttributeValidator(
     
     override fun isValid(attribute: Attribute, cxt: ConstraintValidatorContext): Boolean {
         val errorList = mutableListOf<ErrorDetail>()
-        for (property in Attribute::class.memberProperties) {
+        for (property in Attribute::class.declaredMemberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
                 Attribute::abstractAttribute -> isValidAbstractAttribute(attribute, cxt)
                 Attribute::displayNames -> isValidDisplayNames(attribute)

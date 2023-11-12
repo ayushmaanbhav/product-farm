@@ -13,14 +13,14 @@ import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.declaredMemberProperties
 
 @Component
 class DatatypeValidator : ConstraintValidator<ValidDatatype, Datatype> {
     
     override fun isValid(datatype: Datatype, cxt: ConstraintValidatorContext): Boolean {
         val errorList = mutableListOf<ErrorDetail>()
-        for (property in Datatype::class.memberProperties) {
+        for (property in Datatype::class.declaredMemberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
                 Datatype::description ->
                     createError()

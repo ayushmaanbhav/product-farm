@@ -15,7 +15,7 @@ import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.declaredMemberProperties
 
 @Component
 class RuleValidator(
@@ -25,7 +25,7 @@ class RuleValidator(
     
     override fun isValid(rule: Rule, cxt: ConstraintValidatorContext): Boolean {
         val errorList = mutableListOf<ErrorDetail>()
-        for (property in Rule::class.memberProperties) {
+        for (property in Rule::class.declaredMemberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
                 Rule::compiledExpression ->
                     createError()

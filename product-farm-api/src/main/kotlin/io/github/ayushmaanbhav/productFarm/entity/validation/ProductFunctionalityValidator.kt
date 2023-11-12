@@ -17,7 +17,7 @@ import jakarta.validation.ConstraintValidatorContext
 import org.apache.logging.log4j.LogManager
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.declaredMemberProperties
 
 @Component
 class ProductFunctionalityValidator(
@@ -27,7 +27,7 @@ class ProductFunctionalityValidator(
     override fun isValid(productFunctionality: ProductFunctionality, cxt: ConstraintValidatorContext): Boolean {
         val product = productRepo.getReferenceById(productFunctionality.productId)
         val errorList = mutableListOf<ErrorDetail>()
-        for (property in ProductFunctionality::class.memberProperties) {
+        for (property in ProductFunctionality::class.declaredMemberProperties) {
             val errorDetail: ErrorDetail? = when (property) {
                 ProductFunctionality::description ->
                     createError()

@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR
 import com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_INTEGER_FOR_INTS
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.KotlinFeature
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
@@ -15,11 +17,15 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 class ObjectMapperConfig {
     @Bean
     fun objectMapper(builder: Jackson2ObjectMapperBuilder): ObjectMapper {
+        val kotlinModule = KotlinModule.Builder()
+            .enable(KotlinFeature.StrictNullChecks)
+            .build()
         return builder
             .serializationInclusion(NON_NULL)
             .featuresToEnable(WRITE_BIGDECIMAL_AS_PLAIN, USE_BIG_DECIMAL_FOR_FLOATS, USE_BIG_INTEGER_FOR_INTS)
             .featuresToDisable(FAIL_ON_UNKNOWN_PROPERTIES)
             .modules(JavaTimeModule())
+            .modules(kotlinModule)
             .build()
     }
 }
