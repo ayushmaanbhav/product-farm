@@ -19,7 +19,7 @@ pub fn routes() -> Router<SharedStore> {
     Router::new()
         .route("/api/datatypes", get(list_datatypes).post(create_datatype))
         .route(
-            "/api/datatypes/{datatype_id}",
+            "/api/datatypes/:datatype_id",
             get(get_datatype).put(update_datatype).delete(delete_datatype),
         )
 }
@@ -31,8 +31,9 @@ async fn list_datatypes(State(store): State<SharedStore>) -> ApiResult<Json<List
     let datatypes: Vec<DatatypeResponse> = store.datatypes.values().map(|d| d.into()).collect();
 
     Ok(Json(ListDatatypesResponse {
-        datatypes,
-        total: store.datatypes.len(),
+        items: datatypes,
+        next_page_token: String::new(),
+        total_count: store.datatypes.len() as i32,
     }))
 }
 

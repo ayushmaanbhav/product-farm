@@ -21,22 +21,38 @@ use super::types::*;
 pub fn routes() -> Router<SharedStore> {
     Router::new()
         .route(
-            "/api/products/{product_id}/functionalities",
+            "/api/products/:product_id/functionalities",
             get(list_functionalities).post(create_functionality),
         )
         .route(
-            "/api/products/{product_id}/functionalities/{name}",
+            "/api/products/:product_id/functionalities/:name",
             get(get_functionality)
                 .put(update_functionality)
                 .delete(delete_functionality),
         )
         .route(
-            "/api/products/{product_id}/functionalities/{name}/activate",
+            "/api/products/:product_id/functionalities/:name/activate",
             axum::routing::post(activate_functionality),
         )
         .route(
-            "/api/products/{product_id}/functionalities/{name}/deactivate",
+            "/api/products/:product_id/functionalities/:name/deactivate",
             axum::routing::post(deactivate_functionality),
+        )
+        .route(
+            "/api/products/:product_id/functionalities/:name/abstract-attributes",
+            get(list_functionality_abstract_attributes),
+        )
+        .route(
+            "/api/products/:product_id/functionalities/:name/rules",
+            get(list_functionality_rules),
+        )
+        .route(
+            "/api/products/:product_id/functionalities/:name/submit",
+            axum::routing::post(submit_functionality),
+        )
+        .route(
+            "/api/products/:product_id/functionalities/:name/approve",
+            axum::routing::post(approve_functionality),
         )
 }
 
@@ -65,11 +81,12 @@ async fn list_functionalities(
         .map(|f| f.into())
         .collect();
 
-    let total = functionalities.len();
+    let total_count = functionalities.len() as i32;
 
     Ok(Json(ListFunctionalitiesResponse {
-        functionalities,
-        total,
+        items: functionalities,
+        next_page_token: String::new(),
+        total_count,
     }))
 }
 
@@ -287,6 +304,159 @@ async fn deactivate_functionality(
     })?;
 
     functionality.status = ProductFunctionalityStatus::Draft;
+
+    let response = FunctionalityResponse::from(&*functionality);
+    Ok(Json(response))
+}
+
+/// List abstract attributes required by a functionality
+async fn list_functionality_abstract_attributes(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<ListAbstractAttributesResponse>> {
+    let store = store.read().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    let functionality = store.functionalities.get(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    // Get the required attribute paths
+    let required_paths: std::collections::HashSet<String> = functionality
+        .required_attributes
+        .iter()
+        .map(|ra| ra.abstract_path.as_str().to_string())
+        .collect();
+
+    // Fetch the actual abstract attributes
+    let attributes: Vec<AbstractAttributeResponse> = store
+        .abstract_attributes
+        .values()
+        .filter(|a| required_paths.contains(a.abstract_path.as_str()))
+        .map(|a| a.into())
+        .collect();
+
+    let total_count = attributes.len() as i32;
+
+    Ok(Json(ListAbstractAttributesResponse {
+        items: attributes,
+        next_page_token: String::new(),
+        total_count,
+    }))
+}
+
+/// List rules that output to functionality-required attributes
+async fn list_functionality_rules(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<ListRulesResponse>> {
+    let store = store.read().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+    let pid = ProductId::new(&product_id);
+
+    let functionality = store.functionalities.get(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    // Get the required attribute paths
+    let required_paths: std::collections::HashSet<String> = functionality
+        .required_attributes
+        .iter()
+        .map(|ra| ra.abstract_path.as_str().to_string())
+        .collect();
+
+    // Find rules that output to any of these attributes
+    let rules: Vec<RuleResponse> = store
+        .rules
+        .values()
+        .filter(|r| {
+            r.product_id == pid
+                && r.output_attributes
+                    .iter()
+                    .any(|oa| required_paths.contains(oa.path.as_str()))
+        })
+        .map(|r| r.into())
+        .collect();
+
+    let total_count = rules.len() as i32;
+
+    Ok(Json(ListRulesResponse {
+        items: rules,
+        next_page_token: String::new(),
+        total_count,
+    }))
+}
+
+/// Submit a functionality for approval
+async fn submit_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let mut store = store.write().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    let functionality = store.functionalities.get_mut(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    // Validate current status allows submission
+    if functionality.status != ProductFunctionalityStatus::Draft {
+        return Err(ApiError::PreconditionFailed(format!(
+            "Cannot submit functionality '{}' with status {:?}. Only DRAFT functionalities can be submitted.",
+            name, functionality.status
+        )));
+    }
+
+    // Transition to PendingApproval
+    functionality.status = ProductFunctionalityStatus::PendingApproval;
+
+    let response = FunctionalityResponse::from(&*functionality);
+    Ok(Json(response))
+}
+
+/// Approve or reject a functionality
+async fn approve_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+    Json(req): Json<ApprovalRequest>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let mut store = store.write().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    let functionality = store.functionalities.get_mut(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    // Validate current status allows approval/rejection
+    if functionality.status != ProductFunctionalityStatus::PendingApproval {
+        let action = if req.approved { "approve" } else { "reject" };
+        return Err(ApiError::PreconditionFailed(format!(
+            "Cannot {} functionality '{}' with status {:?}. Only PENDING_APPROVAL functionalities can be {}ed.",
+            action, name, functionality.status, action
+        )));
+    }
+
+    if req.approved {
+        functionality.status = ProductFunctionalityStatus::Active;
+    } else {
+        functionality.status = ProductFunctionalityStatus::Draft;
+    }
 
     let response = FunctionalityResponse::from(&*functionality);
     Ok(Json(response))

@@ -24,17 +24,17 @@ pub fn routes() -> Router<SharedStore> {
             get(list_enumerations).post(create_enumeration),
         )
         .route(
-            "/api/template-enumerations/{enum_id}",
+            "/api/template-enumerations/:enum_id",
             get(get_enumeration)
                 .put(update_enumeration)
                 .delete(delete_enumeration),
         )
         .route(
-            "/api/template-enumerations/{enum_id}/values",
+            "/api/template-enumerations/:enum_id/values",
             post(add_value),
         )
         .route(
-            "/api/template-enumerations/{enum_id}/values/{value}",
+            "/api/template-enumerations/:enum_id/values/:value",
             delete(remove_value),
         )
 }
@@ -49,8 +49,9 @@ async fn list_enumerations(
         store.enumerations.values().map(|e| e.into()).collect();
 
     Ok(Json(ListEnumerationsResponse {
-        enumerations,
-        total: store.enumerations.len(),
+        items: enumerations,
+        next_page_token: String::new(),
+        total_count: store.enumerations.len() as i32,
     }))
 }
 

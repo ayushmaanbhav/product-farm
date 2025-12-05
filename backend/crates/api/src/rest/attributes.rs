@@ -23,8 +23,16 @@ pub fn routes() -> Router<SharedStore> {
     Router::new()
         // Abstract attribute routes
         .route(
-            "/api/products/{product_id}/abstract-attributes",
+            "/api/products/:product_id/abstract-attributes",
             get(list_abstract_attributes).post(create_abstract_attribute),
+        )
+        .route(
+            "/api/products/:product_id/abstract-attributes/by-component/:component_type",
+            get(list_abstract_attributes_by_component),
+        )
+        .route(
+            "/api/products/:product_id/abstract-attributes/by-tag/:tag",
+            get(list_abstract_attributes_by_tag),
         )
         .route(
             "/api/abstract-attributes/*path",
@@ -32,8 +40,12 @@ pub fn routes() -> Router<SharedStore> {
         )
         // Concrete attribute routes
         .route(
-            "/api/products/{product_id}/attributes",
+            "/api/products/:product_id/attributes",
             get(list_attributes).post(create_attribute),
+        )
+        .route(
+            "/api/products/:product_id/attributes/by-tag/:tag",
+            get(list_attributes_by_tag),
         )
         .route(
             "/api/attributes/*path",
@@ -70,11 +82,80 @@ async fn list_abstract_attributes(
         .map(|a| a.into())
         .collect();
 
-    let total = attributes.len();
+    let total_count = attributes.len() as i32;
 
     Ok(Json(ListAbstractAttributesResponse {
-        attributes,
-        total,
+        items: attributes,
+        next_page_token: String::new(),
+        total_count,
+    }))
+}
+
+/// List abstract attributes by component type
+async fn list_abstract_attributes_by_component(
+    State(store): State<SharedStore>,
+    Path((product_id, component_type)): Path<(String, String)>,
+) -> ApiResult<Json<ListAbstractAttributesResponse>> {
+    let store = store.read().await;
+
+    // Verify product exists
+    if !store.products.contains_key(&product_id) {
+        return Err(ApiError::NotFound(format!(
+            "Product '{}' not found",
+            product_id
+        )));
+    }
+
+    let pid = ProductId::new(&product_id);
+
+    let attributes: Vec<AbstractAttributeResponse> = store
+        .abstract_attributes
+        .values()
+        .filter(|a| a.product_id == pid && a.component_type == component_type)
+        .map(|a| a.into())
+        .collect();
+
+    let total_count = attributes.len() as i32;
+
+    Ok(Json(ListAbstractAttributesResponse {
+        items: attributes,
+        next_page_token: String::new(),
+        total_count,
+    }))
+}
+
+/// List abstract attributes by tag
+async fn list_abstract_attributes_by_tag(
+    State(store): State<SharedStore>,
+    Path((product_id, tag)): Path<(String, String)>,
+) -> ApiResult<Json<ListAbstractAttributesResponse>> {
+    let store = store.read().await;
+
+    // Verify product exists
+    if !store.products.contains_key(&product_id) {
+        return Err(ApiError::NotFound(format!(
+            "Product '{}' not found",
+            product_id
+        )));
+    }
+
+    let pid = ProductId::new(&product_id);
+
+    let attributes: Vec<AbstractAttributeResponse> = store
+        .abstract_attributes
+        .values()
+        .filter(|a| {
+            a.product_id == pid && a.tags.iter().any(|t| t.tag.as_str() == tag)
+        })
+        .map(|a| a.into())
+        .collect();
+
+    let total_count = attributes.len() as i32;
+
+    Ok(Json(ListAbstractAttributesResponse {
+        items: attributes,
+        next_page_token: String::new(),
+        total_count,
     }))
 }
 
@@ -279,11 +360,56 @@ async fn list_attributes(
         .map(|a| a.into())
         .collect();
 
-    let total = attributes.len();
+    let total_count = attributes.len() as i32;
 
     Ok(Json(ListAttributesResponse {
-        attributes,
-        total,
+        items: attributes,
+        next_page_token: String::new(),
+        total_count,
+    }))
+}
+
+/// List concrete attributes by tag (filters via abstract attribute tags)
+async fn list_attributes_by_tag(
+    State(store): State<SharedStore>,
+    Path((product_id, tag)): Path<(String, String)>,
+) -> ApiResult<Json<ListAttributesResponse>> {
+    let store = store.read().await;
+
+    // Verify product exists
+    if !store.products.contains_key(&product_id) {
+        return Err(ApiError::NotFound(format!(
+            "Product '{}' not found",
+            product_id
+        )));
+    }
+
+    let pid = ProductId::new(&product_id);
+
+    // First, collect abstract paths that have the tag
+    let tagged_abstract_paths: std::collections::HashSet<String> = store
+        .abstract_attributes
+        .values()
+        .filter(|a| a.product_id == pid && a.tags.iter().any(|t| t.tag.as_str() == tag))
+        .map(|a| a.abstract_path.as_str().to_string())
+        .collect();
+
+    // Then filter concrete attributes by those abstract paths
+    let attributes: Vec<AttributeResponse> = store
+        .attributes
+        .values()
+        .filter(|a| {
+            a.product_id == pid && tagged_abstract_paths.contains(a.abstract_path.as_str())
+        })
+        .map(|a| a.into())
+        .collect();
+
+    let total_count = attributes.len() as i32;
+
+    Ok(Json(ListAttributesResponse {
+        items: attributes,
+        next_page_token: String::new(),
+        total_count,
     }))
 }
 

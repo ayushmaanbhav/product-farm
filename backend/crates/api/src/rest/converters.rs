@@ -2,11 +2,30 @@
 
 use product_farm_core::{
     AbstractAttribute, AbstractAttributeTag, Attribute, AttributeDisplayName,
-    DataType, Product, ProductFunctionality, ProductTemplateEnumeration, Rule,
-    Value, FunctionalityRequiredAttribute,
+    DataType, Product, ProductFunctionality, ProductFunctionalityStatus,
+    ProductStatus, ProductTemplateEnumeration, Rule, Value, FunctionalityRequiredAttribute,
 };
 
 use super::types::*;
+
+/// Convert ProductStatus enum to SCREAMING_SNAKE_CASE string
+fn product_status_to_string(status: &ProductStatus) -> String {
+    match status {
+        ProductStatus::Draft => "DRAFT".to_string(),
+        ProductStatus::PendingApproval => "PENDING_APPROVAL".to_string(),
+        ProductStatus::Active => "ACTIVE".to_string(),
+        ProductStatus::Discontinued => "DISCONTINUED".to_string(),
+    }
+}
+
+/// Convert ProductFunctionalityStatus enum to SCREAMING_SNAKE_CASE string
+fn functionality_status_to_string(status: &ProductFunctionalityStatus) -> String {
+    match status {
+        ProductFunctionalityStatus::Draft => "DRAFT".to_string(),
+        ProductFunctionalityStatus::PendingApproval => "PENDING_APPROVAL".to_string(),
+        ProductFunctionalityStatus::Active => "ACTIVE".to_string(),
+    }
+}
 
 // =============================================================================
 // PRODUCT CONVERTERS
@@ -19,7 +38,7 @@ impl From<&Product> for ProductResponse {
             name: p.name.clone(),
             description: p.description.clone().unwrap_or_default(),
             template_type: p.template_type.as_str().to_string(),
-            status: format!("{:?}", p.status).to_uppercase(),
+            status: product_status_to_string(&p.status),
             parent_product_id: p.parent_product_id.as_ref().map(|id| id.as_str().to_string()),
             effective_from: p.effective_from.timestamp(),
             expiry_at: p.expiry_at.map(|dt| dt.timestamp()),
@@ -231,7 +250,7 @@ impl From<&ProductFunctionality> for FunctionalityResponse {
             name: f.name.clone(),
             display_name: f.name.clone(), // Use name as display name
             description: f.description.clone(),
-            status: format!("{:?}", f.status).to_uppercase(),
+            status: functionality_status_to_string(&f.status),
             immutable: f.immutable,
             required_attributes: f.required_attributes.iter().map(|r| r.into()).collect(),
             created_at: f.created_at.timestamp(),

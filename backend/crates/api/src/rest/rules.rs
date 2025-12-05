@@ -19,11 +19,11 @@ use super::types::*;
 pub fn routes() -> Router<SharedStore> {
     Router::new()
         .route(
-            "/api/products/{product_id}/rules",
+            "/api/products/:product_id/rules",
             get(list_rules).post(create_rule),
         )
         .route(
-            "/api/rules/{rule_id}",
+            "/api/rules/:rule_id",
             get(get_rule).put(update_rule).delete(delete_rule),
         )
 }
@@ -53,9 +53,13 @@ async fn list_rules(
         .map(|r| r.into())
         .collect();
 
-    let total = rules.len();
+    let total_count = rules.len() as i32;
 
-    Ok(Json(ListRulesResponse { rules, total }))
+    Ok(Json(ListRulesResponse {
+        items: rules,
+        next_page_token: String::new(),
+        total_count,
+    }))
 }
 
 /// Create a new rule

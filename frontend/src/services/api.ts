@@ -711,7 +711,13 @@ export const abstractAttributeApi = {
       mockAbstractAttributes.push(attr);
       return attr;
     }
-    return fetchJson('/api/abstract-attributes', { method: 'POST', body: JSON.stringify(data) });
+    // Use nested URL: /api/products/{productId}/abstract-attributes
+    const productId = data.productId;
+    if (!productId) throw new Error('productId is required');
+    return fetchJson(`/api/products/${productId}/abstract-attributes`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   },
 
   async update(path: string, data: Partial<AbstractAttribute>): Promise<AbstractAttribute> {
@@ -727,6 +733,7 @@ export const abstractAttributeApi = {
       mockAbstractAttributes[idx] = { ...mockAbstractAttributes[idx], ...data };
       return mockAbstractAttributes[idx];
     }
+    // Backend uses path-based lookup
     return fetchJson(`/api/abstract-attributes/${encodeURIComponent(path)}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -742,6 +749,7 @@ export const abstractAttributeApi = {
       mockAbstractAttributes = mockAbstractAttributes.filter(a => a.abstractPath !== path);
       return;
     }
+    // Backend uses path-based lookup
     await fetchJson(`/api/abstract-attributes/${encodeURIComponent(path)}`, { method: 'DELETE' });
   },
 
@@ -825,7 +833,13 @@ export const attributeApi = {
       mockAttributes.push(attr);
       return attr;
     }
-    return fetchJson('/api/attributes', { method: 'POST', body: JSON.stringify(data) });
+    // Use nested URL: /api/products/{productId}/attributes
+    const productId = data.productId;
+    if (!productId) throw new Error('productId is required');
+    return fetchJson(`/api/products/${productId}/attributes`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   },
 
   async update(path: string, data: Partial<Attribute>): Promise<Attribute> {
@@ -938,7 +952,13 @@ export const ruleApi = {
       mockRules.push(rule);
       return rule;
     }
-    return fetchJson('/api/rules', { method: 'POST', body: JSON.stringify(data) });
+    // Use nested URL: /api/products/{productId}/rules
+    const productId = data.productId;
+    if (!productId) throw new Error('productId is required');
+    return fetchJson(`/api/products/${productId}/rules`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   },
 
   async update(id: string, data: Partial<Rule>): Promise<Rule> {
@@ -1039,7 +1059,13 @@ export const functionalityApi = {
       mockFunctionalities.push(func);
       return func;
     }
-    return fetchJson('/api/functionalities', { method: 'POST', body: JSON.stringify(data) });
+    // Use nested URL: /api/products/{productId}/functionalities
+    const productId = data.productId;
+    if (!productId) throw new Error('productId is required');
+    return fetchJson(`/api/products/${productId}/functionalities`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   },
 
   async update(productId: string, id: string, data: Partial<ProductFunctionality>): Promise<ProductFunctionality> {
@@ -1659,7 +1685,7 @@ export const evaluationApi = {
     return fetchJson('/api/batch-evaluate', { method: 'POST', body: JSON.stringify(request) });
   },
 
-  async getExecutionPlan(productId: string, ruleIds?: string[]): Promise<ExecutionPlan> {
+  async getExecutionPlan(productId: string, _ruleIds?: string[]): Promise<ExecutionPlan> {
     if (USE_MOCK) {
       const rules = mockRules.filter(r => r.productId === productId);
 
@@ -1704,10 +1730,8 @@ export const evaluationApi = {
         hasCycles: assigned.size < rules.length,
       };
     }
-    return fetchJson(`/api/products/${productId}/execution-plan`, {
-      method: 'POST',
-      body: JSON.stringify({ ruleIds }),
-    });
+    // Backend uses GET for execution plan
+    return fetchJson(`/api/products/${productId}/execution-plan`);
   },
 
   async validate(productId: string): Promise<ValidationResult> {

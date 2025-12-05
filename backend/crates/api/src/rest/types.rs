@@ -188,55 +188,15 @@ fn default_true() -> bool {
     true
 }
 
-// List response types for pagination
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListProductsResponse {
-    pub products: Vec<ProductResponse>,
-    pub total: usize,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListAbstractAttributesResponse {
-    pub attributes: Vec<AbstractAttributeResponse>,
-    pub total: usize,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListAttributesResponse {
-    pub attributes: Vec<AttributeResponse>,
-    pub total: usize,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListRulesResponse {
-    pub rules: Vec<RuleResponse>,
-    pub total: usize,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListDatatypesResponse {
-    pub datatypes: Vec<DatatypeResponse>,
-    pub total: usize,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListFunctionalitiesResponse {
-    pub functionalities: Vec<FunctionalityResponse>,
-    pub total: usize,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListEnumerationsResponse {
-    pub enumerations: Vec<EnumerationResponse>,
-    pub total: usize,
-}
+// List response types - use PaginatedResponse<T> for consistency with frontend
+// All list endpoints return: { items: [], nextPageToken: "", totalCount: N }
+pub type ListProductsResponse = PaginatedResponse<ProductResponse>;
+pub type ListAbstractAttributesResponse = PaginatedResponse<AbstractAttributeResponse>;
+pub type ListAttributesResponse = PaginatedResponse<AttributeResponse>;
+pub type ListRulesResponse = PaginatedResponse<RuleResponse>;
+pub type ListDatatypesResponse = PaginatedResponse<DatatypeResponse>;
+pub type ListFunctionalitiesResponse = PaginatedResponse<FunctionalityResponse>;
+pub type ListEnumerationsResponse = PaginatedResponse<EnumerationResponse>;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -251,8 +211,15 @@ pub struct CloneProductResponse {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApprovalRequest {
+    /// Whether to approve (true) or reject (false)
+    #[serde(default = "default_approved")]
+    pub approved: bool,
     #[serde(default)]
     pub comments: Option<String>,
+}
+
+fn default_approved() -> bool {
+    true
 }
 
 // =============================================================================
@@ -844,6 +811,38 @@ pub struct ValidationWarning {
     pub path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suggestion: Option<String>,
+}
+
+// =============================================================================
+// IMPACT ANALYSIS TYPES
+// =============================================================================
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpactAnalysisRequest {
+    pub target_path: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpactAnalysisResponse {
+    pub target_path: String,
+    pub direct_dependencies: Vec<DependencyInfoJson>,
+    pub transitive_dependencies: Vec<DependencyInfoJson>,
+    pub affected_rules: Vec<String>,
+    pub affected_functionalities: Vec<String>,
+    pub has_immutable_dependents: bool,
+    pub immutable_paths: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DependencyInfoJson {
+    pub path: String,
+    pub attribute_name: String,
+    pub direction: String, // "upstream" or "downstream"
+    pub distance: i32,
+    pub is_immutable: bool,
 }
 
 // =============================================================================

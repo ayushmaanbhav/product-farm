@@ -445,11 +445,11 @@ pub async fn submit_product(
     Ok(Json((&*product).into()))
 }
 
-/// Approve a product
+/// Approve or reject a product
 pub async fn approve_product(
     State(store): State<SharedStore>,
     Path(id): Path<String>,
-    Json(_req): Json<ApprovalRequest>,
+    Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ProductResponse>> {
     let mut store = store.write().await;
 
@@ -459,13 +459,18 @@ pub async fn approve_product(
         .ok_or_else(|| ApiError::NotFound(format!("Product '{}' not found", id)))?;
 
     if product.status != ProductStatus::PendingApproval {
+        let action = if req.approved { "approve" } else { "reject" };
         return Err(ApiError::PreconditionFailed(format!(
-            "Cannot approve product '{}' with status {:?}. Only PENDING_APPROVAL products can be approved.",
-            id, product.status
+            "Cannot {} product '{}' with status {:?}. Only PENDING_APPROVAL products can be {}ed.",
+            action, id, product.status, action
         )));
     }
 
-    product.status = ProductStatus::Active;
+    if req.approved {
+        product.status = ProductStatus::Active;
+    } else {
+        product.status = ProductStatus::Draft;
+    }
     product.updated_at = Utc::now();
     product.version += 1;
 
