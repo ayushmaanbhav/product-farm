@@ -1,0 +1,200 @@
+# Product-FARM DGraph DQL Schema
+#
+# This is the native DGraph schema format using predicates.
+# Use this with the /alter endpoint to set up the schema.
+#
+# curl -X POST localhost:8080/alter -d '@dgraph.dql'
+
+# ============================================================================
+# Product Predicates
+# ============================================================================
+
+Product.id: string @index(exact) .
+Product.status: string @index(exact) .
+Product.template_type: string @index(exact, term) .
+Product.parent_product: uid .
+Product.effective_from: datetime .
+Product.expiry_at: datetime .
+Product.description: string @index(fulltext) .
+Product.created_at: datetime .
+Product.updated_at: datetime .
+Product.version: int .
+Product.has_abstract_attribute: [uid] @reverse .
+Product.has_attribute: [uid] @reverse .
+Product.has_rule: [uid] @reverse .
+
+# ============================================================================
+# AbstractAttribute Predicates
+# ============================================================================
+
+AbstractAttribute.abstract_path: string @index(exact, term) .
+AbstractAttribute.product: uid @reverse .
+AbstractAttribute.display_names: [string] .
+AbstractAttribute.component_type: string @index(exact) .
+AbstractAttribute.component_id: string @index(exact) .
+AbstractAttribute.has_datatype: uid .
+AbstractAttribute.datatype_id: string @index(exact) .
+AbstractAttribute.enum_name: string @index(exact) .
+AbstractAttribute.tags: [string] @index(exact) .
+AbstractAttribute.references_attributes: [uid] .
+AbstractAttribute.constraint_expression: string .
+AbstractAttribute.immutable: bool .
+AbstractAttribute.description: string @index(fulltext) .
+AbstractAttribute.computed_by_rules: [uid] @reverse .
+AbstractAttribute.used_by_rules: [uid] @reverse .
+
+# ============================================================================
+# Attribute Predicates
+# ============================================================================
+
+Attribute.path: string @index(exact, term) .
+Attribute.based_on: uid .
+Attribute.abstract_path: string @index(exact) .
+Attribute.product: uid @reverse .
+Attribute.attribute_type: string @index(exact) .
+Attribute.value: string .
+Attribute.computed_by: uid @reverse .
+Attribute.rule_id: string @index(exact) .
+Attribute.display_names: [string] .
+
+# ============================================================================
+# Rule Predicates
+# ============================================================================
+
+Rule.id: string @index(exact) .
+Rule.product: uid @reverse .
+Rule.rule_type: string @index(exact, term) .
+Rule.depends_on: [uid] @reverse .
+Rule.computes: [uid] @reverse .
+Rule.display_expression: string .
+Rule.expression: string .
+Rule.description: string @index(fulltext) .
+Rule.enabled: bool @index(bool) .
+Rule.order_index: int @index(int) .
+Rule.attribute_computed: [uid] @reverse .
+Rule.bytecode: string .
+Rule.compilation_tier: string @index(exact) .
+Rule.eval_count: int .
+
+# ============================================================================
+# DataType Predicates
+# ============================================================================
+
+DataType.id: string @index(exact) .
+DataType.primitive_type: string @index(exact) .
+DataType.description: string @index(fulltext) .
+DataType.constraints: string .
+DataType.used_by_attributes: [uid] @reverse .
+
+# ============================================================================
+# EnumDefinition Predicates
+# ============================================================================
+
+EnumDefinition.name: string @index(exact) .
+EnumDefinition.template_type: string @index(exact) .
+EnumDefinition.values: [string] @index(exact) .
+EnumDefinition.description: string @index(fulltext) .
+
+# ============================================================================
+# CompiledRule Predicates (Bytecode Persistence)
+# ============================================================================
+# Stores pre-compiled rules for fast evaluation startup.
+# - ast_json: Serialized Expr AST as JSON
+# - bytecode: Base64-encoded JSON of CompiledBytecode struct
+#   (includes bytecode instructions, constants, variable_map, variable_names)
+
+CompiledRule.rule_id: string @index(exact) .
+CompiledRule.tier: string @index(exact) .
+CompiledRule.eval_count: int .
+CompiledRule.ast_json: string .
+CompiledRule.bytecode: string .
+
+# ============================================================================
+# Type Definitions (DGraph type system)
+# ============================================================================
+
+type Product {
+  Product.id
+  Product.status
+  Product.template_type
+  Product.parent_product
+  Product.effective_from
+  Product.expiry_at
+  Product.description
+  Product.created_at
+  Product.updated_at
+  Product.version
+  Product.has_abstract_attribute
+  Product.has_attribute
+  Product.has_rule
+}
+
+type AbstractAttribute {
+  AbstractAttribute.abstract_path
+  AbstractAttribute.product
+  AbstractAttribute.display_names
+  AbstractAttribute.component_type
+  AbstractAttribute.component_id
+  AbstractAttribute.has_datatype
+  AbstractAttribute.datatype_id
+  AbstractAttribute.enum_name
+  AbstractAttribute.tags
+  AbstractAttribute.references_attributes
+  AbstractAttribute.constraint_expression
+  AbstractAttribute.immutable
+  AbstractAttribute.description
+  AbstractAttribute.computed_by_rules
+  AbstractAttribute.used_by_rules
+}
+
+type Attribute {
+  Attribute.path
+  Attribute.based_on
+  Attribute.abstract_path
+  Attribute.product
+  Attribute.attribute_type
+  Attribute.value
+  Attribute.computed_by
+  Attribute.rule_id
+  Attribute.display_names
+}
+
+type Rule {
+  Rule.id
+  Rule.product
+  Rule.rule_type
+  Rule.depends_on
+  Rule.computes
+  Rule.display_expression
+  Rule.expression
+  Rule.description
+  Rule.enabled
+  Rule.order_index
+  Rule.attribute_computed
+  Rule.bytecode
+  Rule.compilation_tier
+  Rule.eval_count
+}
+
+type DataType {
+  DataType.id
+  DataType.primitive_type
+  DataType.description
+  DataType.constraints
+  DataType.used_by_attributes
+}
+
+type EnumDefinition {
+  EnumDefinition.name
+  EnumDefinition.template_type
+  EnumDefinition.values
+  EnumDefinition.description
+}
+
+type CompiledRule {
+  CompiledRule.rule_id
+  CompiledRule.tier
+  CompiledRule.eval_count
+  CompiledRule.ast_json
+  CompiledRule.bytecode
+}

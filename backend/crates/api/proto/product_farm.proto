@@ -1,0 +1,1015 @@
+syntax = "proto3";
+
+package product_farm;
+
+// ============================================================================
+// SERVICES
+// ============================================================================
+
+// Rule evaluation service - core execution engine
+service ProductFarmService {
+  // Evaluate rules for a product with given input data
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+
+  // Batch evaluate rules against multiple input datasets
+  rpc BatchEvaluate(BatchEvaluateRequest) returns (BatchEvaluateResponse);
+
+  // Evaluate rules in streaming mode (for real-time updates)
+  rpc EvaluateStream(stream EvaluateRequest) returns (stream EvaluateResponse);
+
+  // Validate rules without executing them
+  rpc ValidateRules(ValidateRulesRequest) returns (ValidateRulesResponse);
+
+  // Get execution plan (DAG visualization)
+  rpc GetExecutionPlan(GetExecutionPlanRequest) returns (ExecutionPlanResponse);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Product management service with approval workflow
+service ProductService {
+  // CRUD operations
+  rpc CreateProduct(CreateProductRequest) returns (Product);
+  rpc GetProduct(GetProductRequest) returns (Product);
+  rpc UpdateProduct(UpdateProductRequest) returns (Product);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+
+  // Clone a product with all its entities
+  rpc CloneProduct(CloneProductRequest) returns (CloneProductResponse);
+
+  // Approval workflow
+  rpc SubmitProduct(SubmitProductRequest) returns (Product);
+  rpc ApproveProduct(ApproveProductRequest) returns (Product);
+  rpc RejectProduct(RejectProductRequest) returns (Product);
+  rpc DiscontinueProduct(DiscontinueProductRequest) returns (Product);
+}
+
+// Abstract attribute management (templates/schemas)
+service AbstractAttributeService {
+  // CRUD operations
+  rpc CreateAbstractAttribute(CreateAbstractAttributeRequest) returns (AbstractAttribute);
+  rpc GetAbstractAttribute(GetAbstractAttributeRequest) returns (AbstractAttribute);
+  rpc UpdateAbstractAttribute(UpdateAbstractAttributeRequest) returns (AbstractAttribute);
+  rpc DeleteAbstractAttribute(DeleteAbstractAttributeRequest) returns (DeleteResponse);
+
+  // Query operations
+  rpc ListAbstractAttributes(ListAbstractAttributesRequest) returns (ListAbstractAttributesResponse);
+  rpc GetAbstractAttributesByComponent(GetByComponentRequest) returns (ListAbstractAttributesResponse);
+  rpc GetAbstractAttributesByTag(GetByTagRequest) returns (ListAbstractAttributesResponse);
+  rpc GetAbstractAttributesByTags(GetByTagsRequest) returns (ListAbstractAttributesResponse);
+  rpc GetAbstractAttributesByFunctionality(GetByFunctionalityRequest) returns (ListAbstractAttributesResponse);
+}
+
+// Concrete attribute management (instances with values)
+service AttributeService {
+  // CRUD operations
+  rpc CreateAttribute(CreateAttributeRequest) returns (Attribute);
+  rpc GetAttribute(GetAttributeRequest) returns (Attribute);
+  rpc UpdateAttribute(UpdateAttributeRequest) returns (Attribute);
+  rpc DeleteAttribute(DeleteAttributeRequest) returns (DeleteResponse);
+
+  // Query operations
+  rpc ListAttributes(ListAttributesRequest) returns (ListAttributesResponse);
+  rpc GetAttributesByTag(GetAttributesByTagRequest) returns (ListAttributesResponse);
+  rpc GetAttributesByFunctionality(GetAttributesByFunctionalityRequest) returns (ListAttributesResponse);
+}
+
+// Rule management service
+service RuleService {
+  rpc CreateRule(CreateRuleRequest) returns (Rule);
+  rpc GetRule(GetRuleRequest) returns (Rule);
+  rpc UpdateRule(UpdateRuleRequest) returns (Rule);
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteResponse);
+  rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
+}
+
+// Datatype management service
+service DatatypeService {
+  rpc CreateDatatype(CreateDatatypeRequest) returns (Datatype);
+  rpc GetDatatype(GetDatatypeRequest) returns (Datatype);
+  rpc UpdateDatatype(UpdateDatatypeRequest) returns (Datatype);
+  rpc DeleteDatatype(DeleteDatatypeRequest) returns (DeleteResponse);
+  rpc ListDatatypes(ListDatatypesRequest) returns (ListDatatypesResponse);
+
+  // Usage tracking - find which attributes use this datatype
+  rpc GetDatatypeUsage(GetDatatypeUsageRequest) returns (DatatypeUsageResponse);
+
+  // Validate a value against datatype constraints
+  rpc ValidateDatatypeValue(ValidateDatatypeValueRequest) returns (ValidateDatatypeValueResponse);
+}
+
+// Product functionality management with approval workflow
+service ProductFunctionalityService {
+  // CRUD operations
+  rpc CreateFunctionality(CreateFunctionalityRequest) returns (ProductFunctionality);
+  rpc GetFunctionality(GetFunctionalityRequest) returns (ProductFunctionality);
+  rpc UpdateFunctionality(UpdateFunctionalityRequest) returns (ProductFunctionality);
+  rpc DeleteFunctionality(DeleteFunctionalityRequest) returns (DeleteResponse);
+  rpc ListFunctionalities(ListFunctionalitiesRequest) returns (ListFunctionalitiesResponse);
+
+  // Get abstract attributes for a functionality
+  rpc GetFunctionalityAbstractAttributes(GetFunctionalityAbstractAttributesRequest) returns (ListAbstractAttributesResponse);
+
+  // Evaluate a functionality with input values
+  rpc EvaluateFunctionality(EvaluateFunctionalityRequest) returns (EvaluateFunctionalityResponse);
+
+  // Approval workflow
+  rpc SubmitFunctionality(SubmitFunctionalityRequest) returns (ProductFunctionality);
+  rpc ApproveFunctionality(ApproveFunctionalityRequest) returns (ProductFunctionality);
+  rpc RejectFunctionality(RejectFunctionalityRequest) returns (ProductFunctionality);
+}
+
+// Product template enumeration management
+service ProductTemplateService {
+  rpc CreateEnumeration(CreateEnumerationRequest) returns (TemplateEnumeration);
+  rpc GetEnumeration(GetEnumerationRequest) returns (TemplateEnumeration);
+  rpc UpdateEnumeration(UpdateEnumerationRequest) returns (TemplateEnumeration);
+  rpc DeleteEnumeration(DeleteEnumerationRequest) returns (DeleteResponse);
+  rpc ListEnumerations(ListEnumerationsRequest) returns (ListEnumerationsResponse);
+
+  // Add/remove values from enumeration
+  rpc AddEnumerationValue(AddEnumerationValueRequest) returns (TemplateEnumeration);
+  rpc RemoveEnumerationValue(RemoveEnumerationValueRequest) returns (RemoveEnumerationValueResponse);
+
+  // Usage tracking - find which attributes use this enumeration
+  rpc GetEnumerationUsage(GetEnumerationUsageRequest) returns (EnumerationUsageResponse);
+
+  // Get attributes that use a specific enumeration value
+  rpc GetEnumerationValueUsage(GetEnumerationValueUsageRequest) returns (EnumerationValueUsageResponse);
+}
+
+// ============================================================================
+// CORE TYPES
+// ============================================================================
+
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string template_type = 4;
+  ProductStatus status = 5;
+  optional string parent_product_id = 6;
+  int64 effective_from = 7;
+  optional int64 expiry_at = 8;
+  int64 created_at = 9;
+  int64 updated_at = 10;
+  int64 version = 11;
+}
+
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_DRAFT = 1;
+  PRODUCT_STATUS_PENDING_APPROVAL = 2;
+  PRODUCT_STATUS_ACTIVE = 3;
+  PRODUCT_STATUS_DISCONTINUED = 4;
+}
+
+message AbstractAttribute {
+  string abstract_path = 1;
+  string product_id = 2;
+  string component_type = 3;
+  optional string component_id = 4;
+  string datatype_id = 5;
+  optional string enum_name = 6;
+  optional string constraint_expression = 7;  // JSON
+  bool immutable = 8;
+  optional string description = 9;
+  repeated DisplayName display_names = 10;
+  repeated Tag tags = 11;
+  repeated RelatedAttribute related_attributes = 12;
+}
+
+message DisplayName {
+  string display_name = 1;
+  DisplayNameFormat format = 2;
+  int32 order = 3;
+}
+
+enum DisplayNameFormat {
+  DISPLAY_NAME_FORMAT_UNSPECIFIED = 0;
+  DISPLAY_NAME_FORMAT_SYSTEM = 1;
+  DISPLAY_NAME_FORMAT_HUMAN = 2;
+  DISPLAY_NAME_FORMAT_ORIGINAL = 3;
+}
+
+message Tag {
+  string name = 1;
+  int32 order = 2;
+}
+
+message RelatedAttribute {
+  string reference_abstract_path = 1;
+  AttributeRelationshipType relationship = 2;
+  int32 order = 3;
+}
+
+enum AttributeRelationshipType {
+  ATTRIBUTE_RELATIONSHIP_TYPE_UNSPECIFIED = 0;
+  ATTRIBUTE_RELATIONSHIP_TYPE_ENUMERATION = 1;
+  ATTRIBUTE_RELATIONSHIP_TYPE_KEY_ENUMERATION = 2;
+  ATTRIBUTE_RELATIONSHIP_TYPE_VALUE_ENUMERATION = 3;
+}
+
+message Attribute {
+  string path = 1;
+  string abstract_path = 2;
+  string product_id = 3;
+  AttributeValueType value_type = 4;
+  optional Value value = 5;
+  optional string rule_id = 6;
+  repeated DisplayName display_names = 7;
+}
+
+enum AttributeValueType {
+  ATTRIBUTE_VALUE_TYPE_UNSPECIFIED = 0;
+  ATTRIBUTE_VALUE_TYPE_FIXED_VALUE = 1;
+  ATTRIBUTE_VALUE_TYPE_RULE_DRIVEN = 2;
+  ATTRIBUTE_VALUE_TYPE_JUST_DEFINITION = 3;
+}
+
+message Rule {
+  string id = 1;
+  string product_id = 2;
+  string rule_type = 3;
+  repeated RuleAttribute input_attributes = 4;
+  repeated RuleAttribute output_attributes = 5;
+  string display_expression = 6;
+  string display_expression_version = 7;
+  string expression_json = 8;  // JSON Logic expression
+  optional string description = 9;
+  bool enabled = 10;
+  int32 order_index = 11;
+}
+
+message RuleAttribute {
+  string path = 1;
+  int32 order = 2;
+}
+
+message Datatype {
+  string id = 1;
+  PrimitiveType primitive_type = 2;
+  optional string description = 3;
+  optional DatatypeConstraints constraints = 4;
+}
+
+enum PrimitiveType {
+  PRIMITIVE_TYPE_UNSPECIFIED = 0;
+  PRIMITIVE_TYPE_STRING = 1;
+  PRIMITIVE_TYPE_INT = 2;
+  PRIMITIVE_TYPE_FLOAT = 3;
+  PRIMITIVE_TYPE_DECIMAL = 4;
+  PRIMITIVE_TYPE_BOOL = 5;
+  PRIMITIVE_TYPE_DATETIME = 6;
+  PRIMITIVE_TYPE_ENUM = 7;
+  PRIMITIVE_TYPE_ARRAY = 8;
+  PRIMITIVE_TYPE_OBJECT = 9;
+}
+
+message DatatypeConstraints {
+  optional double min = 1;
+  optional double max = 2;
+  optional int32 min_length = 3;
+  optional int32 max_length = 4;
+  optional string pattern = 5;
+  optional int32 precision = 6;
+  optional int32 scale = 7;
+  // Constraint rule support - JSON Logic expression that must return true for valid values
+  optional string constraint_rule_expression = 8;
+  // Custom error message when constraint rule validation fails
+  optional string constraint_error_message = 9;
+}
+
+message ProductFunctionality {
+  string id = 1;
+  string name = 2;
+  string product_id = 3;
+  bool immutable = 4;
+  string description = 5;
+  repeated RequiredAttribute required_attributes = 6;
+  FunctionalityStatus status = 7;
+}
+
+message RequiredAttribute {
+  string abstract_path = 1;
+  string description = 2;
+  int32 order = 3;
+}
+
+enum FunctionalityStatus {
+  FUNCTIONALITY_STATUS_UNSPECIFIED = 0;
+  FUNCTIONALITY_STATUS_DRAFT = 1;
+  FUNCTIONALITY_STATUS_PENDING_APPROVAL = 2;
+  FUNCTIONALITY_STATUS_ACTIVE = 3;
+}
+
+message TemplateEnumeration {
+  string id = 1;
+  string name = 2;
+  string template_type = 3;
+  repeated string values = 4;
+  optional string description = 5;
+}
+
+message Value {
+  oneof value {
+    bool null_value = 1;
+    bool bool_value = 2;
+    int64 int_value = 3;
+    double float_value = 4;
+    string string_value = 5;
+    string decimal_value = 6;  // Decimal as string for precision
+    ArrayValue array_value = 7;
+    ObjectValue object_value = 8;
+  }
+}
+
+message ArrayValue {
+  repeated Value values = 1;
+}
+
+message ObjectValue {
+  map<string, Value> fields = 1;
+}
+
+// Common delete response
+message DeleteResponse {
+  bool success = 1;
+  optional string message = 2;
+}
+
+// ============================================================================
+// PRODUCT SERVICE MESSAGES
+// ============================================================================
+
+message CreateProductRequest {
+  string id = 1;  // User-provided ID (must match regex)
+  string name = 2;
+  string template_type = 3;
+  int64 effective_from = 4;
+  optional int64 expiry_at = 5;
+  optional string description = 6;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message UpdateProductRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional int64 effective_from = 4;
+  optional int64 expiry_at = 5;
+}
+
+message DeleteProductRequest {
+  string id = 1;
+}
+
+message ListProductsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  optional ProductStatus status_filter = 3;
+  optional string template_type_filter = 4;
+}
+
+message ListProductsResponse {
+  repeated Product products = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message CloneProductRequest {
+  string source_product_id = 1;
+  string new_product_id = 2;
+  string new_name = 3;
+  int64 effective_from = 4;
+  optional string new_description = 5;
+  // Optional selections for wizard-based cloning
+  // If empty/not provided, all items are cloned (full clone behavior)
+  repeated string selected_components = 6;       // Component types to include
+  repeated string selected_datatypes = 7;        // Datatype IDs to include
+  repeated string selected_enumerations = 8;     // Enumeration IDs to include
+  repeated string selected_functionalities = 9;  // Functionality names to include
+  repeated string selected_abstract_attributes = 10; // Abstract attribute paths to include
+  // If true, also clone concrete attributes (values). Default is true for backward compat.
+  bool clone_concrete_attributes = 11;
+}
+
+message CloneProductResponse {
+  Product product = 1;
+  int32 abstract_attributes_cloned = 2;
+  int32 attributes_cloned = 3;
+  int32 rules_cloned = 4;
+  int32 functionalities_cloned = 5;
+}
+
+message SubmitProductRequest {
+  string id = 1;
+}
+
+message ApproveProductRequest {
+  string id = 1;
+  optional string approver_id = 2;
+  optional string comments = 3;
+}
+
+message RejectProductRequest {
+  string id = 1;
+  optional string rejector_id = 2;
+  string reason = 3;
+}
+
+message DiscontinueProductRequest {
+  string id = 1;
+  optional string reason = 2;
+}
+
+// ============================================================================
+// ABSTRACT ATTRIBUTE SERVICE MESSAGES
+// ============================================================================
+
+message CreateAbstractAttributeRequest {
+  string product_id = 1;
+  string component_type = 2;
+  optional string component_id = 3;
+  string attribute_name = 4;
+  string datatype_id = 5;
+  optional string enum_name = 6;
+  optional string constraint_expression = 7;
+  bool immutable = 8;
+  optional string description = 9;
+  repeated DisplayName display_names = 10;
+  repeated string tags = 11;
+}
+
+message GetAbstractAttributeRequest {
+  string product_id = 1;
+  string abstract_path = 2;
+}
+
+message UpdateAbstractAttributeRequest {
+  string product_id = 1;
+  string abstract_path = 2;
+  optional string description = 3;
+  optional string constraint_expression = 4;
+  repeated DisplayName display_names = 5;
+  repeated string tags = 6;
+}
+
+message DeleteAbstractAttributeRequest {
+  string product_id = 1;
+  string abstract_path = 2;
+}
+
+message ListAbstractAttributesRequest {
+  string product_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListAbstractAttributesResponse {
+  repeated AbstractAttribute attributes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetByComponentRequest {
+  string product_id = 1;
+  string component_type = 2;
+  optional string component_id = 3;
+}
+
+message GetByTagRequest {
+  string product_id = 1;
+  string tag = 2;
+}
+
+message GetByTagsRequest {
+  string product_id = 1;
+  repeated string tags = 2;
+  bool match_all = 3;  // true = AND, false = OR
+}
+
+message GetByFunctionalityRequest {
+  string product_id = 1;
+  string functionality_name = 2;
+}
+
+// ============================================================================
+// ATTRIBUTE SERVICE MESSAGES
+// ============================================================================
+
+message CreateAttributeRequest {
+  string product_id = 1;
+  string component_type = 2;
+  string component_id = 3;
+  string attribute_name = 4;
+  string abstract_path = 5;
+  AttributeValueType value_type = 6;
+  optional Value value = 7;
+  optional string rule_id = 8;
+}
+
+message GetAttributeRequest {
+  string product_id = 1;
+  string path = 2;
+}
+
+message UpdateAttributeRequest {
+  string product_id = 1;
+  string path = 2;
+  optional Value value = 3;
+  optional string rule_id = 4;
+  repeated DisplayName display_names = 5;
+}
+
+message DeleteAttributeRequest {
+  string product_id = 1;
+  string path = 2;
+}
+
+message ListAttributesRequest {
+  string product_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListAttributesResponse {
+  repeated Attribute attributes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetAttributesByTagRequest {
+  string product_id = 1;
+  string tag = 2;
+}
+
+message GetAttributesByFunctionalityRequest {
+  string product_id = 1;
+  string functionality_name = 2;
+}
+
+// ============================================================================
+// RULE SERVICE MESSAGES
+// ============================================================================
+
+message CreateRuleRequest {
+  string product_id = 1;
+  string rule_type = 2;
+  repeated string input_attributes = 3;
+  repeated string output_attributes = 4;
+  string display_expression = 5;
+  string expression_json = 6;
+  optional string description = 7;
+  int32 order_index = 8;
+}
+
+message GetRuleRequest {
+  string id = 1;
+}
+
+message UpdateRuleRequest {
+  string id = 1;
+  optional string rule_type = 2;
+  repeated string input_attributes = 3;
+  repeated string output_attributes = 4;
+  optional string display_expression = 5;
+  optional string expression_json = 6;
+  optional string description = 7;
+  optional bool enabled = 8;
+  optional int32 order_index = 9;
+}
+
+message DeleteRuleRequest {
+  string id = 1;
+}
+
+message ListRulesRequest {
+  string product_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  optional string rule_type_filter = 4;
+  optional bool enabled_filter = 5;
+}
+
+message ListRulesResponse {
+  repeated Rule rules = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// ============================================================================
+// DATATYPE SERVICE MESSAGES
+// ============================================================================
+
+message CreateDatatypeRequest {
+  string id = 1;
+  PrimitiveType primitive_type = 2;
+  optional string description = 3;
+  optional DatatypeConstraints constraints = 4;
+}
+
+message GetDatatypeRequest {
+  string id = 1;
+}
+
+message UpdateDatatypeRequest {
+  string id = 1;
+  optional string description = 2;
+  optional DatatypeConstraints constraints = 3;
+}
+
+message DeleteDatatypeRequest {
+  string id = 1;
+}
+
+message ListDatatypesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  optional PrimitiveType primitive_type_filter = 3;
+}
+
+message ListDatatypesResponse {
+  repeated Datatype datatypes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// ============================================================================
+// PRODUCT FUNCTIONALITY SERVICE MESSAGES
+// ============================================================================
+
+message CreateFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+  string description = 3;
+  bool immutable = 4;
+  repeated RequiredAttributeInput required_attributes = 5;
+}
+
+message RequiredAttributeInput {
+  string abstract_path = 1;
+  string description = 2;
+}
+
+message GetFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+}
+
+message UpdateFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated RequiredAttributeInput required_attributes = 4;
+}
+
+message DeleteFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+}
+
+message ListFunctionalitiesRequest {
+  string product_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  optional FunctionalityStatus status_filter = 4;
+}
+
+message ListFunctionalitiesResponse {
+  repeated ProductFunctionality functionalities = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetFunctionalityAbstractAttributesRequest {
+  string product_id = 1;
+  string functionality_name = 2;
+}
+
+message EvaluateFunctionalityRequest {
+  string product_id = 1;
+  string functionality_name = 2;
+  map<string, Value> input_values = 3;  // path -> value
+  bool validate_only = 4;  // If true, only validate inputs without evaluating
+}
+
+message EvaluateFunctionalityResponse {
+  bool success = 1;
+  map<string, Value> output_values = 2;  // path -> computed value
+  repeated InputValidationResult validation_results = 3;
+  repeated EvaluationError errors = 4;
+  ExecutionMetrics metrics = 5;
+}
+
+message InputValidationResult {
+  string path = 1;
+  bool valid = 2;
+  optional string error_message = 3;
+  optional string expected_type = 4;
+  optional Value provided_value = 5;
+}
+
+message SubmitFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+}
+
+message ApproveFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+  optional string approver_id = 3;
+  optional string comments = 4;
+}
+
+message RejectFunctionalityRequest {
+  string product_id = 1;
+  string name = 2;
+  optional string rejector_id = 3;
+  string reason = 4;
+}
+
+// ============================================================================
+// PRODUCT TEMPLATE SERVICE MESSAGES
+// ============================================================================
+
+message CreateEnumerationRequest {
+  string name = 1;
+  string template_type = 2;
+  repeated string values = 3;
+  optional string description = 4;
+}
+
+message GetEnumerationRequest {
+  string id = 1;
+}
+
+message UpdateEnumerationRequest {
+  string id = 1;
+  optional string description = 2;
+}
+
+message DeleteEnumerationRequest {
+  string id = 1;
+}
+
+message ListEnumerationsRequest {
+  string template_type = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListEnumerationsResponse {
+  repeated TemplateEnumeration enumerations = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message AddEnumerationValueRequest {
+  string id = 1;
+  string value = 2;
+}
+
+message RemoveEnumerationValueRequest {
+  string id = 1;
+  string value = 2;
+  // If true and value is in use, set affected attribute values to null
+  bool cascade = 3;
+}
+
+message RemoveEnumerationValueResponse {
+  TemplateEnumeration enumeration = 1;
+  // List of attributes that were affected (values set to null)
+  repeated AttributeReference affected_attributes = 2;
+}
+
+// Reference to an attribute for usage tracking
+message AttributeReference {
+  string product_id = 1;
+  string attribute_path = 2;
+  string value_type = 3;  // FIXED_VALUE, RULE_DRIVEN, etc.
+}
+
+// ============================================================================
+// DATATYPE USAGE AND VALIDATION MESSAGES
+// ============================================================================
+
+message GetDatatypeUsageRequest {
+  string datatype_id = 1;
+}
+
+message DatatypeUsageResponse {
+  repeated AttributeReference used_by_attributes = 1;
+  int32 total_count = 2;
+}
+
+message ValidateDatatypeValueRequest {
+  string datatype_id = 1;
+  string value_json = 2;  // JSON-encoded value to validate
+  map<string, string> context = 3;  // Other attribute values for cross-field validation
+}
+
+message ValidateDatatypeValueResponse {
+  bool is_valid = 1;
+  repeated string errors = 2;
+}
+
+// ============================================================================
+// ENUMERATION USAGE MESSAGES
+// ============================================================================
+
+message GetEnumerationUsageRequest {
+  string enumeration_id = 1;
+}
+
+message EnumerationUsageResponse {
+  repeated AttributeReference used_by_attributes = 1;
+  int32 total_count = 2;
+}
+
+message GetEnumerationValueUsageRequest {
+  string enumeration_id = 1;
+  string value = 2;
+}
+
+message EnumerationValueUsageResponse {
+  repeated AttributeReference attributes_with_value = 1;
+  int32 total_count = 2;
+}
+
+// ============================================================================
+// EVALUATION MESSAGES
+// ============================================================================
+
+message EvaluateRequest {
+  string product_id = 1;
+  map<string, Value> input_data = 2;
+  repeated string rule_ids = 3;  // Optional: specific rules to evaluate
+  EvaluationOptions options = 4;
+}
+
+message EvaluationOptions {
+  bool include_intermediate_results = 1;
+  bool include_execution_times = 2;
+  int64 timeout_ms = 3;
+  bool dry_run = 4;  // Validate without persisting
+}
+
+message EvaluateResponse {
+  bool success = 1;
+  map<string, Value> outputs = 2;
+  repeated RuleResult rule_results = 3;
+  ExecutionMetrics metrics = 4;
+  repeated EvaluationError errors = 5;
+}
+
+message RuleResult {
+  string rule_id = 1;
+  repeated OutputValue outputs = 2;
+  int64 execution_time_ns = 3;
+  bool success = 4;
+  string error_message = 5;
+}
+
+message OutputValue {
+  string attribute_path = 1;
+  Value value = 2;
+}
+
+message ExecutionMetrics {
+  int64 total_time_ns = 1;
+  int32 rules_executed = 2;
+  int32 rules_skipped = 3;
+  int32 cache_hits = 4;
+  repeated ExecutionLevel levels = 5;
+}
+
+message ExecutionLevel {
+  int32 level = 1;
+  repeated string rule_ids = 2;
+}
+
+message EvaluationError {
+  string rule_id = 1;
+  string error_type = 2;
+  string message = 3;
+}
+
+// Batch evaluation messages
+message BatchEvaluateRequest {
+  string product_id = 1;
+  repeated BatchInput inputs = 2;
+  repeated string rule_ids = 3;
+  EvaluationOptions options = 4;
+}
+
+message BatchInput {
+  string input_id = 1;
+  map<string, Value> data = 2;
+}
+
+message BatchEvaluateResponse {
+  bool success = 1;
+  repeated BatchResult results = 2;
+  BatchMetrics metrics = 3;
+}
+
+message BatchResult {
+  string input_id = 1;
+  bool success = 2;
+  map<string, Value> outputs = 3;
+  repeated EvaluationError errors = 4;
+}
+
+message BatchMetrics {
+  int64 total_time_ns = 1;
+  int32 total_inputs = 2;
+  int32 successful_inputs = 3;
+  int32 failed_inputs = 4;
+  int32 rules_per_input = 5;
+  int64 avg_time_per_input_ns = 6;
+}
+
+// ============================================================================
+// VALIDATION MESSAGES
+// ============================================================================
+
+message ValidateRulesRequest {
+  string product_id = 1;
+  repeated Rule rules = 2;
+  repeated string available_inputs = 3;
+}
+
+message ValidateRulesResponse {
+  bool valid = 1;
+  repeated ValidationError errors = 2;
+  repeated ValidationWarning warnings = 3;
+}
+
+message ValidationError {
+  string rule_id = 1;
+  string error_type = 2;
+  string message = 3;
+  string field = 4;
+}
+
+message ValidationWarning {
+  string rule_id = 1;
+  string warning_type = 2;
+  string message = 3;
+}
+
+// ============================================================================
+// EXECUTION PLAN MESSAGES
+// ============================================================================
+
+message GetExecutionPlanRequest {
+  string product_id = 1;
+  repeated string rule_ids = 2;
+}
+
+message ExecutionPlanResponse {
+  repeated ExecutionLevel levels = 1;
+  repeated RuleDependency dependencies = 2;
+  repeated MissingInput missing_inputs = 3;
+  string dot_graph = 4;
+  string mermaid_graph = 5;
+  string ascii_graph = 6;
+}
+
+message RuleDependency {
+  string rule_id = 1;
+  repeated string depends_on = 2;
+  repeated string produces = 3;
+}
+
+message MissingInput {
+  string rule_id = 1;
+  string input_path = 2;
+}
+
+// ============================================================================
+// HEALTH CHECK MESSAGES
+// ============================================================================
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  HealthStatus status = 1;
+  string version = 2;
+  int64 uptime_seconds = 3;
+  map<string, string> metadata = 4;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_SERVING = 1;
+  HEALTH_STATUS_NOT_SERVING = 2;
+}

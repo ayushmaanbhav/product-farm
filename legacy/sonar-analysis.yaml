@@ -1,0 +1,26 @@
+version: '3.0'
+
+services:
+    db:
+        image: "registry.ayushmaanbhav.in/postgres-11:latest"
+        ports:
+            - "5432:5432"
+        environment:
+            - POSTGRES_DB=service-test
+            - POSTGRES_USER=service-test
+            - POSTGRES_PASSWORD=service-test
+
+    spring-boot-app:
+        depends_on:
+            - db
+        image: "registry.ayushmaanbhav.in/maven-3:latest"
+        ports:
+            - "8080:8080"
+        environment:
+            - DATASOURCE_URL=jdbc:postgresql://db:5432/service-test
+            - DATASOURCE_USERNAME=service-test
+            - DATASOURCE_PASSWORD=service-test
+        volumes:
+            - .:/app
+        working_dir: /app
+        command: bash -c "mvn clean verify && mvn sonar:sonar -Dsonar.login=${SONAR_PROJECT_TOKEN} -Dsonar.projectName=GI:product-farm"

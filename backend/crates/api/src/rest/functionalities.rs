@@ -1,0 +1,293 @@
+//! REST handlers for Product Functionalities
+//!
+//! Provides HTTP endpoints for functionality management
+
+use axum::{
+    extract::{Path, State},
+    routing::get,
+    Json, Router,
+};
+use product_farm_core::{
+    validation, AbstractPath, FunctionalityId, FunctionalityRequiredAttribute,
+    ProductFunctionalityStatus, ProductFunctionality, ProductId,
+};
+
+use crate::store::SharedStore;
+
+use super::error::{ApiError, ApiResult};
+use super::types::*;
+
+/// Create routes for functionality endpoints
+pub fn routes() -> Router<SharedStore> {
+    Router::new()
+        .route(
+            "/api/products/{product_id}/functionalities",
+            get(list_functionalities).post(create_functionality),
+        )
+        .route(
+            "/api/products/{product_id}/functionalities/{name}",
+            get(get_functionality)
+                .put(update_functionality)
+                .delete(delete_functionality),
+        )
+        .route(
+            "/api/products/{product_id}/functionalities/{name}/activate",
+            axum::routing::post(activate_functionality),
+        )
+        .route(
+            "/api/products/{product_id}/functionalities/{name}/deactivate",
+            axum::routing::post(deactivate_functionality),
+        )
+}
+
+/// List all functionalities for a product
+async fn list_functionalities(
+    State(store): State<SharedStore>,
+    Path(product_id): Path<String>,
+) -> ApiResult<Json<ListFunctionalitiesResponse>> {
+    let store = store.read().await;
+
+    // Verify product exists (store uses String keys)
+    if !store.products.contains_key(&product_id) {
+        return Err(ApiError::NotFound(format!(
+            "Product '{}' not found",
+            product_id
+        )));
+    }
+
+    let pid = ProductId::new(&product_id);
+
+    // Collect functionalities for this product (single iteration)
+    let functionalities: Vec<FunctionalityResponse> = store
+        .functionalities
+        .values()
+        .filter(|f| f.product_id == pid)
+        .map(|f| f.into())
+        .collect();
+
+    let total = functionalities.len();
+
+    Ok(Json(ListFunctionalitiesResponse {
+        functionalities,
+        total,
+    }))
+}
+
+/// Create a new functionality
+async fn create_functionality(
+    State(store): State<SharedStore>,
+    Path(product_id): Path<String>,
+    Json(req): Json<CreateFunctionalityRequest>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let mut store = store.write().await;
+
+    // Verify product exists (store uses String keys)
+    if !store.products.contains_key(&product_id) {
+        return Err(ApiError::NotFound(format!(
+            "Product '{}' not found",
+            product_id
+        )));
+    }
+
+    let pid = ProductId::new(&product_id);
+
+    // Validate functionality name before using in key construction
+    if !validation::is_valid_functionality_name(&req.name) {
+        return Err(ApiError::BadRequest(format!(
+            "Invalid functionality name '{}'. Must match pattern: lowercase letters and hyphens only, 1-51 chars",
+            req.name
+        )));
+    }
+
+    // Generate functionality key (store uses String keys)
+    // Safe because we validated both product_id (via product lookup) and name (above)
+    let func_key = format!("{}:{}", product_id, req.name);
+    let func_id = FunctionalityId::new(&func_key);
+
+    // Check for duplicate
+    if store.functionalities.contains_key(&func_key) {
+        return Err(ApiError::Conflict(format!(
+            "Functionality '{}' already exists for product '{}'",
+            req.name, product_id
+        )));
+    }
+
+    // Parse required attributes (description is String, no order_index in input)
+    let required_attributes: Vec<FunctionalityRequiredAttribute> = req
+        .required_attributes
+        .iter()
+        .enumerate()
+        .map(|(i, attr)| {
+            let abstract_path = AbstractPath::new(&attr.abstract_path);
+            FunctionalityRequiredAttribute::new(
+                func_id.clone(),
+                abstract_path,
+                attr.description.clone(),
+                i as i32,
+            )
+        })
+        .collect();
+
+    // Create the functionality (description is String, immutable is bool)
+    let mut functionality = ProductFunctionality::new(
+        func_id.clone(),
+        req.name,
+        pid,
+        req.description.clone(),
+    );
+    functionality.immutable = req.immutable;
+    functionality.required_attributes = required_attributes;
+
+    let response = FunctionalityResponse::from(&functionality);
+    store.functionalities.insert(func_key, functionality);
+
+    Ok(Json(response))
+}
+
+/// Get a specific functionality by name
+async fn get_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let store = store.read().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    store
+        .functionalities
+        .get(&func_key)
+        .map(|f| Json(f.into()))
+        .ok_or_else(|| {
+            ApiError::NotFound(format!(
+                "Functionality '{}' not found for product '{}'",
+                name, product_id
+            ))
+        })
+}
+
+/// Update a functionality
+async fn update_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+    Json(req): Json<UpdateFunctionalityRequest>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let mut store = store.write().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+    let func_id = FunctionalityId::new(&func_key);
+
+    let functionality = store.functionalities.get_mut(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    // Check if immutable
+    if functionality.immutable {
+        return Err(ApiError::PreconditionFailed(format!(
+            "Cannot update immutable functionality '{}'",
+            name
+        )));
+    }
+
+    // Update fields (UpdateFunctionalityRequest has no name field)
+    if let Some(description) = req.description {
+        if !description.is_empty() {
+            functionality.description = description;
+        }
+    }
+
+    // Update required attributes if provided
+    if let Some(required_attrs) = req.required_attributes {
+        functionality.required_attributes = required_attrs
+            .iter()
+            .enumerate()
+            .map(|(i, attr)| {
+                let abstract_path = AbstractPath::new(&attr.abstract_path);
+                FunctionalityRequiredAttribute::new(
+                    func_id.clone(),
+                    abstract_path,
+                    attr.description.clone(),
+                    i as i32,
+                )
+            })
+            .collect();
+    }
+
+    let response = FunctionalityResponse::from(&*functionality);
+    Ok(Json(response))
+}
+
+/// Delete a functionality
+async fn delete_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let mut store = store.write().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    // Check if immutable
+    if let Some(functionality) = store.functionalities.get(&func_key) {
+        if functionality.immutable {
+            return Err(ApiError::PreconditionFailed(format!(
+                "Cannot delete immutable functionality '{}'",
+                name
+            )));
+        }
+    }
+
+    if store.functionalities.remove(&func_key).is_some() {
+        Ok(Json(serde_json::json!({ "deleted": true })))
+    } else {
+        Err(ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        )))
+    }
+}
+
+/// Activate a functionality
+async fn activate_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let mut store = store.write().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    let functionality = store.functionalities.get_mut(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    functionality.status = ProductFunctionalityStatus::Active;
+
+    let response = FunctionalityResponse::from(&*functionality);
+    Ok(Json(response))
+}
+
+/// Deactivate a functionality
+async fn deactivate_functionality(
+    State(store): State<SharedStore>,
+    Path((product_id, name)): Path<(String, String)>,
+) -> ApiResult<Json<FunctionalityResponse>> {
+    let mut store = store.write().await;
+
+    let func_key = format!("{}:{}", product_id, name);
+
+    let functionality = store.functionalities.get_mut(&func_key).ok_or_else(|| {
+        ApiError::NotFound(format!(
+            "Functionality '{}' not found for product '{}'",
+            name, product_id
+        ))
+    })?;
+
+    functionality.status = ProductFunctionalityStatus::Draft;
+
+    let response = FunctionalityResponse::from(&*functionality);
+    Ok(Json(response))
+}

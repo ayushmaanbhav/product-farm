@@ -1,0 +1,48 @@
+<databaseChangeLog
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="6204f8da" author="Ayush Jain">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="attribute"/>
+            </not>
+        </preConditions>
+        <createTable tableName="attribute">
+            <column name="path" type="varchar">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="abstract_path" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rule_id" type="varchar">
+                <constraints nullable="true"/>
+            </column>
+            <column name="value" type="jsonb">
+                <constraints nullable="true"/>
+            </column>
+            <column name="product_id" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="attribute"
+                     indexName="attribute_product_id">
+            <column name="product_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

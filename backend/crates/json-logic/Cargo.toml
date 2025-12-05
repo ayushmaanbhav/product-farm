@@ -1,0 +1,24 @@
+[package]
+name = "product-farm-json-logic"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "JSON Logic parser, AST, and bytecode compiler for Product-FARM"
+
+[dependencies]
+product-farm-core = { path = "../core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+smallvec = { workspace = true }
+hashbrown = { workspace = true }
+rust_decimal = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "json_logic_bench"
+harness = false

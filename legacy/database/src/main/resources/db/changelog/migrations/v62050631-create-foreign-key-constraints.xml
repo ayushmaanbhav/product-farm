@@ -1,0 +1,120 @@
+<databaseChangeLog
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="62050631" author="Ayush Jain">
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_product_id"
+            baseTableName="abstract_attribute" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_datatype"
+            baseTableName="abstract_attribute" baseColumnNames="datatype"
+            referencedTableName="datatype" referencedColumnNames="name"/>
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_enumeration_id"
+            baseTableName="abstract_attribute" baseColumnNames="enumeration_id"
+            referencedTableName="product_template_enumeration" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_constraint_rule_id"
+            baseTableName="abstract_attribute" baseColumnNames="constraint_rule_id"
+            referencedTableName="rule" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="attribute_rule_id"
+            baseTableName="attribute" baseColumnNames="rule_id"
+            referencedTableName="rule" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="attribute_product_id"
+            baseTableName="attribute" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="attribute_abstract_path"
+            baseTableName="attribute" baseColumnNames="abstract_path"
+            referencedTableName="abstract_attribute" referencedColumnNames="abstract_path"/>
+
+        <addForeignKeyConstraint
+            constraintName="product_functionality_required_attribute_product_id"
+            baseTableName="product_functionality_required_attribute" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="product_functionality_required_attribute_abstract_path"
+            baseTableName="product_functionality_required_attribute" baseColumnNames="abstract_path"
+            referencedTableName="abstract_attribute" referencedColumnNames="abstract_path"/>
+        <addForeignKeyConstraint
+            constraintName="product_functionality_required_attribute_functionality_id"
+            baseTableName="product_functionality_required_attribute" baseColumnNames="functionality_id"
+            referencedTableName="product_functionality" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="product_parent_product_id"
+            baseTableName="product" baseColumnNames="parent_product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="product_approval_product_id"
+            baseTableName="product_approval" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="product_approval_discontinued_product_id"
+            baseTableName="product_approval" baseColumnNames="discontinued_product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="product_functionality_product_id"
+            baseTableName="product_functionality" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="rule_input_attribute_path"
+            baseTableName="rule_input_attribute" baseColumnNames="path"
+            referencedTableName="attribute" referencedColumnNames="path"/>
+        <addForeignKeyConstraint
+            constraintName="rule_input_attribute_rule_id"
+            baseTableName="rule_input_attribute" baseColumnNames="rule_id"
+            referencedTableName="rule" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="rule_output_attribute_path"
+            baseTableName="rule_output_attribute" baseColumnNames="path"
+            referencedTableName="attribute" referencedColumnNames="path"/>
+        <addForeignKeyConstraint
+            constraintName="rule_output_attribute_rule_id"
+            baseTableName="rule_output_attribute" baseColumnNames="rule_id"
+            referencedTableName="rule" referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            constraintName="product_display_name_product_id"
+            baseTableName="product_display_name" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="product_display_name_abstract_path"
+            baseTableName="product_display_name" baseColumnNames="abstract_path"
+            referencedTableName="abstract_attribute" referencedColumnNames="abstract_path"/>
+        <addForeignKeyConstraint
+            constraintName="product_display_name_path"
+            baseTableName="product_display_name" baseColumnNames="path"
+            referencedTableName="attribute" referencedColumnNames="path"/>
+
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_tag_product_id"
+            baseTableName="abstract_attribute_tag" baseColumnNames="product_id"
+            referencedTableName="product" referencedColumnNames="id"/>
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_tag_abstract_path"
+            baseTableName="abstract_attribute_tag" baseColumnNames="abstract_path"
+            referencedTableName="abstract_attribute" referencedColumnNames="abstract_path"/>
+
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_related_attribute_ap"
+            baseTableName="abstract_attribute_related_attribute" baseColumnNames="abstract_path"
+            referencedTableName="abstract_attribute" referencedColumnNames="abstract_path"/>
+        <addForeignKeyConstraint
+            constraintName="abstract_attribute_related_attribute_raap"
+            baseTableName="abstract_attribute_related_attribute"
+            baseColumnNames="reference_abstract_path"
+            referencedTableName="abstract_attribute" referencedColumnNames="abstract_path"/>
+    </changeSet>
+</databaseChangeLog>

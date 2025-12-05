@@ -1,0 +1,275 @@
+# Product-FARM DGraph Schema
+#
+# This schema defines the graph structure for the Product-FARM rule engine.
+# It maps the core domain types (Product, Attribute, Rule) to graph nodes
+# with edges representing their relationships.
+#
+# Node Types:
+# - Product: Root entity representing a product configuration
+# - AbstractAttribute: Template for attribute definitions
+# - Attribute: Concrete attribute instance with value or rule link
+# - Rule: Computation rule with JSON Logic expression
+# - DataType: Type definition for attribute values
+# - EnumDefinition: Enum type with allowed values
+#
+# Edge Types (Relationships):
+# - Product -> AbstractAttribute: has_abstract_attribute
+# - Product -> Attribute: has_attribute
+# - Product -> Rule: has_rule
+# - Product -> Product: parent_product (inheritance)
+# - Attribute -> AbstractAttribute: based_on
+# - Attribute -> Rule: computed_by (for dynamic attributes)
+# - AbstractAttribute -> DataType: has_datatype
+# - Rule -> AbstractAttribute: depends_on (inputs)
+# - Rule -> AbstractAttribute: computes (outputs)
+
+# ============================================================================
+# Product Type
+# ============================================================================
+
+type Product {
+  # Unique identifier
+  id: String! @id
+
+  # Current status in lifecycle: DRAFT, PENDING_APPROVAL, ACTIVE, DISCONTINUED
+  status: String! @search(by: [exact])
+
+  # Template type (e.g., "INSURANCE", "TRADING")
+  template_type: String! @search(by: [exact, term])
+
+  # Optional parent product (if cloned)
+  parent_product: Product
+
+  # When this product becomes effective
+  effective_from: DateTime!
+
+  # When this product expires
+  expiry_at: DateTime
+
+  # Human-readable description
+  description: String @search(by: [fulltext])
+
+  # Audit timestamps
+  created_at: DateTime!
+  updated_at: DateTime!
+
+  # Version for optimistic locking
+  version: Int!
+
+  # Relationships
+  has_abstract_attribute: [AbstractAttribute] @hasInverse(field: product)
+  has_attribute: [Attribute] @hasInverse(field: product)
+  has_rule: [Rule] @hasInverse(field: product)
+}
+
+# ============================================================================
+# AbstractAttribute Type (Attribute Template)
+# ============================================================================
+
+type AbstractAttribute {
+  # Abstract path: <component_type>(.<component_id>).<path.name>
+  abstract_path: String! @id @search(by: [exact, term])
+
+  # Product this attribute belongs to
+  product: Product! @hasInverse(field: has_abstract_attribute)
+
+  # Display names for user-facing representation
+  display_names: [String]
+
+  # Component type (e.g., MARKET_DATA, COVER, POSITION)
+  component_type: String! @search(by: [exact])
+
+  # Optional component ID (for specific instances)
+  component_id: String @search(by: [exact])
+
+  # Data type reference
+  has_datatype: DataType
+  datatype_id: String! @search(by: [exact])
+
+  # Enum name (required when datatype is enum)
+  enum_name: String @search(by: [exact])
+
+  # Tags for categorization and querying
+  tags: [String] @search(by: [exact])
+
+  # References to other attributes (for attribute_reference type)
+  references_attributes: [AbstractAttribute]
+
+  # Constraint expression (JSON Logic for validation) - stored as JSON string
+  constraint_expression: String
+
+  # Whether this attribute can be modified after creation
+  immutable: Boolean
+
+  # Human-readable description
+  description: String @search(by: [fulltext])
+
+  # Inverse edges
+  computed_by_rules: [Rule] @hasInverse(field: computes)
+  used_by_rules: [Rule] @hasInverse(field: depends_on)
+}
+
+# ============================================================================
+# Attribute Type (Concrete Attribute Instance)
+# ============================================================================
+
+type Attribute {
+  # Concrete path: <component_type>.<component_id>.<path.name>
+  path: String! @id @search(by: [exact, term])
+
+  # Reference to abstract attribute template
+  based_on: AbstractAttribute
+  abstract_path: String! @search(by: [exact])
+
+  # Product this attribute belongs to
+  product: Product! @hasInverse(field: has_attribute)
+
+  # Attribute type: STATIC or DYNAMIC
+  attribute_type: String! @search(by: [exact])
+
+  # Static value (when attribute_type is STATIC) - stored as JSON string
+  value: String
+
+  # Rule reference (when attribute_type is DYNAMIC)
+  computed_by: Rule @hasInverse(field: attribute_computed)
+  rule_id: String @search(by: [exact])
+
+  # Display names (can override abstract attribute)
+  display_names: [String]
+}
+
+# ============================================================================
+# Rule Type
+# ============================================================================
+
+type Rule {
+  # Unique rule identifier (UUID)
+  id: String! @id
+
+  # Product this rule belongs to
+  product: Product! @hasInverse(field: has_rule)
+
+  # Rule type/category (e.g., "ENTRY_LOGIC", "PREMIUM_CALCULATION")
+  rule_type: String! @search(by: [exact, term])
+
+  # Input attribute dependencies (edges)
+  depends_on: [AbstractAttribute] @hasInverse(field: used_by_rules)
+
+  # Output attribute productions (edges)
+  computes: [AbstractAttribute] @hasInverse(field: computed_by_rules)
+
+  # Human-readable expression (for display in UI)
+  display_expression: String
+
+  # Compiled JSON Logic expression - stored as JSON string
+  expression: String!
+
+  # Human-readable description
+  description: String @search(by: [fulltext])
+
+  # Whether this rule is enabled
+  enabled: Boolean! @search
+
+  # Order index for evaluation (lower = earlier)
+  order_index: Int! @search
+
+  # Inverse relationship for computed attributes
+  attribute_computed: [Attribute] @hasInverse(field: computed_by)
+
+  # Compiled bytecode (if tier is BYTECODE) - stored as base64 string
+  bytecode: String
+
+  # Compilation tier: AST or BYTECODE
+  compilation_tier: String @search(by: [exact])
+
+  # Evaluation count for hot path detection
+  eval_count: Int
+}
+
+# ============================================================================
+# DataType Type
+# ============================================================================
+
+type DataType {
+  # Unique name for this data type
+  id: String! @id @search(by: [exact])
+
+  # The underlying primitive type
+  # Values: string, int, float, decimal, bool, datetime, enum, array, object, attribute_reference, identifier
+  primitive_type: String! @search(by: [exact])
+
+  # Human-readable description
+  description: String @search(by: [fulltext])
+
+  # Validation constraints stored as JSON
+  constraints: String
+
+  # Inverse edges
+  used_by_attributes: [AbstractAttribute] @hasInverse(field: has_datatype)
+}
+
+# ============================================================================
+# EnumDefinition Type
+# ============================================================================
+
+type EnumDefinition {
+  # Unique name for this enum
+  name: String! @id @search(by: [exact])
+
+  # Product template type this enum belongs to
+  template_type: String! @search(by: [exact])
+
+  # Allowed values
+  values: [String] @search(by: [exact])
+
+  # Human-readable description
+  description: String @search(by: [fulltext])
+}
+
+# ============================================================================
+# Graph Traversal Queries
+# ============================================================================
+
+# These queries support the key use cases:
+#
+# 1. Rule Dependency Analysis:
+#    - Find all rules that depend on a given attribute (upstream)
+#    - Find all rules that compute a given attribute (downstream)
+#    - Detect circular dependencies
+#
+# 2. Impact Analysis:
+#    - Given a rule change, what attributes are affected?
+#    - Given an attribute change, what rules need re-evaluation?
+#
+# 3. Execution Planning:
+#    - Topological ordering of rules
+#    - Parallel execution levels
+#
+# Example DQL Queries:
+#
+# Find rule dependencies (transitive):
+# {
+#   rule(func: eq(Rule.id, "rule-id")) {
+#     depends_on {
+#       abstract_path
+#       used_by_rules {
+#         id
+#         depends_on @recurse(depth: 10) {
+#           abstract_path
+#         }
+#       }
+#     }
+#   }
+# }
+#
+# Find impacted attributes from a rule:
+# {
+#   rule(func: eq(Rule.id, "rule-id")) {
+#     computes @recurse(depth: 10) {
+#       abstract_path
+#       used_by_rules {
+#         computes
+#       }
+#     }
+#   }
+# }

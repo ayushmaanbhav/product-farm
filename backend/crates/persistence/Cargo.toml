@@ -1,0 +1,37 @@
+[package]
+name = "product-farm-persistence"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Persistence layer for Product-FARM with DGraph and ScyllaDB support"
+
+[features]
+default = []
+dgraph = ["dep:dgraph-tonic", "dep:base64"]
+
+[dependencies]
+product-farm-core = { path = "../core" }
+product-farm-json-logic = { path = "../json-logic" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+async-trait = "0.1"
+chrono = { workspace = true }
+
+# DGraph dependencies (optional)
+dgraph-tonic = { version = "0.11", optional = true, features = ["dgraph-21-03"], default-features = false }
+base64 = { version = "0.22", optional = true }
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[[example]]
+name = "test_dgraph_connection"
+required-features = ["dgraph"]
+
+[[example]]
+name = "test_dgraph_ops"
+required-features = ["dgraph"]

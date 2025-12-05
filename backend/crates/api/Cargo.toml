@@ -1,0 +1,42 @@
+[package]
+name = "product-farm-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "gRPC and REST API for Product-FARM"
+
+[dependencies]
+product-farm-core = { path = "../core" }
+product-farm-json-logic = { path = "../json-logic" }
+product-farm-rule-engine = { path = "../rule-engine" }
+product-farm-persistence = { path = "../persistence" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+tokio-stream = "0.1"
+futures = "0.3"
+uuid = { workspace = true }
+chrono = { workspace = true }
+hashbrown = { workspace = true }
+async-stream = "0.3"
+regex = "1"
+
+# REST/HTTP dependencies
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+hyper = { version = "1.4", features = ["full"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+tempfile = "3.10"

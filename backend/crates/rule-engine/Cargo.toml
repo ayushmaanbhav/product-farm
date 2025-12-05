@@ -1,0 +1,28 @@
+[package]
+name = "product-farm-rule-engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Rule engine with DAG-based execution for Product-FARM"
+
+[dependencies]
+product-farm-core = { path = "../core" }
+product-farm-json-logic = { path = "../json-logic" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+hashbrown = { workspace = true }
+smallvec = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+petgraph = "0.6"
+
+[dev-dependencies]
+proptest = { workspace = true }
+tokio = { version = "1.35", features = ["rt-multi-thread", "macros"] }
+criterion = { workspace = true }
+
+[[bench]]
+name = "rule_engine_bench"
+harness = false
