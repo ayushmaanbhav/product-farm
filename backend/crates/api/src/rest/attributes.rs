@@ -3,23 +3,34 @@
 //! Provides HTTP endpoints for attribute management
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::get,
     Json, Router,
 };
+use serde::Deserialize;
+
+/// Query parameters for listing abstract attributes
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAbstractAttributesQuery {
+    pub component_type: Option<String>,
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
 use product_farm_core::{
     AbstractAttribute, AbstractAttributeRelatedAttribute, AbstractAttributeTag,
     AbstractPath, Attribute, AttributeDisplayName,
-    AttributeValueType, ConcretePath, DataTypeId, DisplayNameFormat, ProductId, Tag, Value,
+    AttributeValueType, ConcretePath, DataType, DataTypeId,
+    DisplayNameFormat, PrimitiveType, ProductId, RuleId, Tag, Value,
 };
 
-use crate::store::SharedStore;
-
+use crate::config::limits::{MAX_PATH_LENGTH, MAX_PATTERN_LENGTH, MAX_REGEX_SIZE};
 use super::error::{ApiError, ApiResult};
 use super::types::*;
+use super::AppState;
 
 /// Create routes for attribute endpoints
-pub fn routes() -> Router<SharedStore> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         // Abstract attribute routes
         .route(
@@ -59,10 +70,11 @@ pub fn routes() -> Router<SharedStore> {
 
 /// List all abstract attributes for a product
 async fn list_abstract_attributes(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
+    Query(query): Query<ListAbstractAttributesQuery>,
 ) -> ApiResult<Json<ListAbstractAttributesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -74,11 +86,14 @@ async fn list_abstract_attributes(
 
     let pid = ProductId::new(&product_id);
 
-    // Collect abstract attributes for this product (single iteration)
+    // Collect abstract attributes for this product with optional component type filter
     let attributes: Vec<AbstractAttributeResponse> = store
         .abstract_attributes
         .values()
-        .filter(|a| a.product_id == pid)
+        .filter(|a| {
+            a.product_id == pid &&
+            query.component_type.as_ref().map_or(true, |ct| &a.component_type == ct)
+        })
         .map(|a| a.into())
         .collect();
 
@@ -93,10 +108,10 @@ async fn list_abstract_attributes(
 
 /// List abstract attributes by component type
 async fn list_abstract_attributes_by_component(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, component_type)): Path<(String, String)>,
 ) -> ApiResult<Json<ListAbstractAttributesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -126,10 +141,10 @@ async fn list_abstract_attributes_by_component(
 
 /// List abstract attributes by tag
 async fn list_abstract_attributes_by_tag(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, tag)): Path<(String, String)>,
 ) -> ApiResult<Json<ListAbstractAttributesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -161,11 +176,48 @@ async fn list_abstract_attributes_by_tag(
 
 /// Create a new abstract attribute
 async fn create_abstract_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
     Json(req): Json<CreateAbstractAttributeRequest>,
 ) -> ApiResult<Json<AbstractAttributeResponse>> {
-    let mut store = store.write().await;
+    // Validate input
+    req.validate_input()?;
+
+    // Validate no invalid characters in path components
+    if req.component_type.contains('/') || req.component_type.contains(':') {
+        return Err(ApiError::BadRequest(
+            "component_type cannot contain '/' or ':'".to_string()
+        ));
+    }
+    if req.attribute_name.contains('/') || req.attribute_name.contains(':') {
+        return Err(ApiError::BadRequest(
+            "attribute_name cannot contain '/' or ':'".to_string()
+        ));
+    }
+    if let Some(ref comp_id) = req.component_id {
+        if comp_id.contains('/') || comp_id.contains(':') {
+            return Err(ApiError::BadRequest(
+                "component_id cannot contain '/' or ':'".to_string()
+            ));
+        }
+    }
+
+    // Validate length constraints
+    const MAX_ATTRIBUTE_NAME_LENGTH: usize = 64;
+    if req.attribute_name.len() > MAX_ATTRIBUTE_NAME_LENGTH {
+        return Err(ApiError::BadRequest(format!(
+            "attribute_name exceeds maximum length of {} characters",
+            MAX_ATTRIBUTE_NAME_LENGTH
+        )));
+    }
+    if req.component_type.len() > MAX_ATTRIBUTE_NAME_LENGTH {
+        return Err(ApiError::BadRequest(format!(
+            "component_type exceeds maximum length of {} characters",
+            MAX_ATTRIBUTE_NAME_LENGTH
+        )));
+    }
+
+    let mut store = state.store.write().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -279,13 +331,13 @@ async fn create_abstract_attribute(
 
 /// Get a specific abstract attribute by path
 async fn get_abstract_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(path): Path<String>,
 ) -> ApiResult<Json<AbstractAttributeResponse>> {
     // Validate path format
     validate_path(&path)?;
 
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     store
         .abstract_attributes
@@ -296,13 +348,13 @@ async fn get_abstract_attribute(
 
 /// Delete an abstract attribute
 async fn delete_abstract_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(path): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     // Validate path format
     validate_path(&path)?;
 
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let abstract_path = AbstractPath::new(&path);
 
@@ -316,12 +368,37 @@ async fn delete_abstract_attribute(
         }
     }
 
-    if store.abstract_attributes.remove(&path).is_some() {
-        // Also remove any concrete attributes that reference this abstract attribute
-        store
-            .attributes
-            .retain(|_, a| a.abstract_path != abstract_path);
+    // Check if any concrete attributes reference this abstract attribute
+    let has_concrete_refs = store.attributes.values()
+        .any(|a| a.abstract_path == abstract_path);
+    if has_concrete_refs {
+        return Err(ApiError::Conflict(format!(
+            "Cannot delete abstract attribute '{}' - concrete attributes still reference it",
+            path
+        )));
+    }
 
+    // Check if any rules reference this abstract attribute (input or output)
+    // Rules store paths in short format (componentType/componentId/attributeName)
+    // We need to check if the abstract path matches any rule's input/output
+    let has_rule_refs = store.rules.values().any(|rule| {
+        let path_suffix = extract_path_suffix(&path);
+        rule.input_attributes.iter().any(|ia| {
+            let input_path = ia.path.as_str();
+            paths_match(input_path, &path_suffix)
+        }) || rule.output_attributes.iter().any(|oa| {
+            let output_path = oa.path.as_str();
+            paths_match(output_path, &path_suffix)
+        })
+    });
+    if has_rule_refs {
+        return Err(ApiError::Conflict(format!(
+            "Cannot delete abstract attribute '{}' - rules still reference it",
+            path
+        )));
+    }
+
+    if store.abstract_attributes.remove(&path).is_some() {
         Ok(Json(serde_json::json!({ "deleted": true })))
     } else {
         Err(ApiError::NotFound(format!(
@@ -337,10 +414,10 @@ async fn delete_abstract_attribute(
 
 /// List all concrete attributes for a product
 async fn list_attributes(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
 ) -> ApiResult<Json<ListAttributesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -371,10 +448,10 @@ async fn list_attributes(
 
 /// List concrete attributes by tag (filters via abstract attribute tags)
 async fn list_attributes_by_tag(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, tag)): Path<(String, String)>,
 ) -> ApiResult<Json<ListAttributesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -415,11 +492,21 @@ async fn list_attributes_by_tag(
 
 /// Create a new concrete attribute
 async fn create_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
     Json(req): Json<CreateAttributeRequest>,
 ) -> ApiResult<Json<AttributeResponse>> {
-    let mut store = store.write().await;
+    // Validate input
+    req.validate_input()?;
+
+    // Validate that both value and rule_id are not provided
+    if req.value.is_some() && req.rule_id.is_some() {
+        return Err(ApiError::BadRequest(
+            "Cannot specify both value and rule_id".to_string()
+        ));
+    }
+
+    let mut store = state.store.write().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {
@@ -431,13 +518,38 @@ async fn create_attribute(
 
     let pid = ProductId::new(&product_id);
 
-    // Validate abstract attribute exists
+    // Validate abstract attribute exists and belongs to this product
     let abstract_path = AbstractPath::new(&req.abstract_path);
 
-    if !store.abstract_attributes.contains_key(&req.abstract_path) {
-        return Err(ApiError::BadRequest(format!(
+    let abstract_attr = store.abstract_attributes.get(&req.abstract_path)
+        .ok_or_else(|| ApiError::BadRequest(format!(
             "Abstract attribute '{}' not found",
             req.abstract_path
+        )))?;
+
+    // Validate abstract attribute belongs to this product
+    if abstract_attr.product_id != pid {
+        return Err(ApiError::BadRequest(format!(
+            "Abstract attribute '{}' does not belong to product '{}'",
+            req.abstract_path, product_id
+        )));
+    }
+
+    // Validate component type matches abstract attribute
+    if abstract_attr.component_type != req.component_type {
+        return Err(ApiError::BadRequest(format!(
+            "Component type '{}' does not match abstract attribute component type '{}'",
+            req.component_type, abstract_attr.component_type
+        )));
+    }
+
+    // Validate abstract path contains the correct attribute name
+    // Abstract path format: {productId}:abstract-path:{componentType}[:{componentId}]:{attributeName}
+    let path_str = abstract_path.as_str();
+    if !path_str.ends_with(&format!(":{}", req.attribute_name)) {
+        return Err(ApiError::BadRequest(format!(
+            "Attribute name '{}' does not match abstract path",
+            req.attribute_name
         )));
     }
 
@@ -462,19 +574,59 @@ async fn create_attribute(
     let value_type = parse_value_type(&req.value_type);
     let value = req.value.as_ref().map(Value::from);
 
+    // For FIXED_VALUE attributes, validate the value against datatype constraints
+    if value_type == AttributeValueType::FixedValue {
+        if let Some(ref val) = value {
+            // Get the abstract attribute to access the datatype
+            let abstract_attr = store
+                .abstract_attributes
+                .get(&req.abstract_path)
+                .ok_or_else(|| ApiError::BadRequest(format!(
+                    "Abstract attribute '{}' not found",
+                    req.abstract_path
+                )))?;
+
+            // Get the datatype
+            let datatype = store
+                .datatypes
+                .get(abstract_attr.datatype_id.as_str())
+                .ok_or_else(|| ApiError::BadRequest(format!(
+                    "Datatype '{}' not found",
+                    abstract_attr.datatype_id.as_str()
+                )))?;
+
+            // Validate the value against constraints
+            validate_value_constraints(val, datatype)?;
+        }
+    }
+
     // Create the attribute based on value type
     let attr = match value_type {
         AttributeValueType::FixedValue => {
             if let Some(val) = value {
                 Attribute::new_fixed_value(path.clone(), abstract_path, pid, val)
             } else {
-                Attribute::new_just_definition(path.clone(), abstract_path, pid)
+                return Err(ApiError::BadRequest(
+                    "FIXED_VALUE attribute requires a value".to_string()
+                ));
             }
         }
         AttributeValueType::RuleDriven => {
-            // For rule-driven, we'll need a rule_id which should come from elsewhere
-            // For now, create as just_definition
-            Attribute::new_just_definition(path.clone(), abstract_path, pid)
+            if let Some(rule_id_str) = &req.rule_id {
+                let rule_id = RuleId::from_string(rule_id_str);
+                // Verify the rule exists
+                if !store.rules.contains_key(rule_id_str) {
+                    return Err(ApiError::BadRequest(format!(
+                        "Rule '{}' not found",
+                        rule_id_str
+                    )));
+                }
+                Attribute::new_rule_driven(path.clone(), abstract_path, pid, rule_id)
+            } else {
+                return Err(ApiError::BadRequest(
+                    "RULE_DRIVEN attribute requires a rule_id".to_string()
+                ));
+            }
         }
         AttributeValueType::JustDefinition => {
             Attribute::new_just_definition(path.clone(), abstract_path, pid)
@@ -489,13 +641,13 @@ async fn create_attribute(
 
 /// Get a specific concrete attribute by path
 async fn get_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(path): Path<String>,
 ) -> ApiResult<Json<AttributeResponse>> {
     // Validate path format
     validate_path(&path)?;
 
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     store
         .attributes
@@ -506,18 +658,25 @@ async fn get_attribute(
 
 /// Update a concrete attribute
 async fn update_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(path): Path<String>,
     Json(req): Json<UpdateAttributeRequest>,
 ) -> ApiResult<Json<AttributeResponse>> {
     // Validate path format
     validate_path(&path)?;
 
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
-    // Check if the abstract attribute is immutable first
-    if let Some(attr) = store.attributes.get(&path) {
+    // Get attribute info for validation (need to do this before mutable borrow)
+    let datatype_clone = {
+        let attr = store
+            .attributes
+            .get(&path)
+            .ok_or_else(|| ApiError::NotFound(format!("Attribute '{}' not found", path)))?;
+
         let abstract_key = attr.abstract_path.as_str().to_string();
+
+        // Check if immutable
         if let Some(abstract_attr) = store.abstract_attributes.get(&abstract_key) {
             if abstract_attr.immutable {
                 return Err(ApiError::PreconditionFailed(format!(
@@ -526,8 +685,26 @@ async fn update_attribute(
                 )));
             }
         }
+
+        // Get datatype for constraint validation
+        let datatype_clone = store.abstract_attributes.get(&abstract_key)
+            .and_then(|aa| store.datatypes.get(aa.datatype_id.as_str()))
+            .cloned();
+
+        let _ = abstract_key; // used above
+        datatype_clone
+    };
+
+    // Validate new value against constraints if provided
+    if let Some(value) = &req.value {
+        let new_value = Value::from(value);
+
+        if let Some(ref datatype) = datatype_clone {
+            validate_value_constraints(&new_value, datatype)?;
+        }
     }
 
+    // Now do the mutable update
     let attr = store
         .attributes
         .get_mut(&path)
@@ -544,13 +721,13 @@ async fn update_attribute(
 
 /// Delete a concrete attribute
 async fn delete_attribute(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(path): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     // Validate path format
     validate_path(&path)?;
 
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     // Check if the abstract attribute is immutable
     if let Some(attr) = store.attributes.get(&path) {
@@ -634,4 +811,122 @@ fn parse_value_type(value_type: &str) -> AttributeValueType {
         "JUST_DEFINITION" | "INPUT" => AttributeValueType::JustDefinition,
         _ => AttributeValueType::FixedValue,
     }
+}
+
+/// Extract the path suffix (componentType/componentId/attributeName) from an abstract path
+/// Abstract path format: {productId}:abstract-path:{componentType}[:{componentId}]:{attributeName}
+fn extract_path_suffix(abstract_path: &str) -> String {
+    // Split by ':' and extract the relevant parts
+    let parts: Vec<&str> = abstract_path.split(':').collect();
+    if parts.len() >= 4 {
+        // Format: productId:abstract-path:componentType[:componentId]:attributeName
+        // Skip productId and "abstract-path"
+        let component_type = parts.get(2).unwrap_or(&"");
+        if parts.len() == 4 {
+            // No componentId: productId:abstract-path:componentType:attributeName
+            let attr_name = parts.get(3).unwrap_or(&"");
+            format!("{}/{}", component_type, attr_name)
+        } else {
+            // With componentId: productId:abstract-path:componentType:componentId:attributeName
+            let component_id = parts.get(3).unwrap_or(&"");
+            let attr_name = parts.get(4).unwrap_or(&"");
+            format!("{}/{}/{}", component_type, component_id, attr_name)
+        }
+    } else {
+        abstract_path.to_string()
+    }
+}
+
+/// Check if a rule path matches an abstract path suffix
+/// Rule paths can be: componentType/componentId/attributeName or componentType.componentId.attributeName
+fn paths_match(rule_path: &str, abstract_suffix: &str) -> bool {
+    // Normalize both paths to use '/' as separator
+    let normalized_rule = rule_path.replace('.', "/");
+    let normalized_suffix = abstract_suffix.replace('.', "/");
+    normalized_rule == normalized_suffix
+}
+
+/// Validate that a value satisfies the datatype's constraints
+fn validate_value_constraints(value: &Value, datatype: &DataType) -> ApiResult<()> {
+    if let Some(constraints) = &datatype.constraints {
+        match datatype.primitive_type {
+            // Numeric constraint validation (Int, Float, Decimal)
+            PrimitiveType::Int | PrimitiveType::Float | PrimitiveType::Decimal => {
+                if let Some(val) = value.as_float() {
+                    if let Some(min) = constraints.min {
+                        if val < min {
+                            return Err(ApiError::bad_request(format!(
+                                "Value {} is below minimum constraint of {}",
+                                val, min
+                            )));
+                        }
+                    }
+                    if let Some(max) = constraints.max {
+                        if val > max {
+                            return Err(ApiError::bad_request(format!(
+                                "Value {} exceeds maximum constraint of {}",
+                                val, max
+                            )));
+                        }
+                    }
+                }
+            }
+            // String constraint validation
+            PrimitiveType::String => {
+                if let Some(s) = value.as_str() {
+                    let len = s.len();
+                    if let Some(min_len) = constraints.min_length {
+                        if len < min_len {
+                            return Err(ApiError::bad_request(format!(
+                                "String length {} is below minimum constraint of {}",
+                                len, min_len
+                            )));
+                        }
+                    }
+                    if let Some(max_len) = constraints.max_length {
+                        if len > max_len {
+                            return Err(ApiError::bad_request(format!(
+                                "String length {} exceeds maximum constraint of {}",
+                                len, max_len
+                            )));
+                        }
+                    }
+                    if let Some(pattern) = &constraints.pattern {
+                        // Limit pattern length to prevent resource exhaustion
+                        if pattern.len() > MAX_PATTERN_LENGTH {
+                            return Err(ApiError::bad_request(format!(
+                                "Regex pattern exceeds maximum length of {} characters",
+                                MAX_PATTERN_LENGTH
+                            )));
+                        }
+
+                        // Use RegexBuilder with size limit for additional protection
+                        // The regex crate is ReDoS-resistant by design, but we add
+                        // a compiled size limit as defense in depth
+                        match regex::RegexBuilder::new(pattern)
+                            .size_limit(MAX_REGEX_SIZE)
+                            .build()
+                        {
+                            Ok(regex) => {
+                                if !regex.is_match(s) {
+                                    return Err(ApiError::bad_request(format!(
+                                        "Value '{}' does not match pattern constraint '{}'",
+                                        s, pattern
+                                    )));
+                                }
+                            }
+                            Err(e) => {
+                                return Err(ApiError::bad_request(format!(
+                                    "Invalid regex pattern '{}': {}",
+                                    pattern, e
+                                )));
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {} // Other types don't have constraints in current implementation
+        }
+    }
+    Ok(())
 }

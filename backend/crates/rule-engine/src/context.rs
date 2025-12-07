@@ -135,20 +135,50 @@ impl ExecutionContext {
     }
 
     /// Convert context to JSON for evaluation
+    /// Converts flat dot-separated paths like "loan.main.input-val" into nested JSON structure
+    /// so that JSON Logic's var operator can navigate them correctly.
     pub fn to_json(&self) -> serde_json::Value {
-        let mut map = serde_json::Map::new();
+        let mut root = serde_json::Map::new();
+
+        // Helper to insert a value at a dot-separated path into a nested structure
+        fn insert_at_path(map: &mut serde_json::Map<String, serde_json::Value>, path: &str, value: serde_json::Value) {
+            let segments: Vec<&str> = path.split('.').collect();
+
+            if segments.is_empty() {
+                return;
+            }
+
+            if segments.len() == 1 {
+                // Simple key without dots
+                map.insert(path.to_string(), value);
+                return;
+            }
+
+            // Navigate/create nested structure
+            let first = segments[0];
+
+            // Get or create the nested object
+            let nested = map.entry(first.to_string())
+                .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+
+            if let serde_json::Value::Object(nested_map) = nested {
+                // Recurse with remaining path segments
+                let remaining_path = segments[1..].join(".");
+                insert_at_path(nested_map, &remaining_path, value);
+            }
+        }
 
         // Add input values
         for (k, v) in self.input.iter() {
-            map.insert(k.clone(), v.to_json());
+            insert_at_path(&mut root, k, v.to_json());
         }
 
         // Add computed values (overwrite input if same key)
         for (k, v) in self.computed.iter() {
-            map.insert(k.clone(), v.to_json());
+            insert_at_path(&mut root, k, v.to_json());
         }
 
-        serde_json::Value::Object(map)
+        serde_json::Value::Object(root)
     }
 }
 

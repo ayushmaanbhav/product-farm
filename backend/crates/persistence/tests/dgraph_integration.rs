@@ -36,7 +36,7 @@ async fn test_product_crud() {
 
     // Create a unique product ID for this test
     let product_id = format!("test-product-{}", Utc::now().timestamp_nanos_opt().unwrap_or(0));
-    let product = Product::new(product_id.as_str(), "TRADING", Utc::now());
+    let product = Product::new(product_id.as_str(), "Test Product", "TRADING", Utc::now());
 
     // Save product
     repos
@@ -97,7 +97,7 @@ async fn test_rule_crud() {
 
     // First create a product (rules need a product)
     let product_id = format!("test-product-rule-{}", Utc::now().timestamp_nanos_opt().unwrap_or(0));
-    let product = Product::new(product_id.as_str(), "INSURANCE", Utc::now());
+    let product = Product::new(product_id.as_str(), "Test Product", "INSURANCE", Utc::now());
     repos.products.save(&product).await.expect("Failed to save product");
 
     // Create a rule
@@ -149,7 +149,7 @@ async fn test_attribute_crud() {
 
     // First create a product
     let product_id = format!("test-product-attr-{}", Utc::now().timestamp_nanos_opt().unwrap_or(0));
-    let product = Product::new(product_id.as_str(), "TRADING", Utc::now());
+    let product = Product::new(product_id.as_str(), "Test Product", "TRADING", Utc::now());
     repos.products.save(&product).await.expect("Failed to save product");
 
     // Create an attribute
@@ -319,7 +319,7 @@ async fn test_graph_queries() {
 
     // Create a product
     let product_id = format!("test-product-graph-{}", Utc::now().timestamp_nanos_opt().unwrap_or(0));
-    let product = Product::new(product_id.as_str(), "INSURANCE", Utc::now());
+    let product = Product::new(product_id.as_str(), "Test Product", "INSURANCE", Utc::now());
     repos.products.save(&product).await.expect("Failed to save product");
 
     // Create attributes
@@ -368,7 +368,7 @@ async fn test_product_list_and_count() {
 
     for i in 0..3 {
         let product_id = format!("{}-{}", base_id, i);
-        let product = Product::new(product_id.as_str(), "TRADING", Utc::now());
+        let product = Product::new(product_id.as_str(), "Test Product", "TRADING", Utc::now());
         repos.products.save(&product).await.expect("Failed to save product");
         product_ids.push(product_id);
     }

@@ -12,13 +12,12 @@ use product_farm_core::{ProductId, Rule, Value};
 use product_farm_rule_engine::{ExecutionContext, RuleExecutor};
 use std::collections::HashMap;
 
-use crate::store::SharedStore;
-
 use super::error::{ApiError, ApiResult};
 use super::types::*;
+use super::AppState;
 
 /// Create routes for evaluation endpoints
-pub fn routes() -> Router<SharedStore> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/api/evaluate", post(evaluate))
         .route("/api/batch-evaluate", post(batch_evaluate))
@@ -35,10 +34,10 @@ pub fn routes() -> Router<SharedStore> {
 
 /// Evaluate rules for a product
 async fn evaluate(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Json(req): Json<EvaluateRequest>,
 ) -> ApiResult<Json<EvaluateResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists (store uses String keys)
     if !store.products.contains_key(&req.product_id) {
@@ -159,10 +158,10 @@ async fn evaluate(
 
 /// Batch evaluate multiple requests for a product
 async fn batch_evaluate(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Json(req): Json<BatchEvaluateRequest>,
 ) -> ApiResult<Json<BatchEvaluateResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
     let start_time = std::time::Instant::now();
 
     // Verify product exists (store uses String keys)
@@ -250,10 +249,10 @@ async fn batch_evaluate(
 
 /// Get the execution plan for a product's rules
 async fn get_execution_plan(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
 ) -> ApiResult<Json<ExecutionPlanResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists (store uses String keys)
     if !store.products.contains_key(&product_id) {
@@ -370,10 +369,10 @@ async fn get_execution_plan(
 
 /// Validate a product's configuration
 async fn validate_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
 ) -> ApiResult<Json<ValidationResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists (store uses String keys)
     if !store.products.contains_key(&product_id) {
@@ -450,11 +449,11 @@ async fn validate_product(
 
 /// Analyze the impact of changing an attribute
 async fn impact_analysis(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
     Json(req): Json<ImpactAnalysisRequest>,
 ) -> ApiResult<Json<ImpactAnalysisResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists
     if !store.products.contains_key(&product_id) {

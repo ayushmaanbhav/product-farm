@@ -9,13 +9,12 @@ use axum::{
 };
 use product_farm_core::{DataType, DataTypeConstraints, DataTypeId, PrimitiveType};
 
-use crate::store::SharedStore;
-
 use super::error::{ApiError, ApiResult};
 use super::types::*;
+use super::AppState;
 
 /// Create routes for datatype endpoints
-pub fn routes() -> Router<SharedStore> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/api/datatypes", get(list_datatypes).post(create_datatype))
         .route(
@@ -25,8 +24,8 @@ pub fn routes() -> Router<SharedStore> {
 }
 
 /// List all datatypes
-async fn list_datatypes(State(store): State<SharedStore>) -> ApiResult<Json<ListDatatypesResponse>> {
-    let store = store.read().await;
+async fn list_datatypes(State(state): State<AppState>) -> ApiResult<Json<ListDatatypesResponse>> {
+    let store = state.store.read().await;
 
     let datatypes: Vec<DatatypeResponse> = store.datatypes.values().map(|d| d.into()).collect();
 
@@ -39,10 +38,36 @@ async fn list_datatypes(State(store): State<SharedStore>) -> ApiResult<Json<List
 
 /// Create a new datatype
 async fn create_datatype(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Json(req): Json<CreateDatatypeRequest>,
 ) -> ApiResult<Json<DatatypeResponse>> {
-    let mut store = store.write().await;
+    // Validate input
+    req.validate_input()?;
+
+    // Validate constraint values
+    if let Some(constraints) = &req.constraints {
+        // Validate min <= max
+        if let (Some(min), Some(max)) = (constraints.min, constraints.max) {
+            if min > max {
+                return Err(ApiError::BadRequest(
+                    "Invalid constraints: min cannot be greater than max".to_string()
+                ));
+            }
+        }
+
+        // Validate precision and scale for DECIMAL type
+        if req.primitive_type.eq_ignore_ascii_case("DECIMAL") {
+            if let (Some(precision), Some(scale)) = (constraints.precision, constraints.scale) {
+                if scale > precision {
+                    return Err(ApiError::BadRequest(
+                        "Invalid constraints: scale cannot be greater than precision".to_string()
+                    ));
+                }
+            }
+        }
+    }
+
+    let mut store = state.store.write().await;
 
     // Check for duplicate (store uses String keys)
     if store.datatypes.contains_key(&req.id) {
@@ -85,10 +110,10 @@ async fn create_datatype(
 
 /// Get a specific datatype by ID
 async fn get_datatype(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(datatype_id): Path<String>,
 ) -> ApiResult<Json<DatatypeResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     store
         .datatypes
@@ -99,11 +124,11 @@ async fn get_datatype(
 
 /// Update a datatype
 async fn update_datatype(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(datatype_id): Path<String>,
     Json(req): Json<UpdateDatatypeRequest>,
 ) -> ApiResult<Json<DatatypeResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let datatype = store
         .datatypes
@@ -135,10 +160,10 @@ async fn update_datatype(
 
 /// Delete a datatype
 async fn delete_datatype(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(datatype_id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     // Check if any abstract attributes use this datatype
     let datatype_id_obj: DataTypeId = datatype_id.clone().into();
@@ -179,6 +204,8 @@ fn parse_primitive_type(primitive_type: &str) -> PrimitiveType {
         "ARRAY" => PrimitiveType::Array,
         "OBJECT" => PrimitiveType::Object,
         "ENUM" => PrimitiveType::Enum,
+        "ATTRIBUTE_REFERENCE" | "ATTRIBUTEREFERENCE" => PrimitiveType::AttributeReference,
+        "IDENTIFIER" => PrimitiveType::Identifier,
         _ => PrimitiveType::String,
     }
 }

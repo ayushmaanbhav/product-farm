@@ -315,32 +315,29 @@ export function SimulationPanel() {
       <CardContent className="flex-1 overflow-auto space-y-4">
         {/* Inputs Section */}
         <div className="rounded-lg border bg-gray-50/50">
-          <button
-            onClick={() => setInputsExpanded(!inputsExpanded)}
-            className="flex w-full items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            <span className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => setInputsExpanded(!inputsExpanded)}
+              className="flex items-center gap-2 flex-1 text-left"
+            >
               {inputsExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               Inputs
               <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
                 {inputAttributes.length}
               </span>
-            </span>
+            </button>
             <div className="flex items-center gap-1.5">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearInputs();
-                }}
+                onClick={clearInputs}
                 className="h-6 gap-1 px-2 text-[10px]"
               >
                 <RefreshCw className="h-3 w-3" />
                 Reset
               </Button>
             </div>
-          </button>
+          </div>
 
           {inputsExpanded && (
             <div className="border-t px-3 py-2 space-y-1">

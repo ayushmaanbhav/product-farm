@@ -12,13 +12,12 @@ use product_farm_core::{
     ProductFunctionalityStatus, ProductFunctionality, ProductId,
 };
 
-use crate::store::SharedStore;
-
 use super::error::{ApiError, ApiResult};
 use super::types::*;
+use super::AppState;
 
 /// Create routes for functionality endpoints
-pub fn routes() -> Router<SharedStore> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
             "/api/products/:product_id/functionalities",
@@ -58,10 +57,10 @@ pub fn routes() -> Router<SharedStore> {
 
 /// List all functionalities for a product
 async fn list_functionalities(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
 ) -> ApiResult<Json<ListFunctionalitiesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     // Verify product exists (store uses String keys)
     if !store.products.contains_key(&product_id) {
@@ -92,11 +91,14 @@ async fn list_functionalities(
 
 /// Create a new functionality
 async fn create_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(product_id): Path<String>,
     Json(req): Json<CreateFunctionalityRequest>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let mut store = store.write().await;
+    // Validate input
+    req.validate_input()?;
+
+    let mut store = state.store.write().await;
 
     // Verify product exists (store uses String keys)
     if !store.products.contains_key(&product_id) {
@@ -163,10 +165,10 @@ async fn create_functionality(
 
 /// Get a specific functionality by name
 async fn get_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     let func_key = format!("{}:{}", product_id, name);
 
@@ -184,11 +186,11 @@ async fn get_functionality(
 
 /// Update a functionality
 async fn update_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
     Json(req): Json<UpdateFunctionalityRequest>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let func_key = format!("{}:{}", product_id, name);
     let func_id = FunctionalityId::new(&func_key);
@@ -238,10 +240,10 @@ async fn update_functionality(
 
 /// Delete a functionality
 async fn delete_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let func_key = format!("{}:{}", product_id, name);
 
@@ -267,10 +269,10 @@ async fn delete_functionality(
 
 /// Activate a functionality
 async fn activate_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let func_key = format!("{}:{}", product_id, name);
 
@@ -289,10 +291,10 @@ async fn activate_functionality(
 
 /// Deactivate a functionality
 async fn deactivate_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let func_key = format!("{}:{}", product_id, name);
 
@@ -311,10 +313,10 @@ async fn deactivate_functionality(
 
 /// List abstract attributes required by a functionality
 async fn list_functionality_abstract_attributes(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<ListAbstractAttributesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     let func_key = format!("{}:{}", product_id, name);
 
@@ -325,11 +327,15 @@ async fn list_functionality_abstract_attributes(
         ))
     })?;
 
-    // Get the required attribute paths
+    // Get the required attribute paths and convert short paths to full paths
     let required_paths: std::collections::HashSet<String> = functionality
         .required_attributes
         .iter()
-        .map(|ra| ra.abstract_path.as_str().to_string())
+        .map(|ra| {
+            let short_path = ra.abstract_path.as_str();
+            // Convert short path (loan.main.amount or loan/main/amount) to full path
+            parse_short_path_to_full(&product_id, short_path)
+        })
         .collect();
 
     // Fetch the actual abstract attributes
@@ -349,12 +355,25 @@ async fn list_functionality_abstract_attributes(
     }))
 }
 
+/// Convert a short path (loan.main.amount or loan/main/amount) to full abstract path
+fn parse_short_path_to_full(product_id: &str, short_path: &str) -> String {
+    // Determine separator (dot or slash)
+    let separator = if short_path.contains('/') { '/' } else { '.' };
+    let parts: Vec<&str> = short_path.split(separator).collect();
+
+    match parts.len() {
+        2 => AbstractPath::build(product_id, parts[0], None, parts[1]).as_str().to_string(),
+        3 => AbstractPath::build(product_id, parts[0], Some(parts[1]), parts[2]).as_str().to_string(),
+        _ => short_path.to_string(), // Return as-is if not in expected format
+    }
+}
+
 /// List rules that output to functionality-required attributes
 async fn list_functionality_rules(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<ListRulesResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     let func_key = format!("{}:{}", product_id, name);
     let pid = ProductId::new(&product_id);
@@ -366,11 +385,14 @@ async fn list_functionality_rules(
         ))
     })?;
 
-    // Get the required attribute paths
-    let required_paths: std::collections::HashSet<String> = functionality
+    // Get the required attribute paths - convert to full format for comparison
+    let required_full_paths: std::collections::HashSet<String> = functionality
         .required_attributes
         .iter()
-        .map(|ra| ra.abstract_path.as_str().to_string())
+        .map(|ra| {
+            let short_path = ra.abstract_path.as_str();
+            parse_short_path_to_full(&product_id, short_path)
+        })
         .collect();
 
     // Find rules that output to any of these attributes
@@ -379,9 +401,11 @@ async fn list_functionality_rules(
         .values()
         .filter(|r| {
             r.product_id == pid
-                && r.output_attributes
-                    .iter()
-                    .any(|oa| required_paths.contains(oa.path.as_str()))
+                && r.output_attributes.iter().any(|oa| {
+                    // Convert rule output path to full path for comparison
+                    let rule_output_full = parse_short_path_to_full(&product_id, oa.path.as_str());
+                    required_full_paths.contains(&rule_output_full)
+                })
         })
         .map(|r| r.into())
         .collect();
@@ -397,10 +421,10 @@ async fn list_functionality_rules(
 
 /// Submit a functionality for approval
 async fn submit_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let func_key = format!("{}:{}", product_id, name);
 
@@ -428,11 +452,11 @@ async fn submit_functionality(
 
 /// Approve or reject a functionality
 async fn approve_functionality(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((product_id, name)): Path<(String, String)>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<FunctionalityResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let func_key = format!("{}:{}", product_id, name);
 

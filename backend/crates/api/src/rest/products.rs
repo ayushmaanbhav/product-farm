@@ -12,13 +12,12 @@ use product_farm_core::{
 };
 use serde::Deserialize;
 
-use crate::store::SharedStore;
-
 use super::error::{ApiError, ApiResult};
 use super::types::*;
+use super::AppState;
 
 /// Create product routes
-pub fn routes() -> Router<SharedStore> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/api/products", get(list_products).post(create_product))
         .route(
@@ -52,10 +51,10 @@ fn default_page_size() -> usize {
 
 /// List all products with pagination
 pub async fn list_products(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Query(query): Query<ListProductsQuery>,
 ) -> ApiResult<Json<PaginatedResponse<ProductResponse>>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     let offset: usize = if query.page_token.is_empty() {
         0
@@ -117,10 +116,10 @@ pub async fn list_products(
 
 /// Get a single product by ID
 pub async fn get_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<ProductResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     store
         .products
@@ -131,13 +130,13 @@ pub async fn get_product(
 
 /// Create a new product
 pub async fn create_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Json(req): Json<CreateProductRequest>,
 ) -> ApiResult<Json<ProductResponse>> {
     // Validate input lengths
     req.validate_input()?;
 
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     // Check if product already exists
     if store.products.contains_key(&req.id) {
@@ -160,6 +159,15 @@ pub async fn create_product(
         .single()
         .ok_or_else(|| ApiError::BadRequest("Invalid effective_from timestamp".to_string()))?;
 
+    // Validate that expiry_at is after effective_from (if provided)
+    if let Some(expiry) = req.expiry_at {
+        if expiry <= req.effective_from {
+            return Err(ApiError::BadRequest(
+                "expiry_at must be after effective_from".to_string(),
+            ));
+        }
+    }
+
     let product_id = req.id.clone();
     let mut product = Product::new(req.id, req.name, req.template_type, effective_from);
 
@@ -181,14 +189,14 @@ pub async fn create_product(
 
 /// Update an existing product
 pub async fn update_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
     Json(req): Json<UpdateProductRequest>,
 ) -> ApiResult<Json<ProductResponse>> {
     // Validate input lengths
     req.validate_input()?;
 
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let product = store
         .products
@@ -211,13 +219,25 @@ pub async fn update_product(
         product.description = Some(desc);
     }
 
-    if let Some(effective_from) = req.effective_from {
+    // Calculate final effective_from and expiry_at for validation
+    let final_effective_from = if let Some(effective_from) = req.effective_from {
         if let Some(dt) = Utc.timestamp_opt(effective_from, 0).single() {
             product.effective_from = dt;
+            effective_from
+        } else {
+            product.effective_from.timestamp()
         }
-    }
+    } else {
+        product.effective_from.timestamp()
+    };
 
     if let Some(expiry_at) = req.expiry_at {
+        // Validate that expiry_at is after effective_from
+        if expiry_at <= final_effective_from {
+            return Err(ApiError::BadRequest(
+                "expiry_at must be after effective_from".to_string(),
+            ));
+        }
         product.expiry_at = Utc.timestamp_opt(expiry_at, 0).single();
     }
 
@@ -229,10 +249,10 @@ pub async fn update_product(
 
 /// Delete a product
 pub async fn delete_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<DeleteResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     // Check if product exists
     let product = store
@@ -269,14 +289,14 @@ pub async fn delete_product(
 
 /// Clone a product
 pub async fn clone_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(source_id): Path<String>,
     Json(req): Json<CloneProductRequest>,
 ) -> ApiResult<Json<CloneProductResponse>> {
     // Validate input lengths
     req.validate_input()?;
 
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     // Get source product
     let source_product = store
@@ -421,10 +441,10 @@ pub async fn clone_product(
 
 /// Submit product for approval
 pub async fn submit_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<ProductResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let product = store
         .products
@@ -447,11 +467,11 @@ pub async fn submit_product(
 
 /// Approve or reject a product
 pub async fn approve_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ProductResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let product = store
         .products
@@ -479,11 +499,11 @@ pub async fn approve_product(
 
 /// Reject a product
 pub async fn reject_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
     Json(_req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ProductResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let product = store
         .products
@@ -506,10 +526,10 @@ pub async fn reject_product(
 
 /// Discontinue a product
 pub async fn discontinue_product(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<ProductResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let product = store
         .products
@@ -532,7 +552,7 @@ pub async fn discontinue_product(
 
 /// List product templates
 pub async fn list_templates(
-    State(_store): State<SharedStore>,
+    State(_state): State<AppState>,
 ) -> ApiResult<Json<Vec<ProductTemplateResponse>>> {
     // Return hardcoded templates for now (matching frontend mock data)
     let templates = vec![

@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use dgraph_tonic::{Client, Mutate, Mutation, Operation, Query};
 use product_farm_core::{
-    AbstractAttribute, AbstractPath, Product, ProductId, ProductStatus, Rule, RuleId,
-    TemplateType,
+    AbstractAttribute, AbstractPath, AttributeDisplayName, DisplayNameFormat, Product, ProductId,
+    ProductStatus, Rule, RuleId, TemplateType,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -192,6 +192,8 @@ pub struct ProductDto {
     pub dgraph_type: Vec<String>,
     #[serde(rename = "Product.id")]
     pub id: String,
+    #[serde(rename = "Product.name")]
+    pub name: String,
     #[serde(rename = "Product.status")]
     pub status: String,
     #[serde(rename = "Product.template_type")]
@@ -405,7 +407,7 @@ fn rule_to_nquads(rule: &Rule, uid: Option<&str>, product_uid: &str) -> String {
         format!("{} <dgraph.type> \"Rule\" .", subject),
         format!("{} <Rule.id> \"{}\" .", subject, escape_nquad_string(&rule.id.to_string())),
         format!("{} <Rule.rule_type> \"{}\" .", subject, escape_nquad_string(&rule.rule_type)),
-        format!("{} <Rule.expression> \"{}\" .", subject, escape_nquad_string(&serde_json::to_string(&rule.expression).unwrap_or_default())),
+        format!("{} <Rule.expression> \"{}\" .", subject, escape_nquad_string(&rule.compiled_expression)),
         format!("{} <Rule.enabled> \"{}\"^^<xs:boolean> .", subject, rule.enabled),
         format!("{} <Rule.order_index> \"{}\"^^<xs:int> .", subject, rule.order_index),
         format!("{} <Rule.product> <{}> .", subject, product_uid),
@@ -448,11 +450,11 @@ fn attribute_to_nquads(attr: &AbstractAttribute, uid: Option<&str>, product_uid:
     }
 
     for tag in &attr.tags {
-        nquads.push(format!("{} <AbstractAttribute.tags> \"{}\" .", subject, escape_nquad_string(tag.as_str())));
+        nquads.push(format!("{} <AbstractAttribute.tags> \"{}\" .", subject, escape_nquad_string(tag.tag.as_str())));
     }
 
     for name in &attr.display_names {
-        nquads.push(format!("{} <AbstractAttribute.display_names> \"{}\" .", subject, escape_nquad_string(name.as_str())));
+        nquads.push(format!("{} <AbstractAttribute.display_names> \"{}\" .", subject, escape_nquad_string(&name.display_name)));
     }
 
     nquads.join("\n")
@@ -504,6 +506,7 @@ impl From<&Product> for ProductDto {
             uid: None,
             dgraph_type: vec!["Product".to_string()],
             id: p.id.as_str().to_string(),
+            name: p.name.clone(),
             status: status.to_string(),
             template_type: p.template_type.as_str().to_string(),
             effective_from: p.effective_from.to_rfc3339(),
@@ -555,6 +558,7 @@ impl TryFrom<ProductDto> for Product {
 
         Ok(Product {
             id: ProductId::new(dto.id),
+            name: dto.name,
             status,
             template_type: TemplateType::new(dto.template_type),
             parent_product_id: None,
@@ -580,7 +584,7 @@ impl From<&Rule> for RuleDto {
             } else {
                 Some(r.display_expression.clone())
             },
-            expression: serde_json::to_string(&r.expression).unwrap_or_default(),
+            expression: r.compiled_expression.clone(),
             description: r.description.clone(),
             enabled: r.enabled,
             order_index: r.order_index,
@@ -1172,13 +1176,13 @@ impl AttributeRepository for DgraphAttributeRepository {
 
 /// Convert AbstractAttributeDto to AbstractAttribute
 fn abstract_attribute_from_dto(dto: AbstractAttributeDto) -> PersistenceResult<AbstractAttribute> {
-    use product_farm_core::{DataTypeId, DisplayName, Tag};
+    use product_farm_core::DataTypeId;
 
     let product_id = ProductId::new("unknown");
 
     let mut attr = AbstractAttribute::new(
         dto.abstract_path,
-        product_id,
+        product_id.clone(),
         dto.component_type,
         DataTypeId::new(dto.datatype_id),
     );
@@ -1190,13 +1194,20 @@ fn abstract_attribute_from_dto(dto: AbstractAttributeDto) -> PersistenceResult<A
         attr = attr.with_enum(enum_name);
     }
     if let Some(tags) = dto.tags {
-        for tag in tags {
-            attr = attr.with_tag(Tag::new(tag));
+        for (i, tag) in tags.into_iter().enumerate() {
+            attr = attr.with_tag_name(tag, i as i32);
         }
     }
     if let Some(display_names) = dto.display_names {
-        for name in display_names {
-            attr = attr.with_display_name(DisplayName::new(name));
+        for (i, name) in display_names.into_iter().enumerate() {
+            let display_name = AttributeDisplayName::for_abstract(
+                product_id.clone(),
+                attr.abstract_path.clone(),
+                name,
+                DisplayNameFormat::System,
+                i as i32,
+            );
+            attr = attr.with_display_name(display_name);
         }
     }
     if let Some(desc) = dto.description {
@@ -1411,12 +1422,191 @@ impl DgraphGraphQueries {
     }
 }
 
-/// Result of impact analysis
+/// Result of impact analysis (DGraph-specific, kept for backwards compatibility)
 #[derive(Debug, Clone)]
 pub struct ImpactAnalysis {
     pub source_rule_id: String,
     pub affected_attributes: Vec<String>,
     pub affected_rules: Vec<RuleId>,
+}
+
+// GraphQueries trait implementation for DGraph
+#[async_trait]
+impl crate::GraphQueries for DgraphGraphQueries {
+    async fn find_rules_depending_on(&self, attribute_path: &str) -> PersistenceResult<Vec<RuleId>> {
+        // Delegate to existing method
+        DgraphGraphQueries::find_rules_depending_on(self, attribute_path).await
+    }
+
+    async fn find_computed_attributes(&self, rule_id: &RuleId) -> PersistenceResult<Vec<String>> {
+        // Delegate to existing method
+        DgraphGraphQueries::find_computed_attributes(self, &rule_id.to_string()).await
+    }
+
+    async fn find_upstream_dependencies(&self, rule_id: &RuleId, max_depth: usize) -> PersistenceResult<Vec<RuleId>> {
+        // Delegate to existing method
+        self.find_transitive_dependencies(&rule_id.to_string(), max_depth).await
+    }
+
+    async fn find_downstream_impact(&self, rule_id: &RuleId, max_depth: usize) -> PersistenceResult<crate::ImpactAnalysisResult> {
+        let impact = self.find_impact_of_rule_change(&rule_id.to_string(), max_depth).await?;
+        Ok(crate::ImpactAnalysisResult {
+            source_id: impact.source_rule_id,
+            direct_attributes: impact.affected_attributes.clone(),
+            all_affected_attributes: impact.affected_attributes,
+            direct_rules: impact.affected_rules.clone(),
+            all_affected_rules: impact.affected_rules,
+            max_depth,
+        })
+    }
+
+    async fn analyze_attribute_impact(&self, attribute_path: &str, max_depth: usize) -> PersistenceResult<crate::ImpactAnalysisResult> {
+        // Find rules that depend on this attribute
+        let direct_rules = self.find_rules_depending_on(attribute_path).await?;
+
+        let mut all_affected_rules = direct_rules.clone();
+        let mut all_affected_attributes = Vec::new();
+
+        // For each direct rule, find its downstream impact
+        for rule_id in &direct_rules {
+            let impact = self.find_impact_of_rule_change(&rule_id.to_string(), max_depth).await?;
+            for attr in impact.affected_attributes {
+                if !all_affected_attributes.contains(&attr) {
+                    all_affected_attributes.push(attr);
+                }
+            }
+            for rule in impact.affected_rules {
+                if !all_affected_rules.contains(&rule) {
+                    all_affected_rules.push(rule);
+                }
+            }
+        }
+
+        Ok(crate::ImpactAnalysisResult {
+            source_id: attribute_path.to_string(),
+            direct_attributes: all_affected_attributes.clone(),
+            all_affected_attributes,
+            direct_rules,
+            all_affected_rules,
+            max_depth,
+        })
+    }
+
+    async fn get_execution_order(&self, product_id: &ProductId) -> PersistenceResult<Vec<Vec<RuleId>>> {
+        // Query all rules for product with their dependencies
+        let query = r#"
+            query GetProductRules($product_id: string) {
+                var(func: eq(Product.id, $product_id)) {
+                    rules as ~Rule.product
+                }
+                rules(func: uid(rules), orderasc: Rule.order_index) @filter(eq(Rule.enabled, true)) {
+                    uid
+                    Rule.id
+                    Rule.order_index
+                    Rule.depends_on {
+                        AbstractAttribute.abstract_path
+                    }
+                    Rule.computes {
+                        AbstractAttribute.abstract_path
+                    }
+                }
+            }
+        "#;
+
+        let mut vars = HashMap::new();
+        vars.insert("$product_id".to_string(), product_id.as_str().to_string());
+
+        #[derive(Deserialize)]
+        struct QueryResult {
+            #[serde(default)]
+            rules: Vec<RuleWithDeps>,
+        }
+        #[derive(Deserialize)]
+        #[allow(dead_code)]
+        struct RuleWithDeps {
+            #[serde(rename = "Rule.id")]
+            id: String,
+            #[serde(rename = "Rule.order_index", default)]
+            order_index: i32,
+            #[serde(rename = "Rule.depends_on", default)]
+            depends_on: Vec<AttrPath>,
+            #[serde(rename = "Rule.computes", default)]
+            computes: Vec<AttrPath>,
+        }
+        #[derive(Deserialize)]
+        struct AttrPath {
+            #[serde(rename = "AbstractAttribute.abstract_path")]
+            path: String,
+        }
+
+        let result: QueryResult = self.client.query(query, vars).await?;
+
+        if result.rules.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Build output -> rule map
+        let mut output_to_rule: HashMap<String, RuleId> = HashMap::new();
+        for rule in &result.rules {
+            let rule_id = RuleId::from_string(&rule.id);
+            for output in &rule.computes {
+                output_to_rule.insert(output.path.clone(), rule_id.clone());
+            }
+        }
+
+        // Calculate in-degree for each rule
+        let mut in_degree: HashMap<RuleId, usize> = HashMap::new();
+        let mut adj: HashMap<RuleId, Vec<RuleId>> = HashMap::new();
+
+        for rule in &result.rules {
+            let rule_id = RuleId::from_string(&rule.id);
+            in_degree.entry(rule_id.clone()).or_insert(0);
+
+            for input in &rule.depends_on {
+                if let Some(producing_rule_id) = output_to_rule.get(&input.path) {
+                    if producing_rule_id != &rule_id {
+                        adj.entry(producing_rule_id.clone()).or_default().push(rule_id.clone());
+                        *in_degree.entry(rule_id.clone()).or_insert(0) += 1;
+                    }
+                }
+            }
+        }
+
+        // Kahn's algorithm for topological sort with levels
+        let mut levels: Vec<Vec<RuleId>> = Vec::new();
+        let mut queue: Vec<RuleId> = in_degree
+            .iter()
+            .filter(|(_, &deg)| deg == 0)
+            .map(|(id, _)| id.clone())
+            .collect();
+
+        while !queue.is_empty() {
+            levels.push(queue.clone());
+
+            let mut next_queue = Vec::new();
+            for rule_id in &queue {
+                if let Some(dependents) = adj.get(rule_id) {
+                    for dependent in dependents {
+                        if let Some(deg) = in_degree.get_mut(dependent) {
+                            *deg -= 1;
+                            if *deg == 0 {
+                                next_queue.push(dependent.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            queue = next_queue;
+        }
+
+        Ok(levels)
+    }
+}
+
+impl std::fmt::Debug for DgraphGraphQueries {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DgraphGraphQueries").finish()
+    }
 }
 
 // ============================================================================
@@ -1690,7 +1880,7 @@ mod tests {
     fn test_product_dto_conversion() {
         use chrono::Utc;
 
-        let product = Product::new("test-product", "TRADING", Utc::now());
+        let product = Product::new("test-product", "Test Product", "TRADING", Utc::now());
         let dto = ProductDto::from(&product);
 
         assert_eq!(dto.id, "test-product");
@@ -1786,5 +1976,211 @@ mod tests {
         assert_eq!(restored_bc.bytecode, vec![1, 2, 3, 4, 5]);
         assert_eq!(restored_bc.constants.len(), 2);
         assert_eq!(restored_bc.variable_names, vec!["x"]);
+    }
+
+    #[test]
+    fn test_escape_nquad_string() {
+        // Basic string - no escaping needed
+        assert_eq!(escape_nquad_string("hello"), "hello");
+
+        // Quotes should be escaped
+        assert_eq!(escape_nquad_string(r#"say "hello""#), r#"say \"hello\""#);
+
+        // Backslashes should be escaped
+        assert_eq!(escape_nquad_string(r"path\to\file"), r"path\\to\\file");
+
+        // Newlines should be escaped
+        assert_eq!(escape_nquad_string("line1\nline2"), "line1\\nline2");
+
+        // Carriage returns should be escaped
+        assert_eq!(escape_nquad_string("line1\rline2"), "line1\\rline2");
+
+        // Tabs should be escaped
+        assert_eq!(escape_nquad_string("col1\tcol2"), "col1\\tcol2");
+
+        // Combined escaping
+        assert_eq!(
+            escape_nquad_string("\"quoted\"\twith\nnewlines"),
+            "\\\"quoted\\\"\\twith\\nnewlines"
+        );
+    }
+
+    #[test]
+    fn test_uid_ref() {
+        let uid_ref = UidRef::new("0x123");
+        assert_eq!(uid_ref.uid, "0x123");
+    }
+
+    #[test]
+    fn test_product_to_nquads_basic() {
+        use chrono::Utc;
+
+        let product = Product::new("test-prod", "Test Product", "INSURANCE", Utc::now());
+        let nquads = product_to_nquads(&product, None);
+
+        // Should use blank node without UID
+        assert!(nquads.contains("_:product <dgraph.type> \"Product\""));
+        assert!(nquads.contains("_:product <Product.id> \"test-prod\""));
+        assert!(nquads.contains("_:product <Product.status> \"DRAFT\""));
+        assert!(nquads.contains("_:product <Product.template_type> \"INSURANCE\""));
+    }
+
+    #[test]
+    fn test_product_to_nquads_with_uid() {
+        use chrono::Utc;
+
+        let product = Product::new("test-prod", "Test Product", "LOAN", Utc::now());
+        let nquads = product_to_nquads(&product, Some("0x456"));
+
+        // Should use provided UID
+        assert!(nquads.contains("<0x456> <dgraph.type> \"Product\""));
+        assert!(nquads.contains("<0x456> <Product.id> \"test-prod\""));
+    }
+
+    #[test]
+    fn test_product_to_nquads_with_all_statuses() {
+        use chrono::Utc;
+
+        // Test DRAFT status (default)
+        let draft = Product::new("draft-prod", "Draft Product", "TRADING", Utc::now());
+        assert!(product_to_nquads(&draft, None).contains("<Product.status> \"DRAFT\""));
+
+        // Test other statuses by using the status setter
+        let mut pending = Product::new("pending-prod", "Pending Product", "TRADING", Utc::now());
+        pending.status = ProductStatus::PendingApproval;
+        assert!(product_to_nquads(&pending, None).contains("<Product.status> \"PENDING_APPROVAL\""));
+
+        let mut active = Product::new("active-prod", "Active Product", "TRADING", Utc::now());
+        active.status = ProductStatus::Active;
+        assert!(product_to_nquads(&active, None).contains("<Product.status> \"ACTIVE\""));
+
+        let mut discontinued = Product::new("disc-prod", "Discontinued Product", "TRADING", Utc::now());
+        discontinued.status = ProductStatus::Discontinued;
+        assert!(product_to_nquads(&discontinued, None).contains("<Product.status> \"DISCONTINUED\""));
+    }
+
+    #[test]
+    fn test_product_to_nquads_with_optional_fields() {
+        use chrono::Utc;
+
+        let mut product = Product::new("test-prod", "Test Product", "INSURANCE", Utc::now());
+        product.description = Some("A test product description".to_string());
+        product.expiry_at = Some(Utc::now());
+
+        let nquads = product_to_nquads(&product, None);
+
+        assert!(nquads.contains("<Product.description> \"A test product description\""));
+        assert!(nquads.contains("<Product.expiry_at>"));
+    }
+
+    #[test]
+    fn test_abstract_attribute_from_dto_basic() {
+        let dto = AbstractAttributeDto {
+            uid: Some("0x123".to_string()),
+            dgraph_type: vec!["AbstractAttribute".to_string()],
+            abstract_path: "prod:cover:premium_amount".to_string(),
+            component_type: "cover".to_string(),
+            component_id: None,
+            datatype_id: "decimal".to_string(),
+            enum_name: None,
+            tags: None,
+            display_names: None,
+            constraint_expression: None,
+            immutable: false,
+            description: None,
+            product_uid: None,
+        };
+
+        let attr = abstract_attribute_from_dto(dto).expect("Should convert DTO");
+
+        assert_eq!(attr.abstract_path.as_str(), "prod:cover:premium_amount");
+        assert_eq!(attr.component_type, "cover");
+        assert_eq!(attr.datatype_id.as_str(), "decimal");
+        assert!(!attr.immutable);
+    }
+
+    #[test]
+    fn test_abstract_attribute_from_dto_with_all_fields() {
+        let dto = AbstractAttributeDto {
+            uid: Some("0x456".to_string()),
+            dgraph_type: vec!["AbstractAttribute".to_string()],
+            abstract_path: "prod:premium:rate".to_string(),
+            component_type: "premium".to_string(),
+            component_id: Some("main".to_string()),
+            datatype_id: "percentage".to_string(),
+            enum_name: Some("coverage_type".to_string()),
+            tags: Some(vec!["input".to_string(), "required".to_string()]),
+            display_names: Some(vec!["Premium Rate".to_string()]),
+            constraint_expression: Some(r#"{">=": [{"var": "value"}, 0]}"#.to_string()),
+            immutable: true,
+            description: Some("The premium rate".to_string()),
+            product_uid: Some(UidRef::new("0x001")),
+        };
+
+        let attr = abstract_attribute_from_dto(dto).expect("Should convert DTO");
+
+        assert_eq!(attr.abstract_path.as_str(), "prod:premium:rate");
+        assert_eq!(attr.component_type, "premium");
+        assert_eq!(attr.component_id.as_deref(), Some("main"));
+        assert_eq!(attr.datatype_id.as_str(), "percentage");
+        assert!(attr.immutable);
+        assert_eq!(attr.description.as_deref(), Some("The premium rate"));
+        assert_eq!(attr.tags.len(), 2);
+        assert_eq!(attr.display_names.len(), 1);
+    }
+
+    #[test]
+    fn test_product_dto_all_statuses() {
+        use chrono::Utc;
+
+        // Test DRAFT status
+        let product_draft = Product::new("test-prod", "Test Product", "TRADING", Utc::now());
+        let dto_draft = ProductDto::from(&product_draft);
+        assert_eq!(dto_draft.status, "DRAFT");
+
+        // Test PENDING_APPROVAL status
+        let mut product_pending = Product::new("test-prod", "Test Product", "TRADING", Utc::now());
+        product_pending.status = ProductStatus::PendingApproval;
+        let dto_pending = ProductDto::from(&product_pending);
+        assert_eq!(dto_pending.status, "PENDING_APPROVAL");
+
+        // Test ACTIVE status
+        let mut product_active = Product::new("test-prod", "Test Product", "TRADING", Utc::now());
+        product_active.status = ProductStatus::Active;
+        let dto_active = ProductDto::from(&product_active);
+        assert_eq!(dto_active.status, "ACTIVE");
+
+        // Test DISCONTINUED status
+        let mut product_discontinued = Product::new("test-prod", "Test Product", "TRADING", Utc::now());
+        product_discontinued.status = ProductStatus::Discontinued;
+        let dto_discontinued = ProductDto::from(&product_discontinued);
+        assert_eq!(dto_discontinued.status, "DISCONTINUED");
+    }
+
+    #[test]
+    fn test_rule_dto_with_details() {
+        use serde_json::json;
+
+        let rule = Rule::from_json_logic("my-product", "calculation", json!({"if": [{"var": "x"}, "yes", "no"]}))
+            .with_inputs(["x", "y"])
+            .with_outputs(["result", "status"])
+            .with_description("A test rule")
+            .with_display("IF x THEN yes ELSE no")
+            .with_order(5)
+            .disabled();
+
+        let dto = RuleDto::from(&rule);
+
+        assert_eq!(dto.rule_type, "calculation");
+        assert!(!dto.enabled);
+        assert_eq!(dto.order_index, 5);
+        assert_eq!(dto.display_expression.as_deref(), Some("IF x THEN yes ELSE no"));
+        assert_eq!(dto.description.as_deref(), Some("A test rule"));
+    }
+
+    #[test]
+    fn test_dgraph_config_default() {
+        let config = DgraphConfig::default();
+        assert_eq!(config.endpoint, "http://localhost:9080");
     }
 }

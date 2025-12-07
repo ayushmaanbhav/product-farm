@@ -2,7 +2,8 @@
 
 use product_farm_core::{
     AbstractAttribute, AbstractAttributeTag, Attribute, AttributeDisplayName,
-    DataType, Product, ProductFunctionality, ProductFunctionalityStatus,
+    AttributeRelationshipType, AttributeValueType, DataType, DisplayNameFormat,
+    PrimitiveType, Product, ProductFunctionality, ProductFunctionalityStatus,
     ProductStatus, ProductTemplateEnumeration, Rule, Value, FunctionalityRequiredAttribute,
 };
 
@@ -24,6 +25,50 @@ fn functionality_status_to_string(status: &ProductFunctionalityStatus) -> String
         ProductFunctionalityStatus::Draft => "DRAFT".to_string(),
         ProductFunctionalityStatus::PendingApproval => "PENDING_APPROVAL".to_string(),
         ProductFunctionalityStatus::Active => "ACTIVE".to_string(),
+    }
+}
+
+/// Convert AttributeValueType enum to SCREAMING_SNAKE_CASE string
+fn value_type_to_string(vt: &AttributeValueType) -> String {
+    match vt {
+        AttributeValueType::FixedValue => "FIXED_VALUE".to_string(),
+        AttributeValueType::RuleDriven => "RULE_DRIVEN".to_string(),
+        AttributeValueType::JustDefinition => "JUST_DEFINITION".to_string(),
+    }
+}
+
+/// Convert AttributeRelationshipType enum to SCREAMING_SNAKE_CASE string
+fn relationship_type_to_string(rt: &AttributeRelationshipType) -> String {
+    match rt {
+        AttributeRelationshipType::Enumeration => "ENUMERATION".to_string(),
+        AttributeRelationshipType::KeyEnumeration => "KEY_ENUMERATION".to_string(),
+        AttributeRelationshipType::ValueEnumeration => "VALUE_ENUMERATION".to_string(),
+    }
+}
+
+/// Convert DisplayNameFormat enum to SCREAMING_SNAKE_CASE string
+fn display_name_format_to_string(fmt: &DisplayNameFormat) -> String {
+    match fmt {
+        DisplayNameFormat::System => "SYSTEM".to_string(),
+        DisplayNameFormat::Human => "HUMAN".to_string(),
+        DisplayNameFormat::Original => "ORIGINAL".to_string(),
+    }
+}
+
+/// Convert PrimitiveType enum to SCREAMING_SNAKE_CASE string
+fn primitive_type_to_string(pt: &PrimitiveType) -> String {
+    match pt {
+        PrimitiveType::String => "STRING".to_string(),
+        PrimitiveType::Int => "INT".to_string(),
+        PrimitiveType::Float => "FLOAT".to_string(),
+        PrimitiveType::Decimal => "DECIMAL".to_string(),
+        PrimitiveType::Bool => "BOOL".to_string(),
+        PrimitiveType::Datetime => "DATETIME".to_string(),
+        PrimitiveType::Enum => "ENUM".to_string(),
+        PrimitiveType::Array => "ARRAY".to_string(),
+        PrimitiveType::Object => "OBJECT".to_string(),
+        PrimitiveType::AttributeReference => "ATTRIBUTE_REFERENCE".to_string(),
+        PrimitiveType::Identifier => "IDENTIFIER".to_string(),
     }
 }
 
@@ -77,7 +122,7 @@ impl From<&AbstractAttribute> for AbstractAttributeResponse {
             tags: a.tags.iter().map(|t| t.into()).collect(),
             related_attributes: a.related_attributes.iter().map(|r| {
                 RelatedAttributeResponse {
-                    relationship_type: format!("{:?}", r.relationship).to_uppercase(),
+                    relationship_type: relationship_type_to_string(&r.relationship),
                     related_path: r.reference_abstract_path.as_str().to_string(),
                     order_index: r.order,
                 }
@@ -91,7 +136,7 @@ impl From<&AttributeDisplayName> for DisplayNameResponse {
     fn from(dn: &AttributeDisplayName) -> Self {
         Self {
             name: dn.display_name.clone(),
-            format: format!("{:?}", dn.display_name_format).to_uppercase(),
+            format: display_name_format_to_string(&dn.display_name_format),
             order_index: dn.order,
         }
     }
@@ -125,7 +170,7 @@ impl From<&Attribute> for AttributeResponse {
             component_type,
             component_id,
             attribute_name,
-            value_type: format!("{:?}", a.value_type).to_uppercase(),
+            value_type: value_type_to_string(&a.value_type),
             value: a.value.as_ref().map(|v| v.into()),
             rule_id: a.rule_id.as_ref().map(|id| id.to_string()),
             created_at: a.created_at.timestamp(),
@@ -221,7 +266,7 @@ impl From<&DataType> for DatatypeResponse {
         Self {
             id: d.id.to_string(),
             name: d.id.to_string(), // Use ID as name for now
-            primitive_type: format!("{:?}", d.primitive_type).to_uppercase(),
+            primitive_type: primitive_type_to_string(&d.primitive_type),
             constraints: DatatypeConstraintsJson {
                 min: d.constraints.as_ref().and_then(|c| c.min),
                 max: d.constraints.as_ref().and_then(|c| c.max),

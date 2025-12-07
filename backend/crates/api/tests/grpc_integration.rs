@@ -47,7 +47,7 @@ async fn start_test_server() -> (SocketAddr, tokio::sync::oneshot::Sender<()>) {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
-    let config = ServerConfig::new(addr).without_keepalive();
+    let config = ServerConfig::new(addr).without_keepalive().without_http();
     let server = ProductFarmServer::with_config(config);
 
     tokio::spawn(async move {
@@ -56,8 +56,15 @@ async fn start_test_server() -> (SocketAddr, tokio::sync::oneshot::Sender<()>) {
         }).await;
     });
 
-    // Wait for server to be ready
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    // Wait for server to be ready with retry
+    for _ in 0..50 {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        if tokio::net::TcpStream::connect(addr).await.is_ok() {
+            // Give a bit more time for gRPC to be fully ready
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            break;
+        }
+    }
 
     (addr, shutdown_tx)
 }

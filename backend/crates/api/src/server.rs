@@ -1,13 +1,18 @@
 //! gRPC and REST Server for Product-FARM
 //!
 //! Provides server configuration and startup functionality for both
-//! gRPC (port 50051) and REST/HTTP (port 8080) servers.
+//! gRPC and REST/HTTP servers.
 
 use std::future::IntoFuture;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tonic::transport::Server;
 use tracing::info;
+
+use crate::config::server::{
+    DEFAULT_GRPC_PORT, DEFAULT_HTTP_PORT, KEEP_ALIVE_INTERVAL_SECS, KEEP_ALIVE_TIMEOUT_SECS,
+    MAX_MESSAGE_SIZE,
+};
 
 use crate::grpc::proto::{
     abstract_attribute_service_server::AbstractAttributeServiceServer,
@@ -45,12 +50,12 @@ pub struct ServerConfig {
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
-            grpc_addr: "0.0.0.0:50051".parse().unwrap(),
-            http_addr: "0.0.0.0:8080".parse().unwrap(),
-            max_message_size: 4 * 1024 * 1024, // 4MB
+            grpc_addr: format!("0.0.0.0:{}", DEFAULT_GRPC_PORT).parse().unwrap(),
+            http_addr: format!("0.0.0.0:{}", DEFAULT_HTTP_PORT).parse().unwrap(),
+            max_message_size: MAX_MESSAGE_SIZE,
             enable_keepalive: true,
-            keepalive_interval_secs: 10,
-            keepalive_timeout_secs: 20,
+            keepalive_interval_secs: KEEP_ALIVE_INTERVAL_SECS,
+            keepalive_timeout_secs: KEEP_ALIVE_TIMEOUT_SECS,
             enable_http: true,
         }
     }
@@ -335,13 +340,13 @@ mod tests {
         let config = ServerConfig::default();
         assert_eq!(
             config.grpc_addr,
-            "0.0.0.0:50051".parse::<SocketAddr>().unwrap()
+            format!("0.0.0.0:{}", DEFAULT_GRPC_PORT).parse::<SocketAddr>().unwrap()
         );
         assert_eq!(
             config.http_addr,
-            "0.0.0.0:8080".parse::<SocketAddr>().unwrap()
+            format!("0.0.0.0:{}", DEFAULT_HTTP_PORT).parse::<SocketAddr>().unwrap()
         );
-        assert_eq!(config.max_message_size, 4 * 1024 * 1024);
+        assert_eq!(config.max_message_size, MAX_MESSAGE_SIZE);
         assert!(config.enable_keepalive);
         assert!(config.enable_http);
     }
@@ -373,11 +378,11 @@ mod tests {
         let server = ProductFarmServer::new();
         assert_eq!(
             server.addr(),
-            "0.0.0.0:50051".parse::<SocketAddr>().unwrap()
+            format!("0.0.0.0:{}", DEFAULT_GRPC_PORT).parse::<SocketAddr>().unwrap()
         );
         assert_eq!(
             server.http_addr(),
-            "0.0.0.0:8080".parse::<SocketAddr>().unwrap()
+            format!("0.0.0.0:{}", DEFAULT_HTTP_PORT).parse::<SocketAddr>().unwrap()
         );
     }
 }

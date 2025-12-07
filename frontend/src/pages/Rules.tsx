@@ -705,7 +705,7 @@ export function Rules() {
             </div>
           ) : (
             // Graph View
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-4 min-h-0">
               <RuleCanvas
                 attributes={filteredAttributes}
                 rules={filteredRules}

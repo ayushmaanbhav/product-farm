@@ -5,19 +5,28 @@
 use std::collections::BTreeSet;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::{delete, get, post},
     Json, Router,
 };
 use product_farm_core::{ProductTemplateEnumeration, TemplateEnumerationId, TemplateType};
+use serde::Deserialize;
 
-use crate::store::SharedStore;
+/// Query parameters for listing enumerations
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ListEnumerationsQuery {
+    pub template_type: Option<String>,
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
 
 use super::error::{ApiError, ApiResult};
 use super::types::*;
+use super::AppState;
 
 /// Create routes for template enumeration endpoints
-pub fn routes() -> Router<SharedStore> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
             "/api/template-enumerations",
@@ -41,26 +50,69 @@ pub fn routes() -> Router<SharedStore> {
 
 /// List all template enumerations
 async fn list_enumerations(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
+    Query(query): Query<ListEnumerationsQuery>,
 ) -> ApiResult<Json<ListEnumerationsResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
-    let enumerations: Vec<EnumerationResponse> =
-        store.enumerations.values().map(|e| e.into()).collect();
+    // Collect filtered enumerations
+    let mut enumerations: Vec<EnumerationResponse> = store
+        .enumerations
+        .values()
+        .filter(|e| {
+            query.template_type.as_ref().map_or(true, |tt| e.template_type.as_str() == tt)
+        })
+        .map(|e| e.into())
+        .collect();
+
+    // Sort by id for consistent ordering
+    enumerations.sort_by(|a, b| a.id.cmp(&b.id));
+
+    let total_count = enumerations.len() as i32;
+
+    // Apply pagination
+    let page_size = query.page_size.unwrap_or(100) as usize;
+    let offset = query.page_token.as_ref()
+        .and_then(|t| t.parse::<usize>().ok())
+        .unwrap_or(0);
+
+    let paginated: Vec<EnumerationResponse> = enumerations
+        .into_iter()
+        .skip(offset)
+        .take(page_size)
+        .collect();
+
+    let next_page_token = if offset + page_size < total_count as usize {
+        (offset + page_size).to_string()
+    } else {
+        String::new()
+    };
 
     Ok(Json(ListEnumerationsResponse {
-        items: enumerations,
-        next_page_token: String::new(),
-        total_count: store.enumerations.len() as i32,
+        items: paginated,
+        next_page_token,
+        total_count,
     }))
 }
 
 /// Create a new template enumeration
 async fn create_enumeration(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Json(req): Json<CreateEnumerationRequest>,
 ) -> ApiResult<Json<EnumerationResponse>> {
-    let mut store = store.write().await;
+    // Validate input
+    req.validate_input()?;
+
+    // Validate template type length
+    const MAX_TEMPLATE_TYPE_LENGTH: usize = 64;
+    if req.template_type.len() > MAX_TEMPLATE_TYPE_LENGTH {
+        return Err(ApiError::BadRequest(format!(
+            "template_type exceeds maximum length of {} characters",
+            MAX_TEMPLATE_TYPE_LENGTH
+        )));
+    }
+
+    let mut store = state.store.write().await;
 
     // Generate key from name (store uses String keys)
     let enum_key = req.name.clone();
@@ -93,10 +145,10 @@ async fn create_enumeration(
 
 /// Get a specific enumeration by ID
 async fn get_enumeration(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(enum_id): Path<String>,
 ) -> ApiResult<Json<EnumerationResponse>> {
-    let store = store.read().await;
+    let store = state.store.read().await;
 
     store
         .enumerations
@@ -107,11 +159,11 @@ async fn get_enumeration(
 
 /// Update an enumeration
 async fn update_enumeration(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(enum_id): Path<String>,
     Json(req): Json<UpdateEnumerationRequest>,
 ) -> ApiResult<Json<EnumerationResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let enumeration = store
         .enumerations
@@ -129,10 +181,10 @@ async fn update_enumeration(
 
 /// Delete an enumeration
 async fn delete_enumeration(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(enum_id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     // Check if any abstract attributes use this enumeration
     let in_use = store
@@ -159,11 +211,18 @@ async fn delete_enumeration(
 
 /// Add a value to an enumeration
 async fn add_value(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path(enum_id): Path<String>,
     Json(req): Json<AddEnumerationValueRequest>,
 ) -> ApiResult<Json<EnumerationResponse>> {
-    let mut store = store.write().await;
+    // Validate that value is not empty
+    if req.value.trim().is_empty() {
+        return Err(ApiError::BadRequest(
+            "Enumeration value cannot be empty".to_string()
+        ));
+    }
+
+    let mut store = state.store.write().await;
 
     let enumeration = store
         .enumerations
@@ -186,15 +245,22 @@ async fn add_value(
 
 /// Remove a value from an enumeration
 async fn remove_value(
-    State(store): State<SharedStore>,
+    State(state): State<AppState>,
     Path((enum_id, value)): Path<(String, String)>,
 ) -> ApiResult<Json<EnumerationResponse>> {
-    let mut store = store.write().await;
+    let mut store = state.store.write().await;
 
     let enumeration = store
         .enumerations
         .get_mut(&enum_id)
         .ok_or_else(|| ApiError::NotFound(format!("Enumeration '{}' not found", enum_id)))?;
+
+    // Check if this is the last value
+    if enumeration.values.len() == 1 {
+        return Err(ApiError::BadRequest(
+            "Cannot remove the last value from an enumeration".to_string()
+        ));
+    }
 
     // Try to remove the value
     if !enumeration.values.remove(&value) {

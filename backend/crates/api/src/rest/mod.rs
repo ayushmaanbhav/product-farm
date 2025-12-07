@@ -8,6 +8,7 @@ use axum::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
+use crate::storage::StorageProvider;
 use crate::store::SharedStore;
 
 pub mod error;
@@ -27,8 +28,40 @@ mod converters;
 
 pub use error::{ApiError, ApiResult};
 
-/// Create the REST API router with all endpoints
+/// Application state for REST handlers
+///
+/// Contains both the legacy SharedStore (for backward compatibility during migration)
+/// and the new StorageProvider (for repository-based access).
+#[derive(Clone)]
+pub struct AppState {
+    /// Legacy shared store (to be deprecated)
+    pub store: SharedStore,
+    /// New storage provider with repository access
+    pub storage: StorageProvider,
+}
+
+impl AppState {
+    /// Create new app state with default memory storage
+    pub fn new(store: SharedStore) -> Self {
+        Self {
+            store,
+            storage: StorageProvider::memory(),
+        }
+    }
+
+    /// Create app state with custom storage provider
+    pub fn with_storage(store: SharedStore, storage: StorageProvider) -> Self {
+        Self { store, storage }
+    }
+}
+
+/// Create the REST API router with all endpoints (legacy SharedStore only)
 pub fn create_router(store: SharedStore) -> Router {
+    create_router_with_state(AppState::new(store))
+}
+
+/// Create the REST API router with full AppState
+pub fn create_router_with_state(state: AppState) -> Router {
     // Configure CORS for browser requests
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -61,7 +94,7 @@ pub fn create_router(store: SharedStore) -> Router {
         // Evaluation routes
         .merge(evaluation::routes())
         // Shared state
-        .with_state(store)
+        .with_state(state)
         // Apply CORS
         .layer(cors)
 }

@@ -32,12 +32,14 @@
 //! }
 //! ```
 
+pub mod config;
 pub mod converters;
 pub mod error;
 pub mod grpc;
 pub mod rest;
 pub mod server;
 pub mod service;
+pub mod storage;
 pub mod store;
 pub mod validation;
 
@@ -52,5 +54,6 @@ pub use grpc::{
 };
 pub use server::*;
 pub use service::*;
+pub use storage::{StorageBackend, StorageConfig, StorageProvider, StorageProviderError};
 pub use store::{create_shared_store, EntityStore, SharedStore};
 pub use validation::*;
