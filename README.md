@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge&logo=github-actions" alt="Build Status"/>
   <img src="https://img.shields.io/badge/rust-1.75+-orange?style=for-the-badge&logo=rust" alt="Rust"/>
   <img src="https://img.shields.io/badge/typescript-5.0+-blue?style=for-the-badge&logo=typescript" alt="TypeScript"/>
-  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"/>
+  <img src="https://img.shields.io/badge/license-Apache_2.0-blue?style=for-the-badge" alt="License"/>
 </p>
 
 <p align="center">
@@ -759,7 +759,7 @@ npm run dev
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ---
 

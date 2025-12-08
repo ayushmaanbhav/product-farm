@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/rust-1.75+-orange?style=for-the-badge&logo=rust" alt="Rust"/>
   <img src="https://img.shields.io/badge/tests-234_passing-success?style=for-the-badge&logo=checkmarx" alt="Tests"/>
   <img src="https://img.shields.io/badge/coverage-85%25-brightgreen?style=for-the-badge" alt="Coverage"/>
-  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"/>
+  <img src="https://img.shields.io/badge/license-Apache_2.0-blue?style=for-the-badge" alt="License"/>
 </p>
 
 <p align="center">
@@ -359,4 +359,4 @@ ProductFarmServer::with_config(config).run().await?;
 
 ## License
 
-MIT
+Apache 2.0
