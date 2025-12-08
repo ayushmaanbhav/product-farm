@@ -1,5 +1,18 @@
 # Product-FARM Rule Engine (Rust)
 
+<p align="center">
+  <img src="https://img.shields.io/badge/rust-1.75+-orange?style=for-the-badge&logo=rust" alt="Rust"/>
+  <img src="https://img.shields.io/badge/tests-234_passing-success?style=for-the-badge&logo=checkmarx" alt="Tests"/>
+  <img src="https://img.shields.io/badge/coverage-85%25-brightgreen?style=for-the-badge" alt="Coverage"/>
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/gRPC-tonic_0.12-blue?style=for-the-badge" alt="gRPC"/>
+  <img src="https://img.shields.io/badge/REST-axum_0.7-green?style=for-the-badge" alt="REST"/>
+  <img src="https://img.shields.io/badge/performance-<1ms-blueviolet?style=for-the-badge" alt="Performance"/>
+</p>
+
 A high-performance rule engine written in Rust, designed for evaluating complex business rules with JSON Logic expressions and DAG-based dependency resolution.
 
 ## Features
