@@ -617,10 +617,41 @@ export const productApi = {
         pathMapping,
       };
     }
-    return fetchJson(`/api/products/${request.sourceProductId}/clone`, {
+
+    // Transform frontend CloneProductRequest to backend format
+    const requestBody = {
+      newProductId: request.newProductId,
+      newProductName: request.newProductName,
+      newProductDescription: request.newProductDescription,
+      selectedComponents: request.selectedComponents || [],
+      selectedDatatypes: request.selectedDatatypes || [],
+      selectedEnumerations: request.selectedEnumerations || [],
+      selectedFunctionalities: request.selectedFunctionalities || [],
+      selectedAbstractAttributes: request.selectedAbstractAttributes || [],
+      cloneConcreteAttributes: request.cloneConcreteAttributes ?? true,
+    };
+
+    // Backend returns { product: ProductResponse, ...counts }
+    const backendResponse = await fetchJson<{
+      product: { id: string; [key: string]: unknown };
+      abstractAttributesCloned: number;
+      attributesCloned: number;
+      rulesCloned: number;
+      functionalitiesCloned: number;
+    }>(`/api/products/${request.sourceProductId}/clone`, {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify(requestBody),
     });
+
+    // Transform backend response to frontend CloneProductResponse format
+    return {
+      newProductId: backendResponse.product.id,
+      abstractAttributesCloned: backendResponse.abstractAttributesCloned,
+      attributesCloned: backendResponse.attributesCloned,
+      rulesCloned: backendResponse.rulesCloned,
+      functionalitiesCloned: backendResponse.functionalitiesCloned,
+      pathMapping: {}, // Backend doesn't return pathMapping, return empty
+    };
   },
 
   async submit(id: string): Promise<Product> {
@@ -714,9 +745,23 @@ export const abstractAttributeApi = {
     // Use nested URL: /api/products/{productId}/abstract-attributes
     const productId = data.productId;
     if (!productId) throw new Error('productId is required');
+
+    // Transform frontend format to backend format
+    const requestData = {
+      ...data,
+      // Backend expects tags as Vec<String>, not Vec<{name, orderIndex}>
+      tags: (data.tags || []).map(tag => typeof tag === 'string' ? tag : tag.name),
+      // Backend expects display_names with order_index (snake_case in JSON due to serde)
+      displayNames: (data.displayNames || []).map(dn => ({
+        name: dn.name,
+        format: dn.format,
+        orderIndex: dn.orderIndex,
+      })),
+    };
+
     return fetchJson(`/api/products/${productId}/abstract-attributes`, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(requestData)
     });
   },
 
@@ -955,10 +1000,38 @@ export const ruleApi = {
     // Use nested URL: /api/products/{productId}/rules
     const productId = data.productId;
     if (!productId) throw new Error('productId is required');
-    return fetchJson(`/api/products/${productId}/rules`, {
+
+    // Transform frontend Rule format to backend CreateRuleRequest format
+    const requestBody = {
+      ruleType: data.ruleType || 'calculation',
+      inputAttributes: (data.inputAttributes || []).map(ia => ia.attributePath),
+      outputAttributes: (data.outputAttributes || []).map(oa => oa.attributePath),
+      displayExpression: data.displayExpression || '',
+      expressionJson: data.compiledExpression || '{}',
+      description: data.description,
+      orderIndex: data.orderIndex ?? 0,
+    };
+
+    // Backend returns RuleResponse which needs transformation back to frontend Rule format
+    const response = await fetchJson<{
+      id: string;
+      productId: string;
+      ruleType: string;
+      displayExpression: string;
+      compiledExpression: string;
+      description?: string;
+      enabled: boolean;
+      orderIndex: number;
+      inputAttributes: Array<{ ruleId: string; attributePath: string; orderIndex: number }>;
+      outputAttributes: Array<{ ruleId: string; attributePath: string; orderIndex: number }>;
+      createdAt: number;
+      updatedAt: number;
+    }>(`/api/products/${productId}/rules`, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(requestBody)
     });
+
+    return response;
   },
 
   async update(id: string, data: Partial<Rule>): Promise<Rule> {
@@ -978,7 +1051,23 @@ export const ruleApi = {
       mockRules[idx] = { ...mockRules[idx], ...data, updatedAt: now() };
       return mockRules[idx];
     }
-    return fetchJson(`/api/rules/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+    // Transform frontend Rule format to backend UpdateRuleRequest format
+    const requestBody: Record<string, unknown> = {};
+    if (data.ruleType !== undefined) requestBody.ruleType = data.ruleType;
+    if (data.inputAttributes !== undefined) {
+      requestBody.inputAttributes = data.inputAttributes.map(ia => ia.attributePath);
+    }
+    if (data.outputAttributes !== undefined) {
+      requestBody.outputAttributes = data.outputAttributes.map(oa => oa.attributePath);
+    }
+    if (data.displayExpression !== undefined) requestBody.displayExpression = data.displayExpression;
+    if (data.compiledExpression !== undefined) requestBody.expressionJson = data.compiledExpression;
+    if (data.description !== undefined) requestBody.description = data.description;
+    if (data.enabled !== undefined) requestBody.enabled = data.enabled;
+    if (data.orderIndex !== undefined) requestBody.orderIndex = data.orderIndex;
+
+    return fetchJson(`/api/rules/${id}`, { method: 'PUT', body: JSON.stringify(requestBody) });
   },
 
   async delete(id: string): Promise<void> {

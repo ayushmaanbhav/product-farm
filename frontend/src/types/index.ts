@@ -520,6 +520,7 @@ export interface CloneProductRequest {
   selectedEnumerations?: string[];
   selectedFunctionalities?: string[];
   selectedAbstractAttributes?: string[];
+  cloneConcreteAttributes?: boolean; // Whether to clone concrete attribute values
 }
 
 export interface CloneProductResponse {

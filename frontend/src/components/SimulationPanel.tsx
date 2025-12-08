@@ -6,7 +6,14 @@ import { useProductStore, useSimulationStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { AbstractAttribute, AttributeValue } from '@/types';
+import type { AbstractAttribute, AttributeValue, TemplateEnumeration, DataType } from '@/types';
+import { api } from '@/services/api';
+
+// Standard base types that InputField recognizes
+const INT_BASED_TYPES = ['int', 'integer'];
+const DECIMAL_BASED_TYPES = ['decimal', 'float', 'number'];
+const BOOL_BASED_TYPES = ['bool', 'boolean'];
+const STRING_BASED_TYPES = ['string', 'text'];
 import { cn } from '@/lib/utils';
 import {
   Play,
@@ -33,37 +40,36 @@ interface InputFieldProps {
   attribute: AbstractAttribute;
   value: AttributeValue | undefined;
   onChange: (value: AttributeValue) => void;
+  enumValues?: string[]; // Actual values from the enumeration
+  baseType?: 'int' | 'decimal' | 'bool' | 'string' | 'enum'; // Resolved base type
 }
 
-function InputField({ attribute, value, onChange }: InputFieldProps) {
+function InputField({ attribute, value, onChange, enumValues, baseType }: InputFieldProps) {
   const attrName = attribute.attributeName || attribute.abstractPath.split(':').pop() || '';
   const datatype = attribute.datatypeId;
+  // Use baseType if provided, otherwise fall back to datatype for standard types
+  const effectiveType = baseType || datatype;
 
   const handleChange = useCallback(
     (rawValue: string) => {
       let typedValue: AttributeValue;
 
-      switch (datatype) {
-        case 'integer':
-          typedValue = { type: 'int', value: parseInt(rawValue, 10) || 0 };
-          break;
-        case 'decimal':
-        case 'float':
-          typedValue = { type: 'float', value: parseFloat(rawValue) || 0 };
-          break;
-        case 'boolean':
-          typedValue = { type: 'bool', value: rawValue === 'true' };
-          break;
-        case 'enum':
-          typedValue = { type: 'string', value: rawValue };
-          break;
-        default:
-          typedValue = { type: 'string', value: rawValue };
+      // Use effectiveType (resolved base type) for type conversion
+      if (effectiveType === 'int' || effectiveType === 'integer') {
+        typedValue = { type: 'int', value: parseInt(rawValue, 10) || 0 };
+      } else if (effectiveType === 'decimal' || effectiveType === 'float') {
+        typedValue = { type: 'float', value: parseFloat(rawValue) || 0 };
+      } else if (effectiveType === 'bool' || effectiveType === 'boolean') {
+        typedValue = { type: 'bool', value: rawValue === 'true' };
+      } else if (effectiveType === 'enum') {
+        typedValue = { type: 'string', value: rawValue };
+      } else {
+        typedValue = { type: 'string', value: rawValue };
       }
 
       onChange(typedValue);
     },
-    [datatype, onChange]
+    [effectiveType, onChange]
   );
 
   const getCurrentValue = (): string => {
@@ -72,15 +78,21 @@ function InputField({ attribute, value, onChange }: InputFieldProps) {
     return '';
   };
 
+  // Determine if this should be a number input based on effective type
+  const isNumeric = effectiveType === 'int' || effectiveType === 'integer' || effectiveType === 'decimal' || effectiveType === 'float';
+  const isBoolean = effectiveType === 'bool' || effectiveType === 'boolean';
+  const isEnum = datatype === 'enum'; // enums are always identified by datatype
+  const isDecimal = effectiveType === 'decimal' || effectiveType === 'float';
+
   return (
     <div className="flex items-center gap-2 py-1.5">
       <label className="min-w-[120px] text-sm font-medium text-gray-700 truncate" title={attrName}>
         {attrName}
       </label>
       <div className="flex-1">
-        {datatype === 'boolean' ? (
+        {isBoolean ? (
           <button
-            onClick={() => onChange({ type: 'bool', value: !getCurrentValue() })}
+            onClick={() => onChange({ type: 'bool', value: getCurrentValue() !== 'true' })}
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
               getCurrentValue() === 'true'
@@ -95,25 +107,29 @@ function InputField({ attribute, value, onChange }: InputFieldProps) {
             )}
             {getCurrentValue() === 'true' ? 'True' : 'False'}
           </button>
-        ) : datatype === 'enum' ? (
+        ) : isEnum ? (
           <select
             value={getCurrentValue()}
             onChange={(e) => handleChange(e.target.value)}
             className="w-full rounded-md border bg-white px-3 py-1.5 text-sm"
           >
             <option value="">Select...</option>
-            <option value="basic">Basic</option>
-            <option value="standard">Standard</option>
-            <option value="comprehensive">Comprehensive</option>
+            {enumValues && enumValues.length > 0 ? (
+              enumValues.map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))
+            ) : (
+              <option disabled>No enum values available</option>
+            )}
           </select>
         ) : (
           <Input
-            type={datatype === 'integer' || datatype === 'decimal' || datatype === 'float' ? 'number' : 'text'}
+            type={isNumeric ? 'number' : 'text'}
             value={getCurrentValue()}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={`Enter ${attrName}...`}
             className="h-8"
-            step={datatype === 'decimal' || datatype === 'float' ? '0.01' : '1'}
+            step={isDecimal ? '0.01' : '1'}
           />
         )}
       </div>
@@ -171,7 +187,7 @@ function OutputDisplay({ name, value, executionTime }: OutputDisplayProps) {
 // =============================================================================
 
 export function SimulationPanel() {
-  const { selectedProduct, abstractAttributes } = useProductStore();
+  const { selectedProduct, abstractAttributes, datatypes, fetchDatatypes } = useProductStore();
   const {
     inputs,
     results,
@@ -191,6 +207,56 @@ export function SimulationPanel() {
   const [outputsExpanded, setOutputsExpanded] = useState(true);
   const [scenarioName, setScenarioName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [enumerations, setEnumerations] = useState<TemplateEnumeration[]>([]);
+
+  // Fetch enumerations for the current product's template type
+  useEffect(() => {
+    if (selectedProduct?.templateType) {
+      api.templates.listEnumerations(selectedProduct.templateType)
+        .then(setEnumerations)
+        .catch((err) => console.error('Failed to fetch enumerations:', err));
+    }
+  }, [selectedProduct?.templateType]);
+
+  // Ensure datatypes are loaded (needed for base type resolution)
+  useEffect(() => {
+    if (datatypes.length === 0) {
+      fetchDatatypes().catch((err) => console.error('Failed to fetch datatypes:', err));
+    }
+  }, [datatypes.length, fetchDatatypes]);
+
+  // Helper to get enum values for an attribute
+  const getEnumValues = useCallback((attr: AbstractAttribute): string[] => {
+    if (attr.datatypeId !== 'enum' || !attr.enumName) return [];
+    const enumDef = enumerations.find((e) => e.name === attr.enumName || e.id === attr.enumName);
+    return enumDef?.values || [];
+  }, [enumerations]);
+
+  // Helper to resolve base type from a datatype ID
+  // Custom datatypes (age, score, currency, etc.) have a primitiveType property
+  const getBaseType = useCallback((datatypeId: string): 'int' | 'decimal' | 'bool' | 'string' | 'enum' => {
+    // Check if it's a standard type first
+    if (datatypeId === 'enum') return 'enum';
+    if (INT_BASED_TYPES.includes(datatypeId)) return 'int';
+    if (DECIMAL_BASED_TYPES.includes(datatypeId)) return 'decimal';
+    if (BOOL_BASED_TYPES.includes(datatypeId)) return 'bool';
+    if (STRING_BASED_TYPES.includes(datatypeId)) return 'string';
+
+    // Look up the datatype to find its primitive type
+    const dt = datatypes.find((d) => d.id === datatypeId);
+    if (dt?.primitiveType) {
+      // Map primitive type to base type
+      const pt = dt.primitiveType.toLowerCase();
+      if (pt === 'int' || pt === 'integer') return 'int';
+      if (pt === 'decimal' || pt === 'float' || pt === 'number') return 'decimal';
+      if (pt === 'bool' || pt === 'boolean') return 'bool';
+      if (pt === 'enum') return 'enum';
+      if (pt === 'string' || pt === 'text' || pt === 'datetime' || pt === 'array') return 'string';
+    }
+
+    // Default to string if unknown
+    return 'string';
+  }, [datatypes]);
 
   // Filter input attributes
   const inputAttributes = abstractAttributes.filter((a) =>
@@ -202,17 +268,17 @@ export function SimulationPanel() {
     if (inputAttributes.length > 0 && inputs.length === 0) {
       const defaultInputs = inputAttributes.map((attr) => {
         const attrName = attr.attributeName || attr.abstractPath.split(':').pop() || '';
+        const baseType = getBaseType(attr.datatypeId);
         let defaultValue: AttributeValue;
 
-        switch (attr.datatypeId) {
-          case 'integer':
+        switch (baseType) {
+          case 'int':
             defaultValue = { type: 'int', value: 0 };
             break;
           case 'decimal':
-          case 'float':
             defaultValue = { type: 'float', value: 0 };
             break;
-          case 'boolean':
+          case 'bool':
             defaultValue = { type: 'bool', value: false };
             break;
           default:
@@ -227,7 +293,7 @@ export function SimulationPanel() {
       });
       setInputs(defaultInputs);
     }
-  }, [inputAttributes, inputs.length, setInputs]);
+  }, [inputAttributes, inputs.length, setInputs, getBaseType]);
 
   // Auto-evaluate when inputs change
   useEffect(() => {
@@ -349,6 +415,8 @@ export function SimulationPanel() {
                     attribute={attr}
                     value={inputVal?.value}
                     onChange={(val) => handleInputChange(attr.abstractPath, val)}
+                    enumValues={getEnumValues(attr)}
+                    baseType={getBaseType(attr.datatypeId)}
                   />
                 );
               })}

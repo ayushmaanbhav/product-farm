@@ -67,7 +67,9 @@ function AttributeSelector({ productId, selectedPaths, onToggle }: AttributeSele
   const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    api.abstractAttributes.list(productId).then(setAttributes);
+    api.abstractAttributes.list(productId)
+      .then(setAttributes)
+      .catch(e => console.error('Failed to load attributes:', e));
   }, [productId]);
 
   const filtered = attributes.filter(
@@ -502,13 +504,17 @@ export function Functionalities() {
   const handleSave = async (data: Partial<ProductFunctionality>) => {
     if (!selectedProduct) return;
 
-    if (editingFunc === 'new') {
-      await api.functionalities.create(data);
-    } else if (editingFunc) {
-      await api.functionalities.update(selectedProduct.id, editingFunc.id, data);
+    try {
+      if (editingFunc === 'new') {
+        await api.functionalities.create(data);
+      } else if (editingFunc) {
+        await api.functionalities.update(selectedProduct.id, editingFunc.id, data);
+      }
+      setEditingFunc(null);
+      loadFunctionalities();
+    } catch (e) {
+      alert(`Failed to save functionality: ${(e as Error).message}`);
     }
-    setEditingFunc(null);
-    loadFunctionalities();
   };
 
   const handleDelete = async (id: string) => {
@@ -524,14 +530,22 @@ export function Functionalities() {
 
   const handleSubmit = async (id: string) => {
     if (!selectedProduct) return;
-    await api.functionalities.submit(selectedProduct.id, id);
-    loadFunctionalities();
+    try {
+      await api.functionalities.submit(selectedProduct.id, id);
+      loadFunctionalities();
+    } catch (e) {
+      alert(`Failed to submit functionality: ${(e as Error).message}`);
+    }
   };
 
   const handleApprove = async (id: string) => {
     if (!selectedProduct) return;
-    await api.functionalities.approve(selectedProduct.id, id);
-    loadFunctionalities();
+    try {
+      await api.functionalities.approve(selectedProduct.id, id);
+      loadFunctionalities();
+    } catch (e) {
+      alert(`Failed to approve functionality: ${(e as Error).message}`);
+    }
   };
 
   const filtered = functionalities.filter((f) => {

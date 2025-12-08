@@ -380,9 +380,15 @@ export function Attributes() {
   // Fetch enumerations, rules, and concrete attributes when product changes
   useEffect(() => {
     if (selectedProduct) {
-      api.templates.listEnumerations(selectedProduct.templateType).then(setEnumerations);
-      api.rules.list(selectedProduct.id).then(setRules);
-      api.attributes.list(selectedProduct.id).then(setConcreteAttributes);
+      api.templates.listEnumerations(selectedProduct.templateType)
+        .then(setEnumerations)
+        .catch(e => console.error('Failed to load enumerations:', e));
+      api.rules.list(selectedProduct.id)
+        .then(setRules)
+        .catch(e => console.error('Failed to load rules:', e));
+      api.attributes.list(selectedProduct.id)
+        .then(setConcreteAttributes)
+        .catch(e => console.error('Failed to load concrete attributes:', e));
     }
   }, [selectedProduct]);
 
@@ -430,14 +436,17 @@ export function Attributes() {
   const handleSave = async (data: Partial<AbstractAttribute>) => {
     if (!selectedProduct) return;
 
-    if (editingAttr === 'new') {
-      await api.abstractAttributes.create(data);
-    } else if (editingAttr) {
-      await api.abstractAttributes.update(editingAttr.abstractPath, data);
+    try {
+      if (editingAttr === 'new') {
+        await api.abstractAttributes.create(data);
+      } else if (editingAttr) {
+        await api.abstractAttributes.update(editingAttr.abstractPath, data);
+      }
+      setEditingAttr(null);
+      fetchAttributes(selectedProduct.id);
+    } catch (e) {
+      alert(`Failed to save attribute: ${(e as Error).message}`);
     }
-
-    setEditingAttr(null);
-    fetchAttributes(selectedProduct.id);
   };
 
   const handleDelete = async (path: string) => {
@@ -456,14 +465,19 @@ export function Attributes() {
   const handleSaveConcrete = async (data: Partial<Attribute>) => {
     if (!selectedProduct) return;
 
-    if (editingConcreteAttr === 'new') {
-      await api.attributes.create(data);
-    } else if (editingConcreteAttr) {
-      await api.attributes.update(editingConcreteAttr.path, data);
+    try {
+      if (editingConcreteAttr === 'new') {
+        await api.attributes.create(data);
+      } else if (editingConcreteAttr) {
+        await api.attributes.update(editingConcreteAttr.path, data);
+      }
+      setEditingConcreteAttr(null);
+      api.attributes.list(selectedProduct.id)
+        .then(setConcreteAttributes)
+        .catch(e => console.error('Failed to refresh attributes:', e));
+    } catch (e) {
+      alert(`Failed to save concrete attribute: ${(e as Error).message}`);
     }
-
-    setEditingConcreteAttr(null);
-    api.attributes.list(selectedProduct.id).then(setConcreteAttributes);
   };
 
   const handleDeleteConcrete = async (path: string) => {
@@ -471,10 +485,12 @@ export function Attributes() {
     try {
       await api.attributes.delete(path);
       if (selectedProduct) {
-        api.attributes.list(selectedProduct.id).then(setConcreteAttributes);
+        api.attributes.list(selectedProduct.id)
+          .then(setConcreteAttributes)
+          .catch(e => console.error('Failed to refresh attributes:', e));
       }
     } catch (e) {
-      alert((e as Error).message);
+      alert(`Failed to delete concrete attribute: ${(e as Error).message}`);
     }
   };
 

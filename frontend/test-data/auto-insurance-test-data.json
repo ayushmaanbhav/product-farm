@@ -1,0 +1,206 @@
+{
+  "product": {
+    "id": "autoInsCalc",
+    "name": "Auto Insurance Premium Calculator",
+    "description": "Comprehensive auto insurance product for testing all system features",
+    "templateType": "insurance"
+  },
+  "datatypes": [
+    {"id": "currency", "primitiveType": "DECIMAL", "constraints": {"min": 0, "precision": 15, "scale": 2}},
+    {"id": "percentage", "primitiveType": "DECIMAL", "constraints": {"min": 0, "max": 100, "precision": 5, "scale": 2}},
+    {"id": "rate-factor", "primitiveType": "DECIMAL", "constraints": {"min": 0, "max": 10, "precision": 6, "scale": 4}},
+    {"id": "age", "primitiveType": "INT", "constraints": {"min": 0, "max": 150}},
+    {"id": "year", "primitiveType": "INT", "constraints": {"min": 1900, "max": 2100}},
+    {"id": "positive-int", "primitiveType": "INT", "constraints": {"min": 1}},
+    {"id": "score", "primitiveType": "INT", "constraints": {"min": 300, "max": 850}},
+    {"id": "email", "primitiveType": "STRING", "constraints": {"pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", "maxLength": 255}},
+    {"id": "phone", "primitiveType": "STRING", "constraints": {"pattern": "^\\+?[1-9]\\d{1,14}$", "maxLength": 20}},
+    {"id": "postal-code", "primitiveType": "STRING", "constraints": {"pattern": "^\\d{5}(-\\d{4})?$", "maxLength": 10}},
+    {"id": "vin", "primitiveType": "STRING", "constraints": {"pattern": "^[A-HJ-NPR-Z0-9]{17}$", "minLength": 17, "maxLength": 17}},
+    {"id": "license-plate", "primitiveType": "STRING", "constraints": {"pattern": "^[A-Z0-9]{1,8}$", "maxLength": 8}},
+    {"id": "date-past", "primitiveType": "DATETIME", "constraints": {}},
+    {"id": "item-list", "primitiveType": "ARRAY", "constraints": {"minItems": 1, "maxItems": 10, "uniqueItems": true}}
+  ],
+  "enumerations": [
+    {"id": "coverage-type", "name": "Coverage Type", "templateType": "insurance", "values": ["liability", "collision", "comprehensive", "uninsured-motorist", "medical-payments"]},
+    {"id": "vehicle-type", "name": "Vehicle Type", "templateType": "insurance", "values": ["sedan", "suv", "truck", "van", "sports-car", "motorcycle", "electric"]},
+    {"id": "driver-status", "name": "Driver Status", "templateType": "insurance", "values": ["primary", "secondary", "occasional", "excluded"]},
+    {"id": "payment-frequency", "name": "Payment Frequency", "templateType": "insurance", "values": ["monthly", "quarterly", "semi-annual", "annual"]},
+    {"id": "risk-tier", "name": "Risk Tier", "templateType": "insurance", "values": ["preferred", "standard", "non-standard", "high-risk"]},
+    {"id": "discount-type", "name": "Discount Type", "templateType": "insurance", "values": ["multi-policy", "good-driver", "anti-theft", "defensive-driving", "student", "military"]},
+    {"id": "claim-type", "name": "Claim Type", "templateType": "insurance", "values": ["at-fault", "not-at-fault", "comprehensive", "glass", "tow"]}
+  ],
+  "components": {
+    "customer": {
+      "attributes": [
+        {"name": "customer-id", "datatypeId": "string", "isInput": true, "tags": ["input", "identifier"]},
+        {"name": "customer-age", "datatypeId": "age", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "credit-score", "datatypeId": "score", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "years-licensed", "datatypeId": "positive-int", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "driver-status", "datatypeId": "enum", "enumName": "Driver Status", "isInput": true, "tags": ["input"]},
+        {"name": "email", "datatypeId": "email", "isInput": true, "tags": ["input", "contact"]},
+        {"name": "postal-code", "datatypeId": "postal-code", "isInput": true, "tags": ["input", "location"]},
+        {"name": "has-prior-insurance", "datatypeId": "bool", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "prior-claims-count", "datatypeId": "int", "isInput": true, "tags": ["input", "factor"]}
+      ]
+    },
+    "vehicle": {
+      "attributes": [
+        {"name": "vin", "datatypeId": "vin", "isInput": true, "tags": ["input", "identifier"]},
+        {"name": "vehicle-type", "datatypeId": "enum", "enumName": "Vehicle Type", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "vehicle-year", "datatypeId": "year", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "vehicle-value", "datatypeId": "currency", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "vehicle-age", "datatypeId": "age", "isInput": false, "tags": ["output", "computed"]},
+        {"name": "annual-mileage", "datatypeId": "positive-int", "isInput": true, "tags": ["input", "factor"]},
+        {"name": "has-anti-theft", "datatypeId": "bool", "isInput": true, "tags": ["input", "discount"]},
+        {"name": "is-garaged", "datatypeId": "bool", "isInput": true, "tags": ["input", "discount"]}
+      ]
+    },
+    "coverage": {
+      "attributes": [
+        {"name": "coverage-type", "datatypeId": "enum", "enumName": "Coverage Type", "isInput": true, "tags": ["input"]},
+        {"name": "liability-limit", "datatypeId": "currency", "isInput": true, "tags": ["input"]},
+        {"name": "collision-deductible", "datatypeId": "currency", "isInput": true, "tags": ["input"]},
+        {"name": "comprehensive-deductible", "datatypeId": "currency", "isInput": true, "tags": ["input"]},
+        {"name": "payment-frequency", "datatypeId": "enum", "enumName": "Payment Frequency", "isInput": true, "tags": ["input"]}
+      ]
+    },
+    "rating": {
+      "attributes": [
+        {"name": "base-rate", "datatypeId": "currency", "isInput": false, "tags": ["output", "premium"]},
+        {"name": "age-factor", "datatypeId": "rate-factor", "isInput": false, "tags": ["output", "factor"]},
+        {"name": "vehicle-factor", "datatypeId": "rate-factor", "isInput": false, "tags": ["output", "factor"]},
+        {"name": "credit-factor", "datatypeId": "rate-factor", "isInput": false, "tags": ["output", "factor"]},
+        {"name": "experience-factor", "datatypeId": "rate-factor", "isInput": false, "tags": ["output", "factor"]},
+        {"name": "claims-factor", "datatypeId": "rate-factor", "isInput": false, "tags": ["output", "factor"]},
+        {"name": "risk-tier", "datatypeId": "enum", "enumName": "Risk Tier", "isInput": false, "tags": ["output", "classification"]},
+        {"name": "total-discount-pct", "datatypeId": "percentage", "isInput": false, "tags": ["output", "discount"]},
+        {"name": "subtotal-premium", "datatypeId": "currency", "isInput": false, "tags": ["output", "premium"]},
+        {"name": "discount-amount", "datatypeId": "currency", "isInput": false, "tags": ["output", "premium"]},
+        {"name": "annual-premium", "datatypeId": "currency", "isInput": false, "tags": ["output", "premium"], "immutable": true},
+        {"name": "installment-amount", "datatypeId": "currency", "isInput": false, "tags": ["output", "premium"]}
+      ]
+    },
+    "eligibility": {
+      "attributes": [
+        {"name": "is-eligible", "datatypeId": "bool", "isInput": false, "tags": ["output", "eligibility"], "immutable": true},
+        {"name": "eligibility-reasons", "datatypeId": "item-list", "isInput": false, "tags": ["output", "eligibility"]},
+        {"name": "minimum-age-met", "datatypeId": "bool", "isInput": false, "tags": ["output", "validation"]},
+        {"name": "maximum-claims-ok", "datatypeId": "bool", "isInput": false, "tags": ["output", "validation"]},
+        {"name": "valid-credit-score", "datatypeId": "bool", "isInput": false, "tags": ["output", "validation"]},
+        {"name": "is-not-eligible", "datatypeId": "bool", "isInput": false, "tags": ["output", "test"]},
+        {"name": "is-primary-driver", "datatypeId": "bool", "isInput": false, "tags": ["output", "test"]}
+      ]
+    }
+  },
+  "rules": [
+    {"orderIndex": 1, "ruleType": "calculation", "description": "Calculate vehicle age from year", "inputs": ["vehicle/vehicle-year"], "outputs": ["vehicle/vehicle-age"], "displayExpression": "2025 - vehicle_year", "expressionJson": "{\"-\": [2025, {\"var\": \"vehicle/vehicle-year\"}]}"},
+    {"orderIndex": 2, "ruleType": "rating", "description": "Age-based multiplier", "inputs": ["customer/customer-age"], "outputs": ["rating/age-factor"], "displayExpression": "if age < 25 then 1.5, else if 25-65 then 1.0, else 1.2", "expressionJson": "{\"if\": [{\"<\": [{\"var\": \"customer/customer-age\"}, 25]}, 1.5, {\"and\": [{\">=\":  [{\"var\": \"customer/customer-age\"}, 25]}, {\"<\": [{\"var\": \"customer/customer-age\"}, 65]}]}, 1.0, {\">=\":  [{\"var\": \"customer/customer-age\"}, 65]}, 1.2, 1.0]}"},
+    {"orderIndex": 3, "ruleType": "rating", "description": "Vehicle type multiplier", "inputs": ["vehicle/vehicle-type"], "outputs": ["rating/vehicle-factor"], "displayExpression": "if sports-car 1.8, motorcycle 1.6, suv/truck 1.2, electric 0.9, else 1.0", "expressionJson": "{\"if\": [{\"==\": [{\"var\": \"vehicle/vehicle-type\"}, \"sports-car\"]}, 1.8, {\"==\": [{\"var\": \"vehicle/vehicle-type\"}, \"motorcycle\"]}, 1.6, {\"or\": [{\"==\": [{\"var\": \"vehicle/vehicle-type\"}, \"suv\"]}, {\"==\": [{\"var\": \"vehicle/vehicle-type\"}, \"truck\"]}]}, 1.2, {\"==\": [{\"var\": \"vehicle/vehicle-type\"}, \"electric\"]}, 0.9, 1.0]}"},
+    {"orderIndex": 4, "ruleType": "rating", "description": "Credit-based multiplier", "inputs": ["customer/credit-score"], "outputs": ["rating/credit-factor"], "displayExpression": "max(0.8, min(1.5, 800/credit_score))", "expressionJson": "{\"max\": [0.8, {\"min\": [1.5, {\"/\": [800, {\"var\": \"customer/credit-score\"}]}]}]}"},
+    {"orderIndex": 5, "ruleType": "rating", "description": "Experience multiplier", "inputs": ["customer/years-licensed"], "outputs": ["rating/experience-factor"], "displayExpression": "if years >= 10 then 0.85, >= 5 then 0.95, >= 3 then 1.0, else 1.25", "expressionJson": "{\"if\": [{\">=\":  [{\"var\": \"customer/years-licensed\"}, 10]}, 0.85, {\">=\":  [{\"var\": \"customer/years-licensed\"}, 5]}, 0.95, {\">=\":  [{\"var\": \"customer/years-licensed\"}, 3]}, 1.0, 1.25]}"},
+    {"orderIndex": 6, "ruleType": "rating", "description": "Claims history factor", "inputs": ["customer/prior-claims-count"], "outputs": ["rating/claims-factor"], "displayExpression": "1.0 + (0.15 * claims_count)", "expressionJson": "{\"+\": [1.0, {\"*\": [0.15, {\"var\": \"customer/prior-claims-count\"}]}]}"},
+    {"orderIndex": 7, "ruleType": "eligibility", "description": "Compute risk tier", "inputs": ["rating/age-factor", "rating/credit-factor", "rating/claims-factor"], "outputs": ["rating/risk-tier"], "displayExpression": "if all factors <=1.0 then preferred, etc", "expressionJson": "{\"if\": [{\"and\": [{\"<=\": [{\"var\": \"rating/age-factor\"}, 1.0]}, {\"<=\": [{\"var\": \"rating/credit-factor\"}, 1.0]}, {\"<=\": [{\"var\": \"rating/claims-factor\"}, 1.0]}]}, \"preferred\", {\"and\": [{\"<=\": [{\"var\": \"rating/age-factor\"}, 1.2]}, {\"<=\": [{\"var\": \"rating/credit-factor\"}, 1.2]}]}, \"standard\", {\"<\": [{\"var\": \"rating/claims-factor\"}, 1.5]}, \"non-standard\", \"high-risk\"]}"},
+    {"orderIndex": 8, "ruleType": "pricing", "description": "Base annual premium", "inputs": ["vehicle/vehicle-value"], "outputs": ["rating/base-rate"], "displayExpression": "vehicle_value * 0.05", "expressionJson": "{\"*\": [{\"var\": \"vehicle/vehicle-value\"}, 0.05]}"},
+    {"orderIndex": 9, "ruleType": "pricing", "description": "Subtotal before discounts", "inputs": ["rating/base-rate", "rating/age-factor", "rating/vehicle-factor", "rating/credit-factor", "rating/experience-factor", "rating/claims-factor"], "outputs": ["rating/subtotal-premium"], "displayExpression": "base * age * vehicle * credit * experience * claims factors", "expressionJson": "{\"*\": [{\"var\": \"rating/base-rate\"}, {\"var\": \"rating/age-factor\"}, {\"var\": \"rating/vehicle-factor\"}, {\"var\": \"rating/credit-factor\"}, {\"var\": \"rating/experience-factor\"}, {\"var\": \"rating/claims-factor\"}]}"},
+    {"orderIndex": 10, "ruleType": "discount", "description": "Total discount percentage", "inputs": ["vehicle/has-anti-theft", "vehicle/is-garaged", "customer/has-prior-insurance"], "outputs": ["rating/total-discount-pct"], "displayExpression": "5% anti-theft + 3% garaged + 10% prior insurance", "expressionJson": "{\"+\": [{\"if\": [{\"var\": \"vehicle/has-anti-theft\"}, 5, 0]}, {\"if\": [{\"var\": \"vehicle/is-garaged\"}, 3, 0]}, {\"if\": [{\"var\": \"customer/has-prior-insurance\"}, 10, 0]}]}"},
+    {"orderIndex": 11, "ruleType": "pricing", "description": "Discount amount in dollars", "inputs": ["rating/subtotal-premium", "rating/total-discount-pct"], "outputs": ["rating/discount-amount"], "displayExpression": "subtotal * (discount_pct / 100)", "expressionJson": "{\"*\": [{\"var\": \"rating/subtotal-premium\"}, {\"/\": [{\"var\": \"rating/total-discount-pct\"}, 100]}]}"},
+    {"orderIndex": 12, "ruleType": "pricing", "description": "Final annual premium", "inputs": ["rating/subtotal-premium", "rating/discount-amount"], "outputs": ["rating/annual-premium"], "displayExpression": "subtotal - discount", "expressionJson": "{\"-\": [{\"var\": \"rating/subtotal-premium\"}, {\"var\": \"rating/discount-amount\"}]}"},
+    {"orderIndex": 13, "ruleType": "pricing", "description": "Per-payment amount", "inputs": ["rating/annual-premium", "coverage/payment-frequency"], "outputs": ["rating/installment-amount"], "displayExpression": "annual / (12 if monthly, 4 if quarterly, 2 if semi-annual, 1 if annual)", "expressionJson": "{\"/\": [{\"var\": \"rating/annual-premium\"}, {\"if\": [{\"==\": [{\"var\": \"coverage/payment-frequency\"}, \"monthly\"]}, 12, {\"==\": [{\"var\": \"coverage/payment-frequency\"}, \"quarterly\"]}, 4, {\"==\": [{\"var\": \"coverage/payment-frequency\"}, \"semi-annual\"]}, 2, 1]}]}"},
+    {"orderIndex": 14, "ruleType": "validation", "description": "Age >= 16 check", "inputs": ["customer/customer-age"], "outputs": ["eligibility/minimum-age-met"], "displayExpression": "age >= 16", "expressionJson": "{\">=\":  [{\"var\": \"customer/customer-age\"}, 16]}"},
+    {"orderIndex": 15, "ruleType": "validation", "description": "Claims <= 3 check", "inputs": ["customer/prior-claims-count"], "outputs": ["eligibility/maximum-claims-ok"], "displayExpression": "claims <= 3", "expressionJson": "{\"<=\": [{\"var\": \"customer/prior-claims-count\"}, 3]}"},
+    {"orderIndex": 16, "ruleType": "validation", "description": "Credit score in valid range", "inputs": ["customer/credit-score"], "outputs": ["eligibility/valid-credit-score"], "displayExpression": "300 <= credit_score <= 850", "expressionJson": "{\"and\": [{\">=\":  [{\"var\": \"customer/credit-score\"}, 300]}, {\"<=\": [{\"var\": \"customer/credit-score\"}, 850]}]}"},
+    {"orderIndex": 17, "ruleType": "eligibility", "description": "Final eligibility determination", "inputs": ["eligibility/minimum-age-met", "eligibility/maximum-claims-ok", "eligibility/valid-credit-score"], "outputs": ["eligibility/is-eligible"], "displayExpression": "all conditions met", "expressionJson": "{\"and\": [{\"var\": \"eligibility/minimum-age-met\"}, {\"var\": \"eligibility/maximum-claims-ok\"}, {\"var\": \"eligibility/valid-credit-score\"}]}"},
+    {"orderIndex": 18, "ruleType": "validation", "description": "NOT operator test", "inputs": ["eligibility/is-eligible"], "outputs": ["eligibility/is-not-eligible"], "displayExpression": "NOT is_eligible", "expressionJson": "{\"!\": [{\"var\": \"eligibility/is-eligible\"}]}"},
+    {"orderIndex": 19, "ruleType": "validation", "description": "Strict equality test", "inputs": ["customer/driver-status"], "outputs": ["eligibility/is-primary-driver"], "displayExpression": "driver_status === primary", "expressionJson": "{\"===\": [{\"var\": \"customer/driver-status\"}, \"primary\"]}"}
+  ],
+  "functionalities": [
+    {"name": "quote-calculation", "displayName": "Quote Calculation", "description": "Calculate insurance quote", "requiredAttributes": ["customer/customer-age", "customer/credit-score", "vehicle/vehicle-value", "vehicle/vehicle-type"]},
+    {"name": "eligibility-check", "displayName": "Eligibility Check", "description": "Verify customer eligibility", "requiredAttributes": ["customer/customer-age", "customer/prior-claims-count", "customer/credit-score"]},
+    {"name": "discount-calculation", "displayName": "Discount Calculation", "description": "Calculate applicable discounts", "requiredAttributes": ["vehicle/has-anti-theft", "vehicle/is-garaged", "customer/has-prior-insurance"]},
+    {"name": "payment-schedule", "displayName": "Payment Schedule", "description": "Compute installment amounts", "requiredAttributes": ["rating/annual-premium", "coverage/payment-frequency"]}
+  ],
+  "testScenarios": {
+    "scenario1": {
+      "name": "Young Driver, Sports Car, Poor Credit",
+      "inputs": {
+        "customer/customer-age": {"type": "int", "value": 22},
+        "customer/credit-score": {"type": "int", "value": 580},
+        "customer/years-licensed": {"type": "int", "value": 3},
+        "customer/driver-status": {"type": "string", "value": "primary"},
+        "customer/has-prior-insurance": {"type": "bool", "value": false},
+        "customer/prior-claims-count": {"type": "int", "value": 1},
+        "vehicle/vehicle-type": {"type": "string", "value": "sports-car"},
+        "vehicle/vehicle-year": {"type": "int", "value": 2023},
+        "vehicle/vehicle-value": {"type": "decimal", "value": "45000.00"},
+        "vehicle/has-anti-theft": {"type": "bool", "value": true},
+        "vehicle/is-garaged": {"type": "bool", "value": false},
+        "coverage/payment-frequency": {"type": "string", "value": "monthly"}
+      },
+      "expectedOutputs": {
+        "vehicle/vehicle-age": 2,
+        "rating/age-factor": 1.5,
+        "rating/vehicle-factor": 1.8,
+        "rating/credit-factor": 1.38,
+        "rating/experience-factor": 1.0,
+        "rating/claims-factor": 1.15,
+        "rating/base-rate": 2250,
+        "rating/total-discount-pct": 5,
+        "eligibility/is-eligible": true
+      }
+    },
+    "scenario2": {
+      "name": "Senior, Electric Vehicle, Excellent Credit",
+      "inputs": {
+        "customer/customer-age": {"type": "int", "value": 68},
+        "customer/credit-score": {"type": "int", "value": 800},
+        "customer/years-licensed": {"type": "int", "value": 45},
+        "customer/driver-status": {"type": "string", "value": "primary"},
+        "customer/has-prior-insurance": {"type": "bool", "value": true},
+        "customer/prior-claims-count": {"type": "int", "value": 0},
+        "vehicle/vehicle-type": {"type": "string", "value": "electric"},
+        "vehicle/vehicle-year": {"type": "int", "value": 2024},
+        "vehicle/vehicle-value": {"type": "decimal", "value": "55000.00"},
+        "vehicle/has-anti-theft": {"type": "bool", "value": true},
+        "vehicle/is-garaged": {"type": "bool", "value": true},
+        "coverage/payment-frequency": {"type": "string", "value": "annual"}
+      },
+      "expectedOutputs": {
+        "vehicle/vehicle-age": 1,
+        "rating/age-factor": 1.2,
+        "rating/vehicle-factor": 0.9,
+        "rating/credit-factor": 1.0,
+        "rating/experience-factor": 0.85,
+        "rating/claims-factor": 1.0,
+        "rating/risk-tier": "standard",
+        "rating/base-rate": 2750,
+        "rating/total-discount-pct": 18,
+        "rating/annual-premium": 2070.09,
+        "eligibility/is-eligible": true
+      }
+    },
+    "scenario3": {
+      "name": "Ineligible - Too Many Claims",
+      "inputs": {
+        "customer/customer-age": {"type": "int", "value": 40},
+        "customer/credit-score": {"type": "int", "value": 700},
+        "customer/years-licensed": {"type": "int", "value": 20},
+        "customer/driver-status": {"type": "string", "value": "primary"},
+        "customer/has-prior-insurance": {"type": "bool", "value": true},
+        "customer/prior-claims-count": {"type": "int", "value": 5},
+        "vehicle/vehicle-type": {"type": "string", "value": "sedan"},
+        "vehicle/vehicle-year": {"type": "int", "value": 2020},
+        "vehicle/vehicle-value": {"type": "decimal", "value": "30000.00"},
+        "vehicle/has-anti-theft": {"type": "bool", "value": false},
+        "vehicle/is-garaged": {"type": "bool", "value": false},
+        "coverage/payment-frequency": {"type": "string", "value": "quarterly"}
+      },
+      "expectedOutputs": {
+        "eligibility/maximum-claims-ok": false,
+        "eligibility/is-eligible": false,
+        "eligibility/is-not-eligible": true,
+        "rating/claims-factor": 1.75
+      }
+    }
+  }
+}

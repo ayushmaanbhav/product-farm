@@ -197,12 +197,14 @@ export function SelectDropdown<T = string>({
           className
         )}
       >
-        <span className={cn('truncate', !selectedOption && 'text-gray-400')}>
+        <span className={cn('truncate', !selectedOption && !value && 'text-gray-400')}>
           {selectedOption
             ? renderValue
               ? renderValue(selectedOption)
               : selectedOption.label
-            : placeholder}
+            : value
+              ? String(value)
+              : placeholder}
         </span>
         <div className="flex items-center gap-1">
           {clearable && selectedOption && (

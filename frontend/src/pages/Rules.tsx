@@ -372,6 +372,7 @@ export function Rules() {
     abstractAttributes,
     functionalities,
     executionPlan,
+    createRule,
     updateRule,
     deleteRule,
     submitProduct,
@@ -507,9 +508,21 @@ export function Rules() {
       <div className="h-full">
         <RuleBuilder
           rule={editingRule}
-          onSave={async () => {
-            setShowRuleBuilder(false);
-            setEditingRule(undefined);
+          onSave={async (ruleData) => {
+            try {
+              if (editingRule?.id) {
+                // Update existing rule
+                await updateRule(editingRule.id, ruleData);
+              } else {
+                // Create new rule
+                await createRule(ruleData);
+              }
+              setShowRuleBuilder(false);
+              setEditingRule(undefined);
+            } catch (error) {
+              console.error('Failed to save rule:', error);
+              // Keep the dialog open on error
+            }
           }}
           onCancel={() => {
             setShowRuleBuilder(false);
@@ -542,7 +555,7 @@ export function Rules() {
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex-shrink-0 flex items-center justify-between border-b bg-white px-4 py-2">
+      <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-y-2 border-b bg-white px-4 py-2 min-w-0 overflow-x-auto">
         <div className="flex items-center gap-3">
           <ProductSelector />
           <div className="h-6 border-l" />

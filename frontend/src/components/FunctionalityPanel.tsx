@@ -298,6 +298,7 @@ export function FunctionalityPanel() {
       await submitFunctionality(id);
     } catch (error) {
       console.error('Failed to submit functionality:', error);
+      alert(`Failed to submit functionality: ${(error as Error).message}`);
     }
   }, [submitFunctionality]);
 
@@ -306,6 +307,7 @@ export function FunctionalityPanel() {
       await approveFunctionality(id);
     } catch (error) {
       console.error('Failed to approve functionality:', error);
+      alert(`Failed to approve functionality: ${(error as Error).message}`);
     }
   }, [approveFunctionality]);
 
@@ -316,6 +318,7 @@ export function FunctionalityPanel() {
         if (selectedForDetails === id) setSelectedForDetails(null);
       } catch (error) {
         console.error('Failed to delete functionality:', error);
+        alert(`Failed to delete functionality: ${(error as Error).message}`);
       }
     }
   }, [deleteFunctionality, selectedForDetails]);

@@ -480,8 +480,15 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
     try {
       const inputData: Record<string, AttributeValue> = {};
       inputs.forEach((i) => {
-        const shortPath = i.path.split(':').pop() || i.path;
-        inputData[shortPath] = i.value;
+        // Convert path from productId:abstract-path:componentType:attributeName to componentType/attributeName format
+        // e.g., "autoInsCalc:abstract-path:vehicle:vehicle-year" -> "vehicle/vehicle-year"
+        const parts = i.path.split(':');
+        const apiPath = parts.length >= 4
+          ? `${parts[2]}/${parts[3]}`  // componentType/attributeName
+          : parts.length >= 2
+            ? `${parts[parts.length - 2]}/${parts[parts.length - 1]}`  // fallback: last two parts
+            : i.path;
+        inputData[apiPath] = i.value;
       });
 
       const results = await api.evaluation.evaluate({
