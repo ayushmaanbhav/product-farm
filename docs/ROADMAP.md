@@ -547,7 +547,7 @@ Product-FARM is open source. We welcome contributions and feedback!
 
 Don't wait for future features—start using Product-FARM now!
 
-<div class="cta-buttons">
+<div class="cta-buttons" markdown="1">
 
 [Quick Start Guide](QUICK_START) - Get running in 5 minutes
 

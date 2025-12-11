@@ -355,7 +355,7 @@ flowchart TB
 
 Ready to transform how you manage business logic?
 
-<div class="cta-buttons">
+<div class="cta-buttons" markdown="1">
 
 [Quick Start Guide](QUICK_START) - Get running in 5 minutes
 
