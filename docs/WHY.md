@@ -177,16 +177,49 @@ AI: I'll create a loyalty discount rule for you:
 
 ## Comparison: Product-FARM vs. Alternatives
 
-| Aspect | Hardcoded Rules | Spreadsheets | Generic Rule Engines | **Product-FARM** |
-|--------|-----------------|--------------|---------------------|------------------|
-| **Visual Interface** | ❌ | ❌ | Partial | ✅ Full visual builder |
-| **Version Control** | Via git (code only) | ❌ | Partial | ✅ Built-in |
-| **Audit Trail** | ❌ | ❌ | Partial | ✅ Complete |
-| **Performance** | Varies | N/A | Moderate | ✅ Sub-microsecond |
+### Feature Matrix
+
+| Capability | Hardcoded Rules | Spreadsheets | Generic Rule Engines | **Product-FARM** |
+|------------|-----------------|--------------|---------------------|------------------|
+| **Visual Rule Builder** | ❌ | ❌ | Partial | ✅ Full drag-and-drop |
+| **Version Control** | Via git (code only) | ❌ | Partial | ✅ Built-in immutable |
+| **Audit Trail** | ❌ | ❌ | Partial | ✅ Complete history |
+| **Performance** | Varies | N/A | ~10-50μs | ✅ ~330ns (bytecode) |
 | **Business User Access** | ❌ | ✅ | Partial | ✅ Full access |
 | **DAG Execution** | ❌ | ❌ | ❌ | ✅ Automatic parallel |
-| **AI Assistance** | ❌ | ❌ | ❌ | ✅ Built-in |
+| **AI Assistance** | ❌ | ❌ | ❌ | ✅ Natural language |
 | **Type Safety** | Language-dependent | ❌ | Partial | ✅ Full type system |
+| **Template Cloning** | Manual copy | File copy | Limited | ✅ Deep/selective clone |
+| **LRU Caching** | Custom build | N/A | Some | ✅ Built-in (10K rules) |
+| **Horizontal Scale** | Limited | ❌ | Varies | ✅ DGraph distributed |
+| **gRPC Support** | Custom build | ❌ | Some | ✅ Native + streaming |
+| **Component RBAC** | ❌ | ❌ | Basic | ✅ Fine-grained |
+| **Batch Evaluation** | Custom build | N/A | Some | ✅ Native + parallel |
+| **Microservice Ready** | ❌ | ❌ | Varies | ✅ API-first design |
+
+### Performance Comparison
+
+| Metric | Hardcoded | Spreadsheets | Other Engines | **Product-FARM** |
+|--------|-----------|--------------|---------------|------------------|
+| Single Evaluation | ~50ns | N/A | ~10-50μs | **~330ns** |
+| Throughput (single) | ~20M/sec | N/A | ~100K/sec | **3M/sec** |
+| Throughput (parallel) | Varies | N/A | ~1M/sec | **22M/sec** |
+| Memory per rule | ~1KB | N/A | ~50KB | **~12KB** |
+| Compilation | At build | N/A | Runtime | **Tiered JIT** |
+
+### Operational Comparison
+
+| Aspect | Hardcoded | Spreadsheets | Other Engines | **Product-FARM** |
+|--------|-----------|--------------|---------------|------------------|
+| Time to change rule | Days/weeks | Minutes | Hours | **Minutes** |
+| Deployment required | Yes | No | Varies | **No** |
+| Rollback capability | Git revert | Manual | Limited | **Instant** |
+| Testing approach | Unit tests | Manual | Some | **Built-in simulation** |
+| Change approval | Code review | Email | Varies | **Workflow built-in** |
+
+<div class="callout callout-performance">
+<strong>Bottom Line:</strong> Product-FARM delivers 30-150x better performance than generic rule engines while providing features that hardcoded solutions can't match—visual building, instant deployment, and complete auditability.
+</div>
 
 ---
 

@@ -707,6 +707,10 @@ interface AppState {
 - [ ] API rate limiting
 - [ ] Audit logging
 
+<div class="callout callout-warning">
+<strong>Security Note:</strong> In production deployments, always enable authentication, validate all inputs at API boundaries, and use TLS for all connections. Product-FARM validates JSON Logic expressions before execution to prevent injection attacks.
+</div>
+
 ---
 
 ## Scalability
@@ -743,6 +747,10 @@ flowchart TB
 3. **Parallel Execution**: Rules without dependencies run concurrently
 4. **Batch Evaluation**: Process multiple inputs efficiently
 5. **Connection Pooling**: Reuse database connections
+
+<div class="callout callout-performance">
+<strong>Production Deployment:</strong> For maximum throughput, deploy multiple stateless API nodes behind a load balancer. Each node maintains its own LRU cache, with DGraph providing the shared source of truth.
+</div>
 
 ---
 

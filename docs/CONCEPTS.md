@@ -126,6 +126,10 @@ Products go through a defined lifecycle to ensure quality and control:
 | **Active** | Live and serving requests. Read-only. Clone to make changes. |
 | **Discontinued** | No longer in use. Preserved for audit purposes. |
 
+<div class="callout callout-info">
+<strong>Immutability Guarantee:</strong> Active products are immutable by design. To make changes, clone the product to create a new Draft version. This ensures production stability and enables instant rollback.
+</div>
+
 ### Creating a Product
 
 ![Create Product](screenshots/product-create-dialog.png)
@@ -316,6 +320,10 @@ Think of it like classes vs instances:
 - **Abstract Attribute** = Class definition (what it is)
 - **Concrete Attribute** = Instance with value (what it holds)
 
+<div class="callout callout-tip">
+<strong>Design Tip:</strong> Create abstract attributes first to establish your data schema, then rules can reference them. This ensures type safety and validation across all evaluations.
+</div>
+
 ### Attribute Categories
 
 **Input Attributes**
@@ -433,6 +441,10 @@ Use the visual rule builder or JSON mode:
 | **CLASSIFICATION** | Categorize into groups | Risk = HIGH if score > 7 |
 | **VALIDATION** | Check conditions | Eligible = income > minimum |
 | **DERIVATION** | Derive from other values | Age = today - birthdate |
+
+<div class="callout callout-performance">
+<strong>Performance:</strong> Rules are automatically organized into a DAG and executed in parallel where possible. Rules at the same dependency level run concurrently, achieving up to 22M evaluations/second.
+</div>
 
 ---
 

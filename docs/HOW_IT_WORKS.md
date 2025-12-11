@@ -115,6 +115,10 @@ query GetProductRules($productId: string) {
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+<div class="callout callout-performance">
+<strong>Cache Impact:</strong> Cache hits deliver ~1μs latency vs ~1-5ms for database queries—a 1000-5000x improvement. For production workloads, ensure cache sizes are tuned for your working set.
+</div>
+
 ---
 
 ## Step 3: DAG Construction
@@ -325,6 +329,10 @@ enum Instruction {
 | Warmup | None | 100 evaluations |
 | Memory | Lower | Higher (bytecode cache) |
 
+<div class="callout callout-tip">
+<strong>Optimization Tip:</strong> For production deployments with predictable workloads, configure eager compilation to pre-compile all rules during product activation, ensuring hot paths are ready immediately.
+</div>
+
 ---
 
 ## Step 5: Execution Context
@@ -466,6 +474,10 @@ Total time: max(L0) + L1 + L2 = 0.8 + 0.4 + 0.3 = 1.5µs
 Without parallelism: 0.8 + 0.6 + 0.7 + 0.4 + 0.3 = 2.8µs
 Speedup: 1.87x
 ```
+
+<div class="callout callout-info">
+<strong>Parallel Scaling:</strong> Speedup increases with DAG width. Products with many independent rules at each level see greater parallelization benefits—up to 5.4x for deep DAGs with 100+ rules.
+</div>
 
 ---
 

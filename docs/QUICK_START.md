@@ -231,6 +231,10 @@ Navigate to **http://localhost:5173** in your browser. You'll see the Product-FA
 
 The dashboard provides quick access to all components and shows your recent activity.
 
+<div class="callout callout-tip">
+<strong>First Run:</strong> The initial backend build takes 2-3 minutes as Rust compiles all dependencies. Subsequent starts are much faster. Watch the terminal for progress updates.
+</div>
+
 ### Step 4: Verify Services
 
 Verify all services are running correctly:
@@ -601,6 +605,10 @@ Level 1 (After Level 0):
 Level 2 (After Level 1):
 └── calculate_monthly_payment (inputs: final_premium)
 ```
+
+<div class="callout callout-performance">
+<strong>Automatic Optimization:</strong> Product-FARM automatically detects dependencies and parallelizes execution. No manual configuration needed—just define your rules and the engine optimizes execution order.
+</div>
 
 ---
 

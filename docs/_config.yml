@@ -12,10 +12,10 @@ nav:
     url: /WHY
   - title: Quick Start
     url: /QUICK_START
-  - title: Concepts
-    url: /CONCEPTS
-  - title: How It Works
-    url: /HOW_IT_WORKS
+  - title: Features
+    url: /FEATURES
+  - title: Benchmarks
+    url: /BENCHMARKS
   - title: Architecture
     url: /ARCHITECTURE
   - title: GitHub
@@ -34,6 +34,10 @@ docs_nav:
 
   - section: Technical Reference
     items:
+      - title: Features Deep Dive
+        url: /FEATURES
+      - title: Performance Benchmarks
+        url: /BENCHMARKS
       - title: How It Works
         url: /HOW_IT_WORKS
       - title: Architecture

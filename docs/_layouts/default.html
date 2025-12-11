@@ -1654,6 +1654,522 @@
       color: #fff !important;
       fill: #fff !important;
     }
+
+    /* ==================== NEW HOMEPAGE ENHANCEMENTS ==================== */
+
+    /* Rotating keywords animation */
+    .rotating-keywords {
+      display: inline-block;
+      position: relative;
+      height: 1.2em;
+      overflow: hidden;
+      vertical-align: bottom;
+    }
+
+    .rotating-keywords span {
+      display: block;
+      animation: rotateWords 10s infinite;
+      opacity: 0;
+      position: absolute;
+      width: max-content;
+    }
+
+    .rotating-keywords span:nth-child(1) { animation-delay: 0s; }
+    .rotating-keywords span:nth-child(2) { animation-delay: 2s; }
+    .rotating-keywords span:nth-child(3) { animation-delay: 4s; }
+    .rotating-keywords span:nth-child(4) { animation-delay: 6s; }
+    .rotating-keywords span:nth-child(5) { animation-delay: 8s; }
+
+    @keyframes rotateWords {
+      0%, 16% { opacity: 1; transform: translateY(0); }
+      20%, 100% { opacity: 0; transform: translateY(-100%); }
+    }
+
+    /* Enterprise badge with glow */
+    .enterprise-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #10b981;
+      margin-bottom: 1rem;
+      animation: badgeGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes badgeGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+      50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
+    }
+
+    /* Badges Banner Section */
+    .badges-banner {
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+    }
+
+    .badges-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .badge-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      transition: all var(--transition-base);
+    }
+
+    .badge-item:hover {
+      border-color: var(--color-border-glow);
+      transform: translateY(-2px);
+    }
+
+    .badge-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .badge-icon.success { color: #10b981; }
+    .badge-icon.info { color: #6366f1; }
+    .badge-icon.warning { color: #f59e0b; }
+
+    .badge-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .badge-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--color-text);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .badge-value.animated {
+      display: inline-block;
+    }
+
+    /* Extended Stats Grid (8 columns on desktop) */
+    .stats-grid-extended {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1200px) {
+      .stats-grid-extended {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid-extended {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+    }
+
+    /* Differentiator Cards Section */
+    .differentiators-section {
+      padding: 6rem 0;
+    }
+
+    .differentiators-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1200px) {
+      .differentiators-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .differentiators-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .differentiator-card {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-base);
+    }
+
+    .differentiator-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gradient-primary);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform var(--transition-base);
+    }
+
+    .differentiator-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.2);
+    }
+
+    .differentiator-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .differentiator-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 20px -8px rgba(99, 102, 241, 0.5);
+    }
+
+    .differentiator-card h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 0.75rem;
+      color: var(--color-text);
+    }
+
+    .differentiator-card > p {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+
+    .differentiator-highlights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .highlight-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 20px;
+      font-size: 0.7rem;
+      color: #10b981;
+      font-weight: 500;
+    }
+
+    .highlight-tag svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* How It Works Flow Section */
+    .how-it-works-section {
+      padding: 6rem 0;
+      position: relative;
+    }
+
+    .flow-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .flow-container::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: 60px;
+      right: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent), var(--color-cyan), var(--color-success));
+      z-index: 0;
+    }
+
+    .flow-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .flow-step-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--color-bg);
+      border: 2px solid var(--color-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      transition: all var(--transition-base);
+      position: relative;
+    }
+
+    .flow-step:hover .flow-step-icon {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+      transform: scale(1.1);
+    }
+
+    .flow-step-number {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .flow-step-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--color-text);
+      margin-bottom: 0.25rem;
+    }
+
+    .flow-step-desc {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      max-width: 120px;
+    }
+
+    @media (max-width: 768px) {
+      .flow-container {
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .flow-container::before {
+        top: 40px;
+        bottom: 40px;
+        left: 39px;
+        right: auto;
+        width: 2px;
+        height: auto;
+        background: linear-gradient(180deg, var(--color-primary), var(--color-secondary), var(--color-accent), var(--color-cyan), var(--color-success));
+      }
+
+      .flow-step {
+        flex-direction: row;
+        text-align: left;
+        gap: 1.5rem;
+      }
+
+      .flow-step-icon {
+        flex-shrink: 0;
+      }
+
+      .flow-step-content {
+        text-align: left;
+      }
+
+      .flow-step-desc {
+        max-width: none;
+      }
+    }
+
+    /* Architecture at a Glance */
+    .architecture-glance {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 3rem;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      margin-top: 3rem;
+    }
+
+    .arch-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      min-width: 140px;
+      transition: all var(--transition-base);
+    }
+
+    .arch-block:hover {
+      border-color: var(--color-primary);
+      transform: translateY(-4px);
+    }
+
+    .arch-block-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .arch-block-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 0.25rem;
+    }
+
+    .arch-block-tech {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .arch-arrow {
+      font-size: 1.5rem;
+      color: var(--color-primary);
+    }
+
+    @media (max-width: 768px) {
+      .architecture-glance {
+        flex-direction: column;
+      }
+
+      .arch-arrow {
+        transform: rotate(90deg);
+      }
+    }
+
+    /* Callout boxes for documentation */
+    .callout {
+      padding: 1.25rem 1.5rem;
+      border-radius: var(--radius-lg);
+      margin: 2rem 0;
+      border-left: 4px solid;
+      background: var(--color-bg-card);
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .callout p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .callout-info {
+      border-left-color: #6366f1;
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .callout-info strong { color: #6366f1; }
+
+    .callout-performance {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .callout-performance strong { color: #10b981; }
+
+    .callout-tip {
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .callout-tip strong { color: #f59e0b; }
+
+    .callout-warning {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .callout-warning strong { color: #ef4444; }
+
+    /* Comparison table styling */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      font-size: 0.9rem;
+    }
+
+    .comparison-table th {
+      background: var(--color-bg-card);
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 2px solid var(--color-primary);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .comparison-table td {
+      padding: 0.875rem 1rem;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+    }
+
+    .comparison-table tr:hover td {
+      background: var(--color-bg-card);
+    }
+
+    .comparison-table .check {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .comparison-table .cross {
+      color: #ef4444;
+    }
+
+    .comparison-table .partial {
+      color: #f59e0b;
+    }
   </style>
 
   <!-- Mermaid.js for diagrams -->
@@ -1751,6 +2267,11 @@
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
+        <div class="enterprise-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Enterprise-Grade &bull; Production-Ready
+        </div>
+
         <div class="hero-badge">
           <span class="dot"></span>
           <span>Open Source Rule Engine</span>
@@ -1758,12 +2279,21 @@
 
         <h1>
           <span class="line-1">Build Complex Business Logic</span>
-          <span class="gradient-text">Without Writing Code</span>
+          <span class="gradient-text">
+            <span class="rotating-keywords">
+              <span>Horizontally Scalable</span>
+              <span>Immutable & Versioned</span>
+              <span>Sub-microsecond Fast</span>
+              <span>Visually Configured</span>
+              <span>AI-Powered</span>
+            </span>
+          </span>
         </h1>
 
         <p class="hero-description">
-          A high-performance, domain-agnostic rule engine with visual configuration,
-          AI-powered assistance, and sub-millisecond evaluation times. Transform your business logic into executable rules.
+          A high-performance, domain-agnostic rule engine with <strong>visual configuration</strong>,
+          <strong>AI-powered assistance</strong>, and <strong>sub-microsecond evaluation</strong>.
+          Clone products, experiment safely with immutable versioning, and scale horizontally with DGraph persistence.
         </p>
 
         <div class="hero-buttons">
@@ -1807,79 +2337,244 @@
       </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section content-wrapper">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value">~330ns</div>
-          <div class="stat-label">Rule Evaluation Time</div>
+    <!-- Badges Banner Section -->
+    <section class="badges-banner content-wrapper">
+      <div class="badges-grid">
+        <div class="badge-item">
+          <div class="badge-icon success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+          </div>
+          <span class="badge-label">Build</span>
+          <span class="badge-value">Passing</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">100K+</div>
-          <div class="stat-label">Evaluations per Second</div>
+        <div class="badge-item">
+          <div class="badge-icon success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <span class="badge-label">Backend Tests</span>
+          <span class="badge-value animated" data-count="234">234</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">DAG</div>
-          <div class="stat-label">Parallel Execution</div>
+        <div class="badge-item">
+          <div class="badge-icon info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+          </div>
+          <span class="badge-label">E2E Suites</span>
+          <span class="badge-value animated" data-count="9">9</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">AI</div>
-          <div class="stat-label">Powered Configuration</div>
+        <div class="badge-item">
+          <div class="badge-icon success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <span class="badge-label">Coverage</span>
+          <span class="badge-value animated" data-count="85">85%</span>
+        </div>
+        <div class="badge-item">
+          <div class="badge-icon warning">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <span class="badge-label">Performance</span>
+          <span class="badge-value">&lt;1ms</span>
+        </div>
+        <div class="badge-item">
+          <div class="badge-icon info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+          <span class="badge-label">License</span>
+          <span class="badge-value">Apache 2.0</span>
         </div>
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features-section content-wrapper">
+    <!-- Stats Section - Expanded to 8 metrics -->
+    <section class="stats-section content-wrapper">
+      <div class="stats-grid-extended">
+        <div class="stat-card">
+          <div class="stat-value">~330ns</div>
+          <div class="stat-label">Rule Evaluation (Bytecode)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">3M+</div>
+          <div class="stat-label">Evals/sec (Single Thread)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">22M+</div>
+          <div class="stat-label">Evals/sec (Parallel)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">85%</div>
+          <div class="stat-label">Test Coverage</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">234+</div>
+          <div class="stat-label">Backend Tests</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">3.5x</div>
+          <div class="stat-label">Bytecode Speedup</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">10K+</div>
+          <div class="stat-label">Rules per Product</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">DGraph</div>
+          <div class="stat-label">Graph Persistence</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Differentiators Section - 12 Feature Cards -->
+    <section class="differentiators-section content-wrapper">
       <div class="section-header">
-        <span class="section-label">Core Features</span>
-        <h2 class="section-title">Everything You Need to Build Rules</h2>
+        <span class="section-label">Key Differentiators</span>
+        <h2 class="section-title">What Makes Product-FARM Unique</h2>
         <p class="section-description">
-          A complete toolkit for creating, managing, and executing complex business logic at scale
+          Enterprise-grade features designed for scalability, reliability, and developer experience
         </p>
       </div>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-card-inner">
-            <div class="feature-icon">&#x1F3A8;</div>
-            <h3>Visual Rule Builder</h3>
-            <p>Intuitive drag-and-drop interface for creating rules without writing code. Build complex logic visually with real-time validation and instant feedback.</p>
+      <div class="differentiators-grid">
+        <!-- Card 1: Immutable Versioning -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F504;</div>
+          <h3>Immutable Product Versioning</h3>
+          <p>Products remain immutable. Clone to experiment, roll back instantly. Full audit trail of every change with complete traceability.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Version Control</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Audit Trail</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Instant Rollback</span>
           </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-card-inner">
-            <div class="feature-icon">&#x1F4CA;</div>
-            <h3>DAG Visualization</h3>
-            <p>See rule dependencies as an interactive directed acyclic graph. Automatic cycle detection and parallel execution optimization built-in.</p>
+
+        <!-- Card 2: Template Cloning -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F4CB;</div>
+          <h3>Powerful Template Cloning</h3>
+          <p>Clone entire products with deep copy. Introduce new features, rule changes, functionality additions while keeping originals intact.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Deep Clone</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Selective Copy</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>DoS Protection</span>
           </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-card-inner">
-            <div class="feature-icon">&#x26A1;</div>
-            <h3>Blazing Fast Performance</h3>
-            <p>Tiered compilation with bytecode optimization. Sub-millisecond evaluation with automatic hot-path promotion and caching strategies.</p>
+
+        <!-- Card 3: Horizontal Scalability -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F4C8;</div>
+          <h3>Horizontally Scalable</h3>
+          <p>Built on DGraph graph database. Distributed by design. Scale to millions of rules and evaluations with strong durability.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Graph Database</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Distributed</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Backup Support</span>
           </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-card-inner">
-            <div class="feature-icon">&#x1F916;</div>
-            <h3>AI-Powered Assistant</h3>
-            <p>Create rules using natural language descriptions. AI explains complex logic, suggests optimizations, and helps debug issues.</p>
+
+        <!-- Card 4: LRU Caching -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x26A1;</div>
+          <h3>Intelligent Caching</h3>
+          <p>LRU cache for frequently evaluated rules. Configurable sizes: Products (100), Attributes (10K), Rules (10K), Compiled (10K).</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Write-Through</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Bounded Memory</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Hot Path Opt</span>
           </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-card-inner">
-            <div class="feature-icon">&#x1F504;</div>
-            <h3>Version Control</h3>
-            <p>Full product lifecycle management with draft, review, approval, and versioning workflows. Clone and modify configurations with confidence.</p>
+
+        <!-- Card 5: RBAC -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F512;</div>
+          <h3>Fine-Grained Access Control</h3>
+          <p>Control at component and template level. Give required control to required people. Ownership boundaries respected throughout.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Component RBAC</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Approval Flow</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Audit Logging</span>
           </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-card-inner">
-            <div class="feature-icon">&#x1F310;</div>
-            <h3>Dual API Architecture</h3>
-            <p>REST API for management operations, gRPC for high-performance evaluation. Stream processing support for real-time data pipelines.</p>
+
+        <!-- Card 6: Microservice Architecture -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F3D7;</div>
+          <h3>Microservice-Ready</h3>
+          <p>Engine owns product integrity and logic. Functionalities served by respective microservices. Clean separation of concerns.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Separation</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>API Integration</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Service Ownership</span>
+          </div>
+        </div>
+
+        <!-- Card 7: Tiered Compilation -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F680;</div>
+          <h3>Tiered Compilation Engine</h3>
+          <p>AST interpretation for initial runs, bytecode compilation for hot paths. 3.5x speedup from 1.15&#181;s to 330ns per evaluation.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Auto-Optimize</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>3.5x Speedup</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Bytecode VM</span>
+          </div>
+        </div>
+
+        <!-- Card 8: DAG Parallel Execution -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F310;</div>
+          <h3>DAG-Based Parallelism</h3>
+          <p>Rules form a directed acyclic graph. Independent rules execute in parallel. Automatic dependency resolution and cycle detection.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Parallel Exec</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Cycle Detection</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Level Scheduling</span>
+          </div>
+        </div>
+
+        <!-- Card 9: Visual Rule Builder -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F3A8;</div>
+          <h3>No-Code Visual Builder</h3>
+          <p>Build complex business logic with drag-and-drop. Real-time validation, instant feedback, no coding required. JSON Logic under the hood.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Drag & Drop</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Real-Time Valid</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>JSON Logic</span>
+          </div>
+        </div>
+
+        <!-- Card 10: AI-Powered -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F916;</div>
+          <h3>AI-Powered Configuration</h3>
+          <p>Create rules from natural language. AI explains complex logic, suggests optimizations, helps debug issues. Your intelligent assistant.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Natural Language</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Rule Explain</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Debug Assist</span>
+          </div>
+        </div>
+
+        <!-- Card 11: Dual API -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F50C;</div>
+          <h3>REST + gRPC APIs</h3>
+          <p>REST API for management operations, gRPC for high-performance evaluation. Stream processing for real-time data pipelines.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>REST Mgmt</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>gRPC Eval</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Streaming</span>
+          </div>
+        </div>
+
+        <!-- Card 12: DGraph Persistence -->
+        <div class="differentiator-card">
+          <div class="differentiator-icon">&#x1F5C4;</div>
+          <h3>DGraph Persistence</h3>
+          <p>Purpose-built for complex relationships. Native graph queries, strong durability, configurable backups. Data integrity guaranteed.</p>
+          <div class="differentiator-highlights">
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Graph Native</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Strong Durability</span>
+            <span class="highlight-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>Backup Support</span>
           </div>
         </div>
       </div>
@@ -1937,6 +2632,101 @@
             <h4>Logistics</h4>
             <p>Shipping calculations, route optimization, capacity planning, and SLA rules</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section content-wrapper">
+      <div class="section-header">
+        <span class="section-label">Process</span>
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-description">
+          From product definition to rule evaluation in five simple steps
+        </p>
+      </div>
+
+      <div class="flow-container">
+        <div class="flow-step">
+          <div class="flow-step-icon">
+            <span class="flow-step-number">1</span>
+            &#x1F4E6;
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Define Product</div>
+            <div class="flow-step-desc">Create your product structure</div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-icon">
+            <span class="flow-step-number">2</span>
+            &#x1F4DD;
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Create Attributes</div>
+            <div class="flow-step-desc">Define inputs, outputs, and types</div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-icon">
+            <span class="flow-step-number">3</span>
+            &#x1F527;
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Write Rules</div>
+            <div class="flow-step-desc">Build logic visually or via API</div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-icon">
+            <span class="flow-step-number">4</span>
+            &#x1F310;
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Build DAG</div>
+            <div class="flow-step-desc">Auto dependency resolution</div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-icon">
+            <span class="flow-step-number">5</span>
+            &#x26A1;
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Evaluate</div>
+            <div class="flow-step-desc">Sub-microsecond execution</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Architecture at a Glance -->
+      <div class="architecture-glance">
+        <div class="arch-block">
+          <div class="arch-block-icon">&#x1F5A5;</div>
+          <div class="arch-block-title">Frontend</div>
+          <div class="arch-block-tech">React 19 + TypeScript</div>
+        </div>
+        <div class="arch-arrow">&#x2192;</div>
+        <div class="arch-block">
+          <div class="arch-block-icon">&#x1F50C;</div>
+          <div class="arch-block-title">API Layer</div>
+          <div class="arch-block-tech">REST + gRPC</div>
+        </div>
+        <div class="arch-arrow">&#x2192;</div>
+        <div class="arch-block">
+          <div class="arch-block-icon">&#x2699;</div>
+          <div class="arch-block-title">Rule Engine</div>
+          <div class="arch-block-tech">Rust + Bytecode VM</div>
+        </div>
+        <div class="arch-arrow">&#x2192;</div>
+        <div class="arch-block">
+          <div class="arch-block-icon">&#x1F5C4;</div>
+          <div class="arch-block-title">Storage</div>
+          <div class="arch-block-tech">DGraph + LRU Cache</div>
         </div>
       </div>
     </section>
@@ -2041,6 +2831,8 @@
         <div class="sidebar-section">
           <div class="sidebar-section-title">Technical Reference</div>
           <ul class="sidebar-nav">
+            <li><a href="{{ site.baseurl }}/FEATURES" {% if page.url == "/FEATURES" or page.url == "/FEATURES/" %}class="active"{% endif %}>Features Deep Dive</a></li>
+            <li><a href="{{ site.baseurl }}/BENCHMARKS" {% if page.url == "/BENCHMARKS" or page.url == "/BENCHMARKS/" %}class="active"{% endif %}>Performance Benchmarks</a></li>
             <li><a href="{{ site.baseurl }}/HOW_IT_WORKS" {% if page.url == "/HOW_IT_WORKS" or page.url == "/HOW_IT_WORKS/" %}class="active"{% endif %}>How It Works</a></li>
             <li><a href="{{ site.baseurl }}/ARCHITECTURE" {% if page.url == "/ARCHITECTURE" or page.url == "/ARCHITECTURE/" %}class="active"{% endif %}>Architecture</a></li>
             <li><a href="{{ site.baseurl }}/API_REFERENCE" {% if page.url == "/API_REFERENCE" or page.url == "/API_REFERENCE/" %}class="active"{% endif %}>API Reference</a></li>
@@ -2226,6 +3018,50 @@
       }
 
       lastScroll = currentScroll;
+    });
+
+    // Animated counter function
+    function animateCounter(element, target, duration = 2000) {
+      const start = 0;
+      const increment = target / (duration / 16);
+      let current = start;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          element.textContent = target + (element.dataset.suffix || '');
+          clearInterval(timer);
+        } else {
+          element.textContent = Math.floor(current) + (element.dataset.suffix || '');
+        }
+      }, 16);
+    }
+
+    // Observe animated counters
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !entry.target.dataset.animated) {
+          entry.target.dataset.animated = 'true';
+          const target = parseInt(entry.target.dataset.count);
+          if (!isNaN(target)) {
+            animateCounter(entry.target, target);
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.badge-value.animated').forEach(el => {
+      counterObserver.observe(el);
+    });
+
+    // Add stagger animation to differentiator cards
+    document.querySelectorAll('.differentiator-card').forEach((card, index) => {
+      card.style.animationDelay = `${index * 0.1}s`;
+    });
+
+    // Add stagger animation to flow steps
+    document.querySelectorAll('.flow-step').forEach((step, index) => {
+      step.style.animationDelay = `${index * 0.2}s`;
     });
   </script>
 </body>
