@@ -4,7 +4,7 @@ description: High-Performance Domain-Agnostic Rule Engine with AI-Powered Config
 baseurl: "/Product-FARM"
 url: "https://ayushmaanbhav.github.io"
 
-# Navigation
+# Primary Navigation (Header)
 nav:
   - title: Home
     url: /
@@ -18,6 +18,37 @@ nav:
     url: /API_REFERENCE
   - title: GitHub
     url: https://github.com/ayushmaanbhav/Product-FARM
+
+# Documentation Navigation (Sidebar)
+docs_nav:
+  - section: Getting Started
+    items:
+      - title: Why Product-FARM
+        url: /WHY
+      - title: Quick Start Guide
+        url: /QUICK_START
+      - title: Core Concepts
+        url: /CONCEPTS
+
+  - section: Technical Reference
+    items:
+      - title: How It Works
+        url: /HOW_IT_WORKS
+      - title: Architecture
+        url: /ARCHITECTURE
+      - title: API Reference
+        url: /API_REFERENCE
+
+  - section: Resources
+    items:
+      - title: Use Cases
+        url: /USE_CASES
+      - title: Roadmap
+        url: /ROADMAP
+
+# Mermaid diagram support
+mermaid:
+  version: "10.6.1"
 
 # Markdown settings
 markdown: kramdown

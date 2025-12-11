@@ -1422,7 +1422,108 @@
       opacity: 1;
       transform: translateY(0);
     }
+
+    /* Mermaid diagram styling */
+    .mermaid {
+      background: transparent !important;
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Dark theme adjustments for Mermaid */
+    .mermaid .node rect,
+    .mermaid .node circle,
+    .mermaid .node ellipse,
+    .mermaid .node polygon {
+      stroke-width: 2px;
+    }
+
+    .mermaid .edgePath .path {
+      stroke: var(--color-text-secondary);
+      stroke-width: 2px;
+    }
+
+    .mermaid .edgeLabel {
+      background-color: var(--color-bg) !important;
+      color: var(--color-text-secondary) !important;
+    }
+
+    .mermaid .cluster rect {
+      fill: rgba(99, 102, 241, 0.1) !important;
+      stroke: rgba(99, 102, 241, 0.3) !important;
+    }
+
+    .mermaid .label {
+      color: #fff !important;
+      fill: #fff !important;
+    }
   </style>
+
+  <!-- Mermaid.js for diagrams -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#6366f1',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#8b5cf6',
+        lineColor: '#6b7280',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a',
+        background: '#030014',
+        mainBkg: '#1e293b',
+        secondBkg: '#0f172a',
+        border1: '#374151',
+        border2: '#4b5563',
+        arrowheadColor: '#9ca3af',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+        fontSize: '14px',
+        labelBackground: '#1e293b',
+        nodeTextColor: '#fff',
+        edgeLabelBackground: '#1e293b'
+      },
+      flowchart: {
+        htmlLabels: true,
+        curve: 'basis',
+        padding: 15
+      },
+      sequence: {
+        diagramMarginX: 50,
+        diagramMarginY: 10,
+        actorMargin: 50,
+        width: 150,
+        height: 65,
+        boxMargin: 10,
+        boxTextMargin: 5,
+        noteMargin: 10,
+        messageMargin: 35
+      },
+      er: {
+        diagramPadding: 20,
+        layoutDirection: 'TB',
+        minEntityWidth: 100,
+        minEntityHeight: 75,
+        entityPadding: 15
+      },
+      state: {
+        dividerMargin: 10,
+        sizeUnit: 5,
+        padding: 8,
+        textHeight: 10,
+        titleShift: -15,
+        noteMargin: 10,
+        forkWidth: 70,
+        forkHeight: 7
+      }
+    });
+  </script>
 </head>
 <body>
   <div class="bg-mesh"></div>

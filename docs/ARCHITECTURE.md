@@ -25,56 +25,65 @@ This document provides a comprehensive overview of Product-FARM's system archite
 
 Product-FARM is built as a layered architecture with clear separation of concerns:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  React 19 + TypeScript + Vite + TailwindCSS + shadcn/ui             │   │
-│  │  • Visual Rule Builder    • DAG Canvas (@xyflow)                     │   │
-│  │  • Simulation Panel       • AI Chat Assistant                        │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-└────────────────────────────────────┬────────────────────────────────────────┘
-                                     │ HTTP/REST + gRPC
-┌────────────────────────────────────▼────────────────────────────────────────┐
-│                               API LAYER                                      │
-│  ┌───────────────────────┐       ┌───────────────────────┐                  │
-│  │  REST API (Axum)      │       │  gRPC API (Tonic)     │                  │
-│  │  Port: 8081           │       │  Port: 50051          │                  │
-│  │  • Products           │       │  • Evaluation         │                  │
-│  │  • Rules              │       │  • Streaming          │                  │
-│  │  • Attributes         │       │  • Batch Processing   │                  │
-│  │  • Datatypes          │       │                       │                  │
-│  │  • Enumerations       │       │                       │                  │
-│  └───────────┬───────────┘       └───────────┬───────────┘                  │
-│              │                               │                               │
-│  ┌───────────▼───────────────────────────────▼───────────┐                  │
-│  │                   Service Layer                        │                  │
-│  │  ProductService │ RuleService │ AttributeService       │                  │
-│  │  DatatypeService │ EnumerationService │ EvalService    │                  │
-│  └───────────────────────────┬───────────────────────────┘                  │
-└──────────────────────────────┼──────────────────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────────────────┐
-│                            CORE ENGINE                                       │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐          │
-│  │  JSON Logic      │  │  Rule Engine     │  │  AI Agent        │          │
-│  │  ┌────────────┐  │  │  ┌────────────┐  │  │  ┌────────────┐  │          │
-│  │  │ Parser     │  │  │  │ DAG Builder│  │  │  │ Translator │  │          │
-│  │  │ Compiler   │  │  │  │ Topo Sort  │  │  │  │ Explainer  │  │          │
-│  │  │ Bytecode VM│  │  │  │ Executor   │  │  │  │ Validator  │  │          │
-│  │  │ Evaluator  │  │  │  │ Context    │  │  │  │ Visualizer │  │          │
-│  │  └────────────┘  │  │  └────────────┘  │  │  └────────────┘  │          │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘          │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────────────────┐
-│                         PERSISTENCE LAYER                                    │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐          │
-│  │  DGraph          │  │  LRU Cache       │  │  File Storage    │          │
-│  │  (Graph DB)      │  │  (Hot Data)      │  │  (Development)   │          │
-│  │  Port: 9080      │  │                  │  │                  │          │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘          │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Client["CLIENT LAYER"]
+        direction TB
+        UI["React 19 + TypeScript + Vite"]
+        UI --> RB["Visual Rule Builder"]
+        UI --> DAG["DAG Canvas (@xyflow)"]
+        UI --> SIM["Simulation Panel"]
+        UI --> AI["AI Chat Assistant"]
+    end
+
+    subgraph API["API LAYER"]
+        direction TB
+        REST["REST API (Axum)\nPort: 8081"]
+        gRPC["gRPC API (Tonic)\nPort: 50051"]
+        REST --> Services
+        gRPC --> Services
+        subgraph Services["Service Layer"]
+            PS["ProductService"]
+            RS["RuleService"]
+            AS["AttributeService"]
+            ES["EvalService"]
+        end
+    end
+
+    subgraph Core["CORE ENGINE"]
+        direction LR
+        subgraph JL["JSON Logic"]
+            Parser
+            Compiler
+            BytecodeVM["Bytecode VM"]
+        end
+        subgraph RE["Rule Engine"]
+            DAGBuilder["DAG Builder"]
+            TopoSort["Topo Sort"]
+            Executor
+        end
+        subgraph AIA["AI Agent"]
+            Translator
+            Explainer
+            Validator
+        end
+    end
+
+    subgraph Persistence["PERSISTENCE LAYER"]
+        direction LR
+        DGraph["DGraph\n(Graph DB)\nPort: 9080"]
+        Cache["LRU Cache\n(Hot Data)"]
+        File["File Storage\n(Development)"]
+    end
+
+    Client -->|"HTTP/REST + gRPC"| API
+    API --> Core
+    Core --> Persistence
+
+    style Client fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style API fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Core fill:#1e3a5f,stroke:#8b5cf6,color:#fff
+    style Persistence fill:#1e3a5f,stroke:#10b981,color:#fff
 ```
 
 ---
@@ -153,31 +162,25 @@ pub enum Value {
 
 High-performance JSON Logic implementation with tiered compilation:
 
-```
-                    JSON Logic Expression
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │    Parser     │───────────────┐
-                    │  (JSON → AST) │               │
-                    └───────┬───────┘               │
-                            │                       │
-                            ▼                       ▼
-                    ┌───────────────┐       ┌─────────────┐
-                    │   Evaluator   │       │  Validator  │
-                    │  (High-level) │       │ (Syntax OK) │
-                    └───────┬───────┘       └─────────────┘
-                            │
-              ┌─────────────┼─────────────┐
-              │             │             │
-              ▼             ▼             ▼
-        ┌─────────┐   ┌─────────┐   ┌─────────┐
-        │ Tier 0  │   │ Tier 1  │   │ Tier 2  │
-        │  (AST)  │   │(Bytecode│   │  (JIT)  │
-        │~1.15µs  │──►│  ~330ns │   │ Future  │
-        └─────────┘   └─────────┘   └─────────┘
-              │             │
-              └──── Auto-promote after 100 evals
+```mermaid
+flowchart TB
+    Input["JSON Logic Expression"] --> Parser["Parser\n(JSON → AST)"]
+    Parser --> Validator["Validator\n(Syntax OK)"]
+    Parser --> Evaluator["Evaluator\n(High-level)"]
+
+    Evaluator --> Tier0["Tier 0 (AST)\n~1.15µs"]
+    Evaluator --> Tier1["Tier 1 (Bytecode)\n~330ns"]
+    Evaluator --> Tier2["Tier 2 (JIT)\nFuture"]
+
+    Tier0 -->|"Auto-promote after 100 evals"| Tier1
+
+    style Input fill:#312e81,stroke:#6366f1,color:#fff
+    style Parser fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Validator fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Evaluator fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Tier0 fill:#fef3c7,stroke:#f59e0b,color:#000
+    style Tier1 fill:#d1fae5,stroke:#10b981,color:#000
+    style Tier2 fill:#e5e7eb,stroke:#6b7280,color:#000
 ```
 
 **Supported Operations:**
@@ -223,45 +226,30 @@ impl RuleDag {
 
 **Execution Flow:**
 
-```
-Rules Input
-      │
-      ▼
-┌─────────────────┐
-│   DAG Builder   │
-│  • Parse rules  │
-│  • Extract deps │
-│  • Build graph  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Cycle Check    │
-│  (Tarjan's SCC) │
-└────────┬────────┘
-         │ No cycles
-         ▼
-┌─────────────────┐
-│ Topological     │
-│ Sort (Kahn's)   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Level Assignment│
-│  (BFS by depth) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────┐
-│       Parallel Execution         │
-│  Level 0: [Rule1, Rule2, Rule3] │ ──► Parallel
-│  Level 1: [Rule4, Rule5]        │ ──► Parallel
-│  Level 2: [Rule6]               │ ──► Sequential
-└────────────────┬────────────────┘
-                 │
-                 ▼
-          ExecutionResult
+```mermaid
+flowchart TB
+    Input["Rules Input"] --> DAGBuilder["DAG Builder\n• Parse rules\n• Extract deps\n• Build graph"]
+    DAGBuilder --> CycleCheck["Cycle Check\n(Tarjan's SCC)"]
+    CycleCheck -->|"No cycles"| TopoSort["Topological Sort\n(Kahn's Algorithm)"]
+    TopoSort --> LevelAssign["Level Assignment\n(BFS by depth)"]
+
+    LevelAssign --> L0["Level 0: [Rule1, Rule2, Rule3]\n⚡ Parallel"]
+    LevelAssign --> L1["Level 1: [Rule4, Rule5]\n⚡ Parallel"]
+    LevelAssign --> L2["Level 2: [Rule6]\n→ Sequential"]
+
+    L0 --> Result["ExecutionResult"]
+    L1 --> Result
+    L2 --> Result
+
+    style Input fill:#312e81,stroke:#6366f1,color:#fff
+    style DAGBuilder fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style CycleCheck fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style TopoSort fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style LevelAssign fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style L0 fill:#d1fae5,stroke:#10b981,color:#000
+    style L1 fill:#d1fae5,stroke:#10b981,color:#000
+    style L2 fill:#fef3c7,stroke:#f59e0b,color:#000
+    style Result fill:#8b5cf6,stroke:#6366f1,color:#fff
 ```
 
 #### product-farm-persistence
@@ -293,27 +281,28 @@ pub enum StorageBackend {
 
 Dual-protocol API layer:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      API Layer                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────────────┐    ┌─────────────────────┐        │
-│  │    REST (Axum)      │    │   gRPC (Tonic)      │        │
-│  │                     │    │                     │        │
-│  │  /api/products      │    │  ProductService     │        │
-│  │  /api/rules         │    │  RuleService        │        │
-│  │  /api/attributes    │    │  EvaluationService  │        │
-│  │  /api/datatypes     │    │  AttributeService   │        │
-│  │  /api/enumerations  │    │  DatatypeService    │        │
-│  │  /api/evaluate      │    │                     │        │
-│  └──────────┬──────────┘    └──────────┬──────────┘        │
-│             │                          │                    │
-│  ┌──────────▼──────────────────────────▼──────────┐        │
-│  │              Shared Service Layer               │        │
-│  │  ProductService │ RuleService │ EvalService     │        │
-│  └─────────────────────────────────────────────────┘        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph API["API Layer"]
+        direction TB
+        subgraph Protocols["Protocol Handlers"]
+            REST["REST (Axum)\n/api/products\n/api/rules\n/api/attributes\n/api/datatypes\n/api/evaluate"]
+            gRPC["gRPC (Tonic)\nProductService\nRuleService\nEvaluationService\nAttributeService"]
+        end
+
+        subgraph Shared["Shared Service Layer"]
+            PS["ProductService"]
+            RS["RuleService"]
+            ES["EvalService"]
+        end
+
+        REST --> Shared
+        gRPC --> Shared
+    end
+
+    style API fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Protocols fill:#1e293b,stroke:#475569,color:#fff
+    style Shared fill:#1e293b,stroke:#8b5cf6,color:#fff
 ```
 
 #### product-farm-ai-agent
@@ -349,86 +338,85 @@ impl RuleAgent {
 
 ### Entity Relationships
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           DATA MODEL                                         │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+erDiagram
+    PRODUCT ||--o{ RULE : contains
+    PRODUCT ||--o{ ABSTRACT_ATTRIBUTE : has
+    PRODUCT ||--o{ FUNCTIONALITY : defines
 
-                              ┌──────────────┐
-                              │   Product    │
-                              │              │
-                              │ id           │
-                              │ name         │
-                              │ status       │
-                              │ template_type│
-                              └──────┬───────┘
-                                     │
-           ┌─────────────────────────┼─────────────────────────┐
-           │                         │                         │
-           ▼                         ▼                         ▼
-    ┌──────────────┐          ┌──────────────┐          ┌──────────────┐
-    │    Rule      │          │   Abstract   │          │ Functionality│
-    │              │          │  Attribute   │          │              │
-    │ id           │          │              │          │ id           │
-    │ rule_type    │          │ abstract_path│          │ name         │
-    │ expression   │          │ datatype_id  │──────────│ required_    │
-    │ inputs[]     │──────────│ tags[]       │          │ attributes[] │
-    │ outputs[]    │          │ immutable    │          │ status       │
-    └──────────────┘          └──────┬───────┘          └──────────────┘
-                                     │
-                              ┌──────▼───────┐
-                              │  DataType    │
-                              │              │
-                              │ id           │
-                              │ primitive    │
-                              │ constraints  │
-                              └──────────────┘
-                                     │
-                              ┌──────▼───────┐
-                              │ Enumeration  │
-                              │              │
-                              │ name         │
-                              │ values[]     │
-                              │ template_type│
-                              └──────────────┘
+    ABSTRACT_ATTRIBUTE }|--|| DATATYPE : typed_by
+    ABSTRACT_ATTRIBUTE }o--o{ TAG : tagged_with
+
+    DATATYPE ||--o| ENUMERATION : may_reference
+
+    FUNCTIONALITY ||--o{ ABSTRACT_ATTRIBUTE : requires
+
+    RULE }|--|{ ABSTRACT_ATTRIBUTE : "inputs/outputs"
+
+    PRODUCT {
+        string id PK
+        string name
+        enum status
+        string template_type
+    }
+
+    RULE {
+        string id PK
+        string rule_type
+        json expression
+        array inputs
+        array outputs
+    }
+
+    ABSTRACT_ATTRIBUTE {
+        string abstract_path PK
+        string datatype_id FK
+        array tags
+        boolean immutable
+    }
+
+    FUNCTIONALITY {
+        string id PK
+        string name
+        array required_attributes
+        enum status
+    }
+
+    DATATYPE {
+        string id PK
+        string primitive
+        json constraints
+    }
+
+    ENUMERATION {
+        string name PK
+        array values
+        string template_type
+    }
+
+    TAG {
+        string name PK
+        int order_index
+    }
 ```
 
 ### Product Lifecycle
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PRODUCT LIFECYCLE                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
 
-    ┌────────┐     submit      ┌─────────────────┐
-    │        │ ──────────────► │                 │
-    │ DRAFT  │                 │ PENDING_APPROVAL│
-    │        │ ◄────────────── │                 │
-    └────┬───┘     reject      └────────┬────────┘
-         │                              │
-         │                              │ approve
-         │                              ▼
-         │                       ┌──────────────┐
-         │                       │              │
-         │                       │    ACTIVE    │
-         │                       │  (immutable) │
-         │                       │              │
-         │                       └──────┬───────┘
-         │                              │
-         │                              │ discontinue
-         │                              ▼
-         │                       ┌──────────────┐
-         │                       │              │
-         │                       │ DISCONTINUED │
-         │                       │              │
-         │                       └──────────────┘
-         │
-         │ clone
-         ▼
-    ┌────────┐
-    │  NEW   │
-    │ DRAFT  │
-    └────────┘
+    Draft --> PendingApproval: submit()
+    PendingApproval --> Draft: reject()
+    PendingApproval --> Active: approve()
+
+    Active --> Discontinued: discontinue()
+
+    Draft --> Draft: clone()
+    Active --> Draft: clone()
+
+    note right of Active: Immutable\n(read-only)
+    note right of Discontinued: Preserved for\naudit purposes
 ```
 
 ---
@@ -437,104 +425,89 @@ impl RuleAgent {
 
 ### JSON Logic Processing Pipeline
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     JSON LOGIC PROCESSING PIPELINE                           │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Input as JSON Logic Input
+    participant Parser as Parser
+    participant AST as AST Builder
+    participant Compiler as Compiler
+    participant VM as Stack VM
 
-Input: {"if": [{">": [{"var": "age"}, 60]}, 1.2, 1.0]}
+    Note over Input: {"if": [{">": [{"var": "age"}, 60]}, 1.2, 1.0]}
 
-Step 1: PARSING
-┌─────────────────────────────────────────────────────────────┐
-│  JSON String ──► serde_json::from_str ──► JsonValue         │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-Step 2: AST CONSTRUCTION
-┌─────────────────────────────────────────────────────────────┐
-│  JsonValue ──► Expression::parse ──► Expression AST         │
-│                                                              │
-│  Expression::If {                                            │
-│      condition: Expression::Comparison {                     │
-│          op: GreaterThan,                                    │
-│          left: Expression::Variable("age"),                  │
-│          right: Expression::Literal(60),                     │
-│      },                                                      │
-│      then_branch: Expression::Literal(1.2),                  │
-│      else_branch: Expression::Literal(1.0),                  │
-│  }                                                           │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-Step 3: COMPILATION (if promoted to Tier 1)
-┌─────────────────────────────────────────────────────────────┐
-│  Expression AST ──► Compiler ──► Bytecode                    │
-│                                                              │
-│  [LoadVar(0), LoadConst(60), Gt, JumpIfFalse(3),             │
-│   LoadConst(1.2), Jump(2), LoadConst(1.0), Return]           │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-Step 4: EXECUTION
-┌─────────────────────────────────────────────────────────────┐
-│  Context: {age: 65}                                          │
-│                                                              │
-│  Stack VM:                                                   │
-│  • LoadVar(0)       → stack: [65]                           │
-│  • LoadConst(60)    → stack: [65, 60]                       │
-│  • Gt               → stack: [true]                         │
-│  • JumpIfFalse(3)   → no jump (true)                        │
-│  • LoadConst(1.2)   → stack: [1.2]                          │
-│  • Return           → result: 1.2                           │
-└─────────────────────────────────────────────────────────────┘
+    Input->>Parser: Step 1: PARSING
+    Parser->>Parser: serde_json::from_str
+    Parser->>AST: JsonValue
+
+    AST->>AST: Step 2: AST CONSTRUCTION
+    Note over AST: Expression::If {<br/>condition: Comparison(>,age,60)<br/>then: Literal(1.2)<br/>else: Literal(1.0)}
+
+    AST->>Compiler: Step 3: COMPILATION (if promoted)
+    Note over Compiler: Bytecode:<br/>[LoadVar, LoadConst(60),<br/>Gt, JumpIfFalse, ...]
+
+    Compiler->>VM: Step 4: EXECUTION
+    Note over VM: Context: {age: 65}<br/>Stack: [65] → [65,60] → [true]<br/>Result: 1.2
 ```
+
+**Detailed Execution Flow:**
+
+| Step | Instruction | Stack State | Notes |
+|------|-------------|-------------|-------|
+| 1 | `LoadVar(0)` | `[65]` | Load `age` from context |
+| 2 | `LoadConst(60)` | `[65, 60]` | Push constant 60 |
+| 3 | `Gt` | `[true]` | 65 > 60 = true |
+| 4 | `JumpIfFalse(3)` | `[true]` | No jump (condition true) |
+| 5 | `LoadConst(1.2)` | `[1.2]` | Push result |
+| 6 | `Return` | `[]` | Return 1.2 |
 
 ### DAG Execution
 
+**Rules:**
+- R1: `base_premium = coverage * 0.02`
+- R2: `age_factor = if(age > 60) 1.2 else 1.0`
+- R3: `smoker_factor = if(smoker) 1.5 else 1.0`
+- R4: `premium = base_premium * age_factor * smoker_factor`
+
+```mermaid
+flowchart TB
+    subgraph Inputs["Input Variables"]
+        coverage["coverage\n250000"]
+        age["age\n65"]
+        smoker["smoker\nfalse"]
+    end
+
+    subgraph Level0["Level 0 (Parallel Execution ⚡)"]
+        R1["R1: base_premium\ncoverage × 0.02\n= 5000"]
+        R2["R2: age_factor\nif(65 > 60) 1.2\n= 1.2"]
+        R3["R3: smoker_factor\nif(false) 1.5 else 1.0\n= 1.0"]
+    end
+
+    subgraph Level1["Level 1 (Sequential)"]
+        R4["R4: premium\n5000 × 1.2 × 1.0\n= 6000"]
+    end
+
+    coverage --> R1
+    age --> R2
+    smoker --> R3
+
+    R1 --> R4
+    R2 --> R4
+    R3 --> R4
+
+    R4 --> Output["premium = 6000"]
+
+    style Inputs fill:#312e81,stroke:#6366f1,color:#fff
+    style Level0 fill:#065f46,stroke:#10b981,color:#fff
+    style Level1 fill:#7c2d12,stroke:#f59e0b,color:#fff
+    style Output fill:#8b5cf6,stroke:#6366f1,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          DAG EXECUTION FLOW                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
 
-Rules:
-  R1: base_premium = coverage * 0.02
-  R2: age_factor = if(age > 60) 1.2 else 1.0
-  R3: smoker_factor = if(smoker) 1.5 else 1.0
-  R4: premium = base_premium * age_factor * smoker_factor
+**Execution Timeline:**
 
-Step 1: Build DAG
-┌─────────────────────────────────────────────────────────────┐
-│                                                              │
-│  Inputs: coverage, age, smoker                              │
-│           │         │      │                                 │
-│           ▼         ▼      ▼                                 │
-│        ┌────┐   ┌────┐   ┌────┐                             │
-│        │ R1 │   │ R2 │   │ R3 │   ◄── Level 0 (parallel)    │
-│        └──┬─┘   └──┬─┘   └──┬─┘                             │
-│           │        │        │                                │
-│           └────────┼────────┘                                │
-│                    │                                         │
-│                    ▼                                         │
-│                 ┌────┐                                       │
-│                 │ R4 │           ◄── Level 1                 │
-│                 └──┬─┘                                       │
-│                    │                                         │
-│                    ▼                                         │
-│                 premium                                      │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-
-Step 2: Execute by Level
-┌─────────────────────────────────────────────────────────────┐
-│  Level 0: Execute R1, R2, R3 in parallel                    │
-│           • R1: 250000 * 0.02 = 5000                        │
-│           • R2: 65 > 60 → 1.2                               │
-│           • R3: false → 1.0                                 │
-│                                                              │
-│  Level 1: Execute R4                                         │
-│           • R4: 5000 * 1.2 * 1.0 = 6000                     │
-└─────────────────────────────────────────────────────────────┘
-```
+| Level | Rules | Execution Mode | Results |
+|-------|-------|----------------|---------|
+| 0 | R1, R2, R3 | **Parallel** | 5000, 1.2, 1.0 |
+| 1 | R4 | Sequential | 6000 |
 
 ---
 
@@ -603,61 +576,49 @@ service RuleService {
 
 ### Storage Backends
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         STORAGE BACKENDS                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Backends["Storage Backend Options"]
+        direction LR
+        InMemory["InMemory\n• HashMap\n• Fast\n• No persist\n• Testing"]
+        File["File\n• JSON files\n• Simple\n• Portable\n• Development"]
+        DGraph["DGraph\n• Graph DB\n• Scalable\n• GraphQL\n• Production"]
+    end
 
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│   InMemory    │     │     File      │     │    DGraph     │
-│               │     │               │     │               │
-│ • HashMap     │     │ • JSON files  │     │ • Graph DB    │
-│ • Fast        │     │ • Simple      │     │ • Scalable    │
-│ • No persist  │     │ • Portable    │     │ • GraphQL     │
-│ • Testing     │     │ • Development │     │ • Production  │
-└───────────────┘     └───────────────┘     └───────────────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │  Repository Trait │
-                    │                   │
-                    │ save()            │
-                    │ find_by_id()      │
-                    │ find_all()        │
-                    │ delete()          │
-                    └───────────────────┘
+    InMemory --> Trait
+    File --> Trait
+    DGraph --> Trait
+
+    subgraph Trait["Repository Trait"]
+        save["save()"]
+        find["find_by_id()"]
+        findAll["find_all()"]
+        delete["delete()"]
+    end
+
+    style Backends fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Trait fill:#1e293b,stroke:#8b5cf6,color:#fff
+    style InMemory fill:#fef3c7,stroke:#f59e0b,color:#000
+    style File fill:#dbeafe,stroke:#3b82f6,color:#000
+    style DGraph fill:#d1fae5,stroke:#10b981,color:#000
 ```
 
 ### Hybrid Storage (Production)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         HYBRID STORAGE                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Request["Request"] --> Cache{"LRU Cache\n(Hot Data)"}
 
-                     Request
-                        │
-                        ▼
-               ┌────────────────┐
-               │   LRU Cache    │
-               │   (Hot Data)   │
-               └───────┬────────┘
-                       │
-           ┌───────────┴───────────┐
-           │ Cache Hit             │ Cache Miss
-           ▼                       ▼
-    ┌──────────────┐        ┌──────────────┐
-    │   Return     │        │   DGraph     │
-    │   Cached     │        │   Query      │
-    └──────────────┘        └──────┬───────┘
-                                   │
-                                   ▼
-                            ┌──────────────┐
-                            │ Update Cache │
-                            │ & Return     │
-                            └──────────────┘
+    Cache -->|"Cache Hit\n~1µs"| Return["Return Cached"]
+    Cache -->|"Cache Miss"| DGraph["DGraph Query\n~1-5ms"]
+
+    DGraph --> Update["Update Cache\n& Return"]
+
+    style Request fill:#312e81,stroke:#6366f1,color:#fff
+    style Cache fill:#fef3c7,stroke:#f59e0b,color:#000
+    style Return fill:#d1fae5,stroke:#10b981,color:#000
+    style DGraph fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Update fill:#d1fae5,stroke:#10b981,color:#000
 ```
 
 ---
@@ -752,28 +713,27 @@ interface AppState {
 
 ### Horizontal Scaling
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         HORIZONTAL SCALING                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    LB["Load Balancer"] --> API1["API Node 1\n(Rust)"]
+    LB --> API2["API Node 2\n(Rust)"]
+    LB --> API3["API Node 3\n(Rust)"]
 
-                         Load Balancer
-                              │
-           ┌──────────────────┼──────────────────┐
-           │                  │                  │
-           ▼                  ▼                  ▼
-    ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-    │   API Node   │   │   API Node   │   │   API Node   │
-    │   (Rust)     │   │   (Rust)     │   │   (Rust)     │
-    └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
-           │                  │                  │
-           └──────────────────┼──────────────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │  DGraph Cluster   │
-                    │  (Alpha + Zero)   │
-                    └───────────────────┘
+    API1 --> DGraph
+    API2 --> DGraph
+    API3 --> DGraph
+
+    subgraph DGraph["DGraph Cluster"]
+        Alpha1["Alpha 1"]
+        Alpha2["Alpha 2"]
+        Zero["Zero\n(Coordinator)"]
+    end
+
+    style LB fill:#8b5cf6,stroke:#6366f1,color:#fff
+    style API1 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style API2 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style API3 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style DGraph fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ### Performance Optimizations

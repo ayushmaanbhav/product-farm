@@ -7,24 +7,195 @@ title: Quick Start
 
 Get Product-FARM up and running in 5 minutes, then learn how to build your first rule engine product step-by-step.
 
-## Prerequisites
+---
 
-Before you begin, ensure you have the following installed:
+## Part 0: Environment Setup
 
-| Requirement | Version | Installation |
-|-------------|---------|--------------|
-| **Rust** | 1.75+ | [rustup.rs](https://rustup.rs) |
-| **Node.js** | 20+ | [nodejs.org](https://nodejs.org) |
-| **Git** | 2.0+ | [git-scm.com](https://git-scm.com) |
+Before you begin, you need to install the required dependencies. This section provides step-by-step installation instructions.
 
-## Step 1: Clone the Repository
+### Prerequisites Overview
+
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| **Rust** | 1.75+ | Backend API server |
+| **Node.js** | 20+ | Frontend development |
+| **DGraph** | 24.0+ | Graph database |
+| **Git** | 2.0+ | Version control |
+
+### Install Rust
+
+Rust is required to build and run the backend API server.
+
+**Linux / macOS:**
+```bash
+# Install Rust using rustup (official installer)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Follow the prompts (default installation is recommended)
+# Then reload your shell configuration
+source $HOME/.cargo/env
+
+# Verify installation
+rustc --version
+# Expected output: rustc 1.75.0 or higher
+
+# Update to latest stable (if already installed)
+rustup update stable
+```
+
+**Windows:**
+```powershell
+# Download and run rustup-init.exe from https://rustup.rs
+# Or use winget:
+winget install Rustlang.Rustup
+
+# Verify installation
+rustc --version
+```
+
+### Install Node.js
+
+Node.js is required for the frontend application.
+
+**Using nvm (Recommended for Linux/macOS):**
+```bash
+# Install nvm (Node Version Manager)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Reload shell configuration
+source ~/.bashrc  # or ~/.zshrc for Zsh
+
+# Install Node.js 20 LTS
+nvm install 20
+nvm use 20
+nvm alias default 20
+
+# Verify installation
+node --version
+# Expected output: v20.x.x
+
+npm --version
+# Expected output: 10.x.x
+```
+
+**Using Package Manager:**
+```bash
+# Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# macOS (using Homebrew)
+brew install node@20
+
+# Windows (using winget)
+winget install OpenJS.NodeJS.LTS
+```
+
+### Install DGraph
+
+DGraph is the graph database that stores all product configurations.
+
+**Option 1: Direct Installation (Linux/macOS)**
+```bash
+# Download and install DGraph
+curl -sSL https://get.dgraph.io | bash
+
+# Verify installation
+dgraph version
+```
+
+**Option 2: Using Docker (Recommended for Development)**
+```bash
+# Pull the DGraph image
+docker pull dgraph/dgraph:latest
+
+# Or use docker-compose (included in the repository)
+# The start-all.sh script handles this automatically
+```
+
+**Option 3: Manual Download**
+```bash
+# Linux (amd64)
+wget https://github.com/dgraph-io/dgraph/releases/download/v24.0.0/dgraph-linux-amd64.tar.gz
+tar -xzf dgraph-linux-amd64.tar.gz
+sudo mv dgraph /usr/local/bin/
+
+# macOS (using Homebrew)
+brew install dgraph
+```
+
+### Verify All Prerequisites
+
+Run these commands to verify everything is installed correctly:
+
+```bash
+# Check Rust
+rustc --version && cargo --version
+# ✓ rustc 1.75.0+ and cargo 1.75.0+
+
+# Check Node.js
+node --version && npm --version
+# ✓ v20.x.x and 10.x.x
+
+# Check DGraph (if installed directly)
+dgraph version
+# ✓ Dgraph version v24.x.x
+
+# Check Git
+git --version
+# ✓ git version 2.x.x
+```
+
+### Troubleshooting Prerequisites
+
+**Rust Issues:**
+```bash
+# If cargo command not found, add to PATH:
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# If build fails, ensure you have build essentials:
+# Ubuntu/Debian:
+sudo apt-get install build-essential pkg-config libssl-dev
+
+# macOS:
+xcode-select --install
+```
+
+**Node.js Issues:**
+```bash
+# If nvm command not found, add to shell profile:
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# If npm permissions error:
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+export PATH=~/.npm-global/bin:$PATH
+```
+
+**DGraph Issues:**
+```bash
+# If DGraph fails to start, check port availability:
+lsof -i :5080  # Zero node
+lsof -i :8080  # Alpha HTTP
+lsof -i :9080  # Alpha gRPC
+
+# Clear DGraph data if corrupted:
+rm -rf infrastructure/dgraph-data/*
+```
+
+---
+
+## Part 1: Clone and Start Services
+
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/ayushmaanbhav/product-farm.git
 cd product-farm
 ```
 
-## Step 2: Start All Services
+### Step 2: Start All Services
 
 The easiest way to get started is using the all-in-one start script:
 
@@ -38,7 +209,21 @@ This script will start:
 - **Backend REST API** on port 8081
 - **Frontend** on port 5173
 
-## Step 3: Open the Dashboard
+**What happens during startup:**
+```
+[Starting DGraph Zero...]        ✓ Port 5080
+[Starting DGraph Alpha...]       ✓ Ports 7080, 8080, 9080
+[Building Backend...]            ✓ Compiling Rust (first run takes 2-3 min)
+[Starting Backend API...]        ✓ Port 8081
+[Installing Frontend deps...]    ✓ npm install
+[Starting Frontend...]           ✓ Port 5173
+
+All services started successfully!
+Frontend: http://localhost:5173
+API:      http://localhost:8081
+```
+
+### Step 3: Open the Dashboard
 
 Navigate to **http://localhost:5173** in your browser. You'll see the Product-FARM dashboard:
 
@@ -46,23 +231,37 @@ Navigate to **http://localhost:5173** in your browser. You'll see the Product-FA
 
 The dashboard provides quick access to all components and shows your recent activity.
 
+### Step 4: Verify Services
+
+Verify all services are running correctly:
+
+```bash
+# Check API health
+curl http://localhost:8081/health
+# Expected: {"status":"healthy"}
+
+# Check DGraph
+curl http://localhost:8080/health
+# Expected: {"status":"healthy"}
+
+# Check frontend (should return HTML)
+curl -I http://localhost:5173
+# Expected: HTTP/1.1 200 OK
+```
+
 ---
 
-# Building Your First Product: Insurance Premium Calculator
-
-Now let's walk through creating a complete insurance premium calculation system with custom datatypes, attributes, and rules.
-
-## Part 1: Create Custom Datatypes
+## Part 2: Create Custom Datatypes
 
 Datatypes define the structure and validation for your data. Let's create custom datatypes for our insurance product.
 
-### 1.1 Navigate to Datatypes
+### 2.1 Navigate to Datatypes
 
 Click **"Datatypes"** in the left sidebar to see the datatypes management page:
 
 ![Datatypes Page](screenshots/datatypes-populated.png)
 
-### 1.2 Create a Currency Datatype
+### 2.2 Create a Currency Datatype
 
 Click the **"+ New Datatype"** button to open the creation dialog:
 
@@ -77,7 +276,7 @@ Fill in the details for a currency datatype:
 - **Description**: `Monetary values with 2 decimal precision`
 - **Constraints**: Set precision to 2 decimal places
 
-### 1.3 View Your Datatypes
+### 2.3 View Your Datatypes
 
 After creating datatypes, you'll see them listed:
 
@@ -93,17 +292,17 @@ After creating datatypes, you'll see them listed:
 
 ---
 
-## Part 2: Create Enumerations
+## Part 3: Create Enumerations
 
 Enumerations define fixed sets of values for categorical data.
 
-### 2.1 Navigate to Enumerations
+### 3.1 Navigate to Enumerations
 
 Click **"Enumerations"** in the sidebar:
 
 ![Enumerations Page](screenshots/enumerations-populated.png)
 
-### 2.2 Create a Risk Level Enumeration
+### 3.2 Create a Risk Level Enumeration
 
 Click **"+ New Enumeration"** to create categorical values:
 
@@ -117,7 +316,7 @@ Fill in the risk level enumeration:
 - **Values**: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
 - **Description**: `Customer risk classification levels`
 
-### 2.3 View Your Enumerations
+### 3.3 View Your Enumerations
 
 ![Enumerations List](screenshots/enumerations-list.png)
 
@@ -131,17 +330,17 @@ Fill in the risk level enumeration:
 
 ---
 
-## Part 3: Create a Product
+## Part 4: Create a Product
 
 Products are containers that hold all your business logic components.
 
-### 3.1 Navigate to Products
+### 4.1 Navigate to Products
 
 Click **"Products"** in the sidebar:
 
 ![Products Page](screenshots/products-populated.png)
 
-### 3.2 Create New Product
+### 4.2 Create New Product
 
 Click **"+ New Product"** to open the creation dialog:
 
@@ -152,7 +351,7 @@ Fill in:
 - **Name**: `Insurance Premium Calculator`
 - **Description**: `Calculate insurance premiums based on customer risk factors`
 
-### 3.3 View Product Details
+### 4.3 View Product Details
 
 After creation, click on the product to see its detail view:
 
@@ -165,17 +364,17 @@ From here you can navigate to:
 
 ---
 
-## Part 4: Create Abstract Attributes
+## Part 5: Create Abstract Attributes
 
 Attributes are the variables used in your rules - inputs, outputs, and calculated values.
 
-### 4.1 Navigate to Attributes
+### 5.1 Navigate to Attributes
 
 Click **"Abstract Attributes"** in the sidebar:
 
 ![Attributes Page](screenshots/attributes-populated.png)
 
-### 4.2 Create Input Attributes
+### 5.2 Create Input Attributes
 
 Click **"+ New Attribute"** to create an attribute:
 
@@ -193,7 +392,7 @@ Fill in the attribute details:
 
 ![Attribute Filled](screenshots/attribute-base-premium-filled.png)
 
-### 4.3 Create All Required Attributes
+### 5.3 Create All Required Attributes
 
 Create these attributes for the insurance calculator:
 
@@ -222,7 +421,7 @@ Create these attributes for the insurance calculator:
 | `final_premium` | loan | currency | Final calculated premium |
 | `monthly_payment` | loan | currency | Monthly payment amount |
 
-### 4.4 View All Attributes
+### 5.4 View All Attributes
 
 After creating all attributes, your list should look like this:
 
@@ -230,23 +429,23 @@ After creating all attributes, your list should look like this:
 
 ---
 
-## Part 5: Create Rules
+## Part 6: Create Rules
 
 Rules define the business logic that transforms inputs into outputs.
 
-### 5.1 Navigate to Rules Canvas
+### 6.1 Navigate to Rules Canvas
 
 Click **"Rules"** in the sidebar to access the visual rule builder:
 
 ![Rules Canvas](screenshots/rules-canvas-initial.png)
 
-### 5.2 Create a New Rule
+### 6.2 Create a New Rule
 
 Click **"+ New Rule"** to open the rule builder dialog:
 
 ![Rule Builder Dialog](screenshots/rule-builder-dialog.png)
 
-### 5.3 Build Rule Expression
+### 6.3 Build Rule Expression
 
 Use the visual expression builder to create your rule logic:
 
@@ -256,7 +455,7 @@ Or switch to JSON mode for complex expressions:
 
 ![Rule Builder JSON](screenshots/rule-builder-json.png)
 
-### 5.4 Create All Rules
+### 6.4 Create All Rules
 
 Create these rules for the insurance calculator:
 
@@ -361,7 +560,7 @@ Create these rules for the insurance calculator:
 }
 ```
 
-### 5.5 View Rules in Canvas
+### 6.5 View Rules in Canvas
 
 After creating rules, the canvas shows them with dependencies:
 
@@ -369,11 +568,11 @@ After creating rules, the canvas shows them with dependencies:
 
 ---
 
-## Part 6: Visualize the Rule DAG
+## Part 7: Visualize the Rule DAG
 
 The DAG (Directed Acyclic Graph) visualization shows how rules depend on each other and execute in parallel.
 
-### 6.1 View Full DAG
+### 7.1 View Full DAG
 
 Click **"View DAG"** or expand the canvas to see the full dependency graph:
 
@@ -385,7 +584,7 @@ The DAG shows:
 - **Output nodes** (purple): Final calculated values
 - **Dependency arrows**: Data flow between rules
 
-### 6.2 Understanding Parallel Execution
+### 7.2 Understanding Parallel Execution
 
 Rules at the same level execute in parallel:
 
@@ -405,9 +604,9 @@ Level 2 (After Level 1):
 
 ---
 
-## Part 7: Test Your Product
+## Part 8: Test Your Product
 
-### 7.1 Using the Simulation Panel
+### 8.1 Using the Simulation Panel
 
 Click **"Simulate"** to test your rules with sample data:
 
@@ -432,7 +631,7 @@ Click **"Simulate"** to test your rules with sample data:
 }
 ```
 
-### 7.2 Using the REST API
+### 8.2 Using the REST API
 
 ```bash
 # Evaluate the product
@@ -448,7 +647,7 @@ curl -X POST http://localhost:8081/api/products/insurance-premium-v1/evaluate \
   }'
 ```
 
-### 7.3 Using the gRPC API
+### 8.3 Using the gRPC API
 
 ```bash
 grpcurl -plaintext -d '{
@@ -521,12 +720,22 @@ npm install
 ## Next Steps
 
 Congratulations! You've built a complete insurance premium calculator with:
-- Custom datatypes and enumerations
-- Input, calculated, and output attributes
-- Multiple rules with dependencies
-- Automatic parallel execution via DAG
+- ✅ Custom datatypes and enumerations
+- ✅ Input, calculated, and output attributes
+- ✅ Multiple rules with dependencies
+- ✅ Automatic parallel execution via DAG
 
 Now explore more:
-- [Architecture Guide](ARCHITECTURE) - Understand the system design
+
+### Understand the Product
+- [Why Product-FARM](WHY) - Learn why this product was created
+- [Core Concepts](CONCEPTS) - Deep dive into terminology and entities
+
+### Technical Deep-Dives
+- [How It Works](HOW_IT_WORKS) - Understand rule evaluation internals
+- [Architecture Guide](ARCHITECTURE) - System design and components
+
+### More Resources
 - [Use Cases](USE_CASES) - Real-world implementation examples
+- [Roadmap](ROADMAP) - Future features and vision
 - [API Reference](API_REFERENCE) - Complete API documentation
