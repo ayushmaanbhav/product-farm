@@ -1,7 +1,7 @@
 # GitHub Pages Configuration for Product-FARM
 title: Product-FARM
 description: High-Performance Domain-Agnostic Rule Engine with AI-Powered Configuration
-baseurl: "/product-farm"
+baseurl: "/Product-FARM"
 url: "https://ayushmaanbhav.github.io"
 
 # Navigation
@@ -17,7 +17,7 @@ nav:
   - title: API Reference
     url: /API_REFERENCE
   - title: GitHub
-    url: https://github.com/ayushmaanbhav/product-farm
+    url: https://github.com/ayushmaanbhav/Product-FARM
 
 # Markdown settings
 markdown: kramdown
