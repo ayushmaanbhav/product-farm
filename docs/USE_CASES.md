@@ -32,28 +32,39 @@ Calculate insurance premiums based on customer demographics, coverage options, a
 
 ### Data Model
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         INSURANCE PRODUCT                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  INPUTS                              CALCULATED                              │
-│  ┌──────────────────┐               ┌──────────────────┐                    │
-│  │ customer_age: INT│               │ base_premium     │                    │
-│  │ coverage: DECIMAL│               │ age_factor       │                    │
-│  │ smoker: BOOL     │               │ smoker_factor    │                    │
-│  │ bmi: DECIMAL     │               │ bmi_factor       │                    │
-│  │ coverage_type:   │               │ type_multiplier  │                    │
-│  │   ENUM           │               │ discount_factor  │                    │
-│  │ policy_count: INT│               │                  │                    │
-│  └──────────────────┘               └──────────────────┘                    │
-│                                                                              │
-│  OUTPUT                                                                      │
-│  ┌──────────────────┐                                                       │
-│  │ final_premium:   │                                                       │
-│  │   DECIMAL        │                                                       │
-│  └──────────────────┘                                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Product["🏦 INSURANCE PRODUCT"]
+        direction TB
+        subgraph Inputs["📥 INPUTS"]
+            I1["customer_age: INT"]
+            I2["coverage: DECIMAL"]
+            I3["smoker: BOOL"]
+            I4["bmi: DECIMAL"]
+            I5["coverage_type: ENUM"]
+            I6["policy_count: INT"]
+        end
+
+        subgraph Calculated["⚙️ CALCULATED"]
+            C1["base_premium"]
+            C2["age_factor"]
+            C3["smoker_factor"]
+            C4["bmi_factor"]
+            C5["type_multiplier"]
+            C6["discount_factor"]
+        end
+
+        subgraph Output["📤 OUTPUT"]
+            O1["final_premium: DECIMAL"]
+        end
+    end
+
+    Inputs --> Calculated --> Output
+
+    style Product fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Inputs fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Calculated fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style Output fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ### Rules Configuration
@@ -176,25 +187,54 @@ Calculate insurance premiums based on customer demographics, coverage options, a
 
 ### Execution DAG
 
-```
-coverage  customer_age  smoker  bmi  coverage_type  policy_count
-    │          │          │     │         │              │
-    ▼          ▼          ▼     ▼         ▼              ▼
- ┌──────┐  ┌──────┐  ┌──────┐ ┌──────┐ ┌──────┐     ┌──────┐
- │Rule 1│  │Rule 2│  │Rule 3│ │Rule 4│ │Rule 5│     │Rule 6│   Level 0
- │ base │  │ age  │  │smoker│ │ bmi  │ │ type │     │ disc │   (parallel)
- └──┬───┘  └──┬───┘  └──┬───┘ └──┬───┘ └──┬───┘     └──┬───┘
-    │         │         │        │        │            │
-    └─────────┴─────────┴────────┴────────┴────────────┘
-                              │
-                              ▼
-                        ┌───────────┐
-                        │  Rule 7   │                       Level 1
-                        │  final    │
-                        └─────┬─────┘
-                              │
-                              ▼
-                       final_premium
+```mermaid
+flowchart TB
+    subgraph Inputs["📥 Input Variables"]
+        direction LR
+        In1["coverage"]
+        In2["customer_age"]
+        In3["smoker"]
+        In4["bmi"]
+        In5["coverage_type"]
+        In6["policy_count"]
+    end
+
+    subgraph L0["⚡ Level 0 - Parallel Execution"]
+        direction LR
+        R1["Rule 1<br/><b>base</b>"]
+        R2["Rule 2<br/><b>age</b>"]
+        R3["Rule 3<br/><b>smoker</b>"]
+        R4["Rule 4<br/><b>bmi</b>"]
+        R5["Rule 5<br/><b>type</b>"]
+        R6["Rule 6<br/><b>disc</b>"]
+    end
+
+    subgraph L1["🔗 Level 1"]
+        R7["Rule 7<br/><b>final</b>"]
+    end
+
+    subgraph Output["📤 Output"]
+        Out1["final_premium"]
+    end
+
+    In1 --> R1
+    In2 --> R2
+    In3 --> R3
+    In4 --> R4
+    In5 --> R5
+    In6 --> R6
+
+    R1 --> R7
+    R2 --> R7
+    R3 --> R7
+    R4 --> R7
+    R5 --> R7
+    R6 --> R7
+    R7 --> Out1
+
+    style L0 fill:#065f46,stroke:#10b981,color:#fff
+    style L1 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style Output fill:#1e3a5f,stroke:#3b82f6,color:#fff
 ```
 
 ### Example Evaluation
@@ -212,18 +252,16 @@ coverage  customer_age  smoker  bmi  coverage_type  policy_count
 ```
 
 **Execution:**
-```
-Level 0 (parallel):
-  Rule 1: 250000 × 0.02 = 5000 (base_premium)
-  Rule 2: age 65 > 60 → 1.2 (age_factor)
-  Rule 3: smoker false → 1.0 (smoker_factor)
-  Rule 4: bmi 28 ≤ 30 → 1.0 (bmi_factor)
-  Rule 5: STANDARD → 1.2 (type_multiplier)
-  Rule 6: 2 policies → 0.90 (discount_factor)
 
-Level 1:
-  Rule 7: 5000 × 1.2 × 1.0 × 1.0 × 1.2 × 0.90 = 6480
-```
+| Level | Rule | Calculation | Result |
+|-------|------|-------------|--------|
+| **0 (parallel)** | Rule 1 | 250000 × 0.02 | base_premium = 5000 |
+| **0** | Rule 2 | age 65 > 60 | age_factor = 1.2 |
+| **0** | Rule 3 | smoker false | smoker_factor = 1.0 |
+| **0** | Rule 4 | bmi 28 ≤ 30 | bmi_factor = 1.0 |
+| **0** | Rule 5 | STANDARD | type_multiplier = 1.2 |
+| **0** | Rule 6 | 2 policies | discount_factor = 0.90 |
+| **1** | Rule 7 | 5000 × 1.2 × 1.0 × 1.0 × 1.2 × 0.90 | **final_premium = 6480** |
 
 **Output:**
 ```json
@@ -254,31 +292,40 @@ Generate buy/sell signals based on technical indicators and market conditions.
 
 ### Data Model
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         TRADING STRATEGY                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  MARKET DATA                         CALCULATED                              │
-│  ┌──────────────────┐               ┌──────────────────┐                    │
-│  │ price: DECIMAL   │               │ oversold: BOOL   │                    │
-│  │ rsi_14: DECIMAL  │               │ overbought: BOOL │                    │
-│  │ sma_50: DECIMAL  │               │ above_trend: BOOL│                    │
-│  │ sma_200: DECIMAL │               │ volume_spike: BOO│                    │
-│  │ volume: INT      │               │ risk_pct: DECIMAL│                    │
-│  │ avg_volume: INT  │               │                  │                    │
-│  │ account_size: DEC│               │                  │                    │
-│  └──────────────────┘               └──────────────────┘                    │
-│                                                                              │
-│  OUTPUTS                                                                     │
-│  ┌──────────────────┐                                                       │
-│  │ entry_signal:    │                                                       │
-│  │   ENUM(BUY,SELL, │                                                       │
-│  │   HOLD)          │                                                       │
-│  │ position_size:   │                                                       │
-│  │   DECIMAL        │                                                       │
-│  └──────────────────┘                                                       │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Strategy["📈 TRADING STRATEGY"]
+        direction TB
+        subgraph MarketData["📊 MARKET DATA"]
+            M1["price: DECIMAL"]
+            M2["rsi_14: DECIMAL"]
+            M3["sma_50: DECIMAL"]
+            M4["sma_200: DECIMAL"]
+            M5["volume: INT"]
+            M6["avg_volume: INT"]
+            M7["account_size: DECIMAL"]
+        end
+
+        subgraph Calculated["⚙️ CALCULATED"]
+            C1["oversold: BOOL"]
+            C2["overbought: BOOL"]
+            C3["above_trend: BOOL"]
+            C4["volume_spike: BOOL"]
+            C5["risk_pct: DECIMAL"]
+        end
+
+        subgraph Outputs["📤 OUTPUTS"]
+            O1["entry_signal: ENUM<br/>(BUY, SELL, HOLD)"]
+            O2["position_size: DECIMAL"]
+        end
+    end
+
+    MarketData --> Calculated --> Outputs
+
+    style Strategy fill:#0f172a,stroke:#3b82f6,color:#fff
+    style MarketData fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Calculated fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style Outputs fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ### Rules Configuration

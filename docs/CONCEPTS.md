@@ -11,35 +11,31 @@ This guide explains the fundamental building blocks of Product-FARM and how they
 
 ## Entity Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            PRODUCT-FARM ENTITIES                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                           PRODUCT                                     │  │
-│  │  (Root container for all business logic)                             │  │
-│  │                                                                       │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │  │
-│  │  │ COMPONENTS  │  │ ATTRIBUTES  │  │   RULES     │  │FUNCTIONALITIES│ │  │
-│  │  │             │  │             │  │             │  │             │  │  │
-│  │  │ Logical     │  │ Variables   │  │ Business    │  │ Feature     │  │  │
-│  │  │ groupings   │  │ with types  │  │ logic       │  │ bundles     │  │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                        SHARED DEFINITIONS                             │  │
-│  │                                                                       │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                   │  │
-│  │  │  DATATYPES  │  │ENUMERATIONS │  │    TAGS     │                   │  │
-│  │  │             │  │             │  │             │                   │  │
-│  │  │ Type        │  │ Fixed       │  │ Organization│                   │  │
-│  │  │ definitions │  │ value sets  │  │ labels      │                   │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘                   │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Product["📦 PRODUCT<br/><small>Root container for all business logic</small>"]
+        direction LR
+        Components["🗂️ COMPONENTS<br/><small>Logical groupings</small>"]
+        Attributes["📋 ATTRIBUTES<br/><small>Variables with types</small>"]
+        Rules["⚡ RULES<br/><small>Business logic</small>"]
+        Functionalities["🎯 FUNCTIONALITIES<br/><small>Feature bundles</small>"]
+    end
+
+    subgraph Shared["📚 SHARED DEFINITIONS"]
+        direction LR
+        Datatypes["🔢 DATATYPES<br/><small>Type definitions</small>"]
+        Enumerations["📝 ENUMERATIONS<br/><small>Fixed value sets</small>"]
+        Tags["🏷️ TAGS<br/><small>Organization labels</small>"]
+    end
+
+    Product --> Shared
+
+    style Product fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Shared fill:#312e81,stroke:#6366f1,color:#fff
+    style Components fill:#065f46,stroke:#10b981,color:#fff
+    style Attributes fill:#065f46,stroke:#10b981,color:#fff
+    style Rules fill:#065f46,stroke:#10b981,color:#fff
+    style Functionalities fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ---
@@ -58,65 +54,57 @@ Think of a Product as a complete, self-contained business capability. Examples:
 
 ### Product Structure
 
-```
-Product: insurance-premium-v1
-├── Components
-│   ├── customer      (customer-related attributes)
-│   ├── policy        (policy-related attributes)
-│   └── premium       (calculation attributes)
-├── Abstract Attributes
-│   ├── customer_age
-│   ├── coverage_amount
-│   ├── base_premium
-│   └── final_premium
-├── Rules
-│   ├── calculate_base_premium
-│   ├── apply_age_factor
-│   └── calculate_final_premium
-└── Functionalities
-    ├── quote         (get a price quote)
-    └── underwrite    (full underwriting)
+```mermaid
+graph LR
+    subgraph Product["📦 insurance-premium-v1"]
+        subgraph Comp["🗂️ Components"]
+            C1["customer"]
+            C2["policy"]
+            C3["premium"]
+        end
+        subgraph Attr["📋 Attributes"]
+            A1["customer_age"]
+            A2["coverage_amount"]
+            A3["base_premium"]
+            A4["final_premium"]
+        end
+        subgraph Rules["⚡ Rules"]
+            R1["calculate_base_premium"]
+            R2["apply_age_factor"]
+            R3["calculate_final_premium"]
+        end
+        subgraph Func["🎯 Functionalities"]
+            F1["quote"]
+            F2["underwrite"]
+        end
+    end
+
+    style Product fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Comp fill:#065f46,stroke:#10b981,color:#fff
+    style Attr fill:#065f46,stroke:#10b981,color:#fff
+    style Rules fill:#7c2d12,stroke:#f59e0b,color:#fff
+    style Func fill:#4c1d95,stroke:#8b5cf6,color:#fff
 ```
 
 ### Product Lifecycle
 
 Products go through a defined lifecycle to ensure quality and control:
 
-```
-                    ┌─────────────────┐
-                    │                 │
-         ┌─────────►│     DRAFT      │◄─────────┐
-         │          │                 │          │
-         │          └────────┬────────┘          │
-         │                   │                   │
-         │              submit()                 │
-         │                   │                   │
-         │                   ▼                   │
-         │          ┌─────────────────┐          │
-     reject()       │                 │       clone()
-         │          │ PENDING_APPROVAL│          │
-         │          │                 │          │
-         │          └────────┬────────┘          │
-         │                   │                   │
-         └───────────────────┤                   │
-                             │                   │
-                        approve()                │
-                             │                   │
-                             ▼                   │
-                    ┌─────────────────┐          │
-                    │                 │──────────┘
-                    │     ACTIVE      │
-                    │                 │
-                    └────────┬────────┘
-                             │
-                       discontinue()
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │                 │
-                    │  DISCONTINUED   │
-                    │                 │
-                    └─────────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+
+    Draft --> PendingApproval: submit()
+    PendingApproval --> Draft: reject()
+    PendingApproval --> Active: approve()
+
+    Active --> Discontinued: discontinue()
+
+    Draft --> Draft: clone()
+    Active --> Draft: clone()
+
+    note right of Active: Immutable<br/>(read-only)
+    note right of Discontinued: Preserved for<br/>audit purposes
 ```
 
 | State | Description |
@@ -168,16 +156,22 @@ As products grow, they can have dozens or hundreds of attributes. Components hel
 
 ### Component in Context
 
-```
-Attribute: customer_age
-├── Component: customer
-├── Datatype: integer
-└── Full Path: customer.customer_age
+```mermaid
+graph LR
+    subgraph A1["📋 Attribute: customer_age"]
+        A1C["Component: customer"]
+        A1D["Datatype: integer"]
+        A1P["Path: customer.customer_age"]
+    end
 
-Attribute: base_premium
-├── Component: premium
-├── Datatype: currency
-└── Full Path: premium.base_premium
+    subgraph A2["📋 Attribute: base_premium"]
+        A2C["Component: premium"]
+        A2D["Datatype: currency"]
+        A2P["Path: premium.base_premium"]
+    end
+
+    style A1 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style A2 fill:#1e3a5f,stroke:#3b82f6,color:#fff
 ```
 
 ![Component Selection](screenshots/attribute-component-create.png)
@@ -504,45 +498,42 @@ When you evaluate a functionality:
 3. **DAG Execution**: Rules run in dependency order, parallelized where possible
 4. **Output Delivery**: Requested outputs are returned
 
-```
-User Request: evaluate("quote", {customer_age: 35, coverage_amount: 100000})
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 1. Validate Inputs                                      │
-│    ✓ customer_age: 35 (required)                        │
-│    ✓ coverage_amount: 100000 (required)                 │
-│    ○ smoker_status: not provided (optional, use default)│
-└─────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 2. Build Execution DAG                                  │
-│                                                         │
-│    [customer_age] ──► [age_factor] ──┐                  │
-│    [coverage_amount] ──► [base_premium] ──► [final_premium]
-│                                      └──► [monthly_payment]
-└─────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 3. Execute Rules (Parallel where possible)              │
-│                                                         │
-│    Level 0: calculate_base_premium, calculate_age_factor│
-│    Level 1: calculate_final_premium                     │
-│    Level 2: calculate_monthly_payment                   │
-└─────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 4. Return Outputs                                       │
-│                                                         │
-│    {                                                    │
-│      "base_premium": 2000.00,                           │
-│      "final_premium": 2400.00,                          │
-│      "monthly_payment": 200.00                          │
-│    }                                                    │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Request["📨 evaluate('quote', {customer_age: 35, coverage_amount: 100000})"]
+
+    subgraph Step1["1️⃣ Validate Inputs"]
+        V1["✓ customer_age: 35 (required)"]
+        V2["✓ coverage_amount: 100000 (required)"]
+        V3["○ smoker_status: use default"]
+    end
+
+    subgraph Step2["2️⃣ Build Execution DAG"]
+        CA["customer_age"] --> AF["age_factor"]
+        COV["coverage_amount"] --> BP["base_premium"]
+        AF --> FP["final_premium"]
+        BP --> FP
+        FP --> MP["monthly_payment"]
+    end
+
+    subgraph Step3["3️⃣ Execute Rules"]
+        L0["Level 0: base_premium, age_factor"]
+        L1["Level 1: final_premium"]
+        L2["Level 2: monthly_payment"]
+        L0 --> L1 --> L2
+    end
+
+    subgraph Step4["4️⃣ Return Outputs"]
+        OUT["base_premium: 2000.00<br/>final_premium: 2400.00<br/>monthly_payment: 200.00"]
+    end
+
+    Request --> Step1 --> Step2 --> Step3 --> Step4
+
+    style Request fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style Step1 fill:#065f46,stroke:#10b981,color:#fff
+    style Step2 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Step3 fill:#7c2d12,stroke:#f59e0b,color:#fff
+    style Step4 fill:#4c1d95,stroke:#8b5cf6,color:#fff
 ```
 
 ---
@@ -559,23 +550,32 @@ Tags allow you to:
 - **Query** attributes by tag via API
 
 **Example Tags**
-```
-Tag: "pii" (Personal Identifiable Information)
-├── customer_name
-├── customer_email
-├── customer_ssn
-└── customer_phone
 
-Tag: "pricing"
-├── base_premium
-├── discount_amount
-├── final_premium
-└── monthly_payment
+```mermaid
+graph LR
+    subgraph PII["🔒 Tag: pii"]
+        P1["customer_name"]
+        P2["customer_email"]
+        P3["customer_ssn"]
+        P4["customer_phone"]
+    end
 
-Tag: "risk"
-├── risk_score
-├── risk_level
-└── risk_factors
+    subgraph Pricing["💰 Tag: pricing"]
+        PR1["base_premium"]
+        PR2["discount_amount"]
+        PR3["final_premium"]
+        PR4["monthly_payment"]
+    end
+
+    subgraph Risk["⚠️ Tag: risk"]
+        R1["risk_score"]
+        R2["risk_level"]
+        R3["risk_factors"]
+    end
+
+    style PII fill:#4a1a1a,stroke:#ef4444,color:#fff
+    style Pricing fill:#065f46,stroke:#10b981,color:#fff
+    style Risk fill:#7c2d12,stroke:#f59e0b,color:#fff
 ```
 
 ### Tag-Based Queries
@@ -594,106 +594,107 @@ GET /api/products/{id}/abstract-attributes/by-tag/pricing
 
 Here's how all the concepts work together:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                             │
-│                         PRODUCT: insurance-premium-v1                       │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  SHARED DEFINITIONS                                                         │
-│  ┌──────────────────┐  ┌──────────────────┐                                │
-│  │    DATATYPES     │  │   ENUMERATIONS   │                                │
-│  │                  │  │                  │                                │
-│  │  • currency      │  │  • risk_level    │                                │
-│  │  • percentage    │  │  • policy_type   │                                │
-│  │  • age           │  │  • smoker_status │                                │
-│  └────────┬─────────┘  └────────┬─────────┘                                │
-│           │                     │                                           │
-│           └──────────┬──────────┘                                           │
-│                      │ (types)                                              │
-│                      ▼                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                      ABSTRACT ATTRIBUTES                              │  │
-│  │                                                                       │  │
-│  │  Component: customer           Component: premium                     │  │
-│  │  ┌─────────────────────┐       ┌─────────────────────┐               │  │
-│  │  │ customer_age: age   │       │ base_premium: currency│              │  │
-│  │  │ smoker_status: enum │       │ final_premium: currency│             │  │
-│  │  └─────────────────────┘       │ age_factor: percentage │             │  │
-│  │                                └─────────────────────┘               │  │
-│  │  Component: policy                                                    │  │
-│  │  ┌─────────────────────┐                                             │  │
-│  │  │ coverage: currency  │                                             │  │
-│  │  │ policy_type: enum   │                                             │  │
-│  │  └─────────────────────┘                                             │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                      │ (inputs/outputs)                                     │
-│                      ▼                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                           RULES                                       │  │
-│  │                                                                       │  │
-│  │  calculate_base_premium:                                              │  │
-│  │    inputs: [coverage_amount]                                          │  │
-│  │    outputs: [base_premium]                                            │  │
-│  │    expression: coverage_amount × 0.02                                 │  │
-│  │                                                                       │  │
-│  │  calculate_age_factor:                                                │  │
-│  │    inputs: [customer_age]                                             │  │
-│  │    outputs: [age_factor]                                              │  │
-│  │    expression: IF age > 60 THEN 1.5 ELSE ...                          │  │
-│  │                                                                       │  │
-│  │  calculate_final_premium:                                             │  │
-│  │    inputs: [base_premium, age_factor]                                 │  │
-│  │    outputs: [final_premium]                                           │  │
-│  │    expression: base_premium × age_factor                              │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                      │ (groups)                                             │
-│                      ▼                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                      FUNCTIONALITIES                                  │  │
-│  │                                                                       │  │
-│  │  quote:                                                               │  │
-│  │    required: [customer_age, coverage_amount]                          │  │
-│  │    optional: [smoker_status]                                          │  │
-│  │    outputs:  [base_premium, final_premium, monthly_payment]           │  │
-│  │                                                                       │  │
-│  │  underwrite:                                                          │  │
-│  │    required: [customer_age, coverage_amount, smoker_status, ...]      │  │
-│  │    outputs:  [risk_level, final_premium, approval_status]             │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Product["📦 PRODUCT: insurance-premium-v1"]
+        subgraph Shared["📚 SHARED DEFINITIONS"]
+            direction LR
+            DT["🔢 DATATYPES<br/>currency, percentage, age"]
+            EN["📝 ENUMERATIONS<br/>risk_level, policy_type, smoker_status"]
+        end
+
+        subgraph Attrs["📋 ABSTRACT ATTRIBUTES"]
+            subgraph Customer["customer"]
+                A1["customer_age: age"]
+                A2["smoker_status: enum"]
+            end
+            subgraph Premium["premium"]
+                A3["base_premium: currency"]
+                A4["final_premium: currency"]
+                A5["age_factor: percentage"]
+            end
+            subgraph Policy["policy"]
+                A6["coverage: currency"]
+                A7["policy_type: enum"]
+            end
+        end
+
+        subgraph Rules["⚡ RULES"]
+            R1["calculate_base_premium<br/>coverage × 0.02"]
+            R2["calculate_age_factor<br/>IF age > 60 THEN 1.5"]
+            R3["calculate_final_premium<br/>base × age_factor"]
+        end
+
+        subgraph Funcs["🎯 FUNCTIONALITIES"]
+            F1["quote<br/>required: age, coverage<br/>outputs: premium, payment"]
+            F2["underwrite<br/>required: age, coverage, smoker<br/>outputs: risk, approval"]
+        end
+    end
+
+    Shared -->|"types"| Attrs
+    Attrs -->|"inputs/outputs"| Rules
+    Rules -->|"groups"| Funcs
+
+    style Product fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Shared fill:#312e81,stroke:#6366f1,color:#fff
+    style Attrs fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Rules fill:#7c2d12,stroke:#f59e0b,color:#fff
+    style Funcs fill:#4c1d95,stroke:#8b5cf6,color:#fff
 ```
 
 ---
 
 ## Entity Relationships
 
-```
-┌─────────────┐       ┌─────────────┐
-│   PRODUCT   │──────<│  COMPONENT  │
-└──────┬──────┘       └─────────────┘
-       │                     │
-       │ contains            │ groups
-       │                     │
-       ▼                     ▼
-┌─────────────┐       ┌─────────────┐
-│    RULE     │──────<│  ATTRIBUTE  │>──────┐
-└─────────────┘       └──────┬──────┘       │
-       │                     │              │
-       │ computes            │ typed by     │ tagged by
-       │                     │              │
-       ▼                     ▼              ▼
-┌─────────────┐       ┌─────────────┐ ┌─────────────┐
-│FUNCTIONALITY│       │  DATATYPE   │ │    TAG      │
-└─────────────┘       └──────┬──────┘ └─────────────┘
-                             │
-                             │ may use
-                             ▼
-                      ┌─────────────┐
-                      │ ENUMERATION │
-                      └─────────────┘
+```mermaid
+erDiagram
+    PRODUCT ||--o{ COMPONENT : contains
+    PRODUCT ||--o{ RULE : contains
+    PRODUCT ||--o{ FUNCTIONALITY : defines
+
+    COMPONENT ||--o{ ATTRIBUTE : groups
+
+    RULE }|--|{ ATTRIBUTE : "inputs/outputs"
+    RULE }o--|| FUNCTIONALITY : "grouped by"
+
+    ATTRIBUTE }|--|| DATATYPE : "typed by"
+    ATTRIBUTE }o--o{ TAG : "tagged by"
+
+    DATATYPE ||--o| ENUMERATION : "may use"
+
+    PRODUCT {
+        string id PK
+        string name
+        enum status
+    }
+    COMPONENT {
+        string type
+        string id
+    }
+    ATTRIBUTE {
+        string path PK
+        string datatype_id FK
+    }
+    RULE {
+        string id PK
+        json expression
+    }
+    FUNCTIONALITY {
+        string name PK
+        array inputs
+        array outputs
+    }
+    DATATYPE {
+        string id PK
+        string primitive
+    }
+    TAG {
+        string name PK
+    }
+    ENUMERATION {
+        string name PK
+        array values
+    }
 ```
 
 ---

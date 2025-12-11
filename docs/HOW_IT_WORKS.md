@@ -13,23 +13,25 @@ This document provides a technical deep-dive into how Product-FARM evaluates rul
 
 When you call the evaluation API, here's what happens under the hood:
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         EVALUATION PIPELINE                                  │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   1. REQUEST      2. LOAD         3. BUILD        4. EXECUTE     5. RETURN  │
-│   ────────────    ────────────    ────────────    ────────────   ────────── │
-│                                                                              │
-│   ┌─────────┐    ┌─────────┐     ┌─────────┐     ┌─────────┐    ┌─────────┐│
-│   │ Client  │───►│  Fetch  │────►│  Build  │────►│ Execute │───►│ Format  ││
-│   │ Request │    │  Rules  │     │   DAG   │     │  Rules  │    │ Response││
-│   └─────────┘    └─────────┘     └─────────┘     └─────────┘    └─────────┘│
-│                                                                              │
-│   JSON/gRPC      DGraph          Dependency      Parallel       JSON/gRPC   │
-│   payload        query           analysis        execution      response    │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Pipeline["⚡ EVALUATION PIPELINE"]
+        direction LR
+        S1["1️⃣ REQUEST<br/>Client Request<br/><small>JSON/gRPC payload</small>"]
+        S2["2️⃣ LOAD<br/>Fetch Rules<br/><small>DGraph query</small>"]
+        S3["3️⃣ BUILD<br/>Build DAG<br/><small>Dependency analysis</small>"]
+        S4["4️⃣ EXECUTE<br/>Execute Rules<br/><small>Parallel execution</small>"]
+        S5["5️⃣ RETURN<br/>Format Response<br/><small>JSON/gRPC response</small>"]
+
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    style Pipeline fill:#0f172a,stroke:#3b82f6,color:#fff
+    style S1 fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style S2 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style S3 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style S4 fill:#065f46,stroke:#10b981,color:#fff
+    style S5 fill:#4c1d95,stroke:#8b5cf6,color:#fff
 ```
 
 ---
@@ -98,21 +100,30 @@ query GetProductRules($productId: string) {
 
 ### Caching Strategy
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                       CACHING LAYERS                             │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Request ──► LRU Cache (Hot) ──► DGraph (Cold)                   │
-│                   │                   │                          │
-│               Hit: ~1µs           Miss: ~1-5ms                   │
-│                                                                  │
-│  Cache Policy:                                                   │
-│  • Product rules: 5 minute TTL                                   │
-│  • Compiled bytecode: Until product changes                      │
-│  • Eviction: LRU with 1000 entry limit                           │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph CachingLayers["🗄️ CACHING LAYERS"]
+        direction LR
+        REQ["📥 Request"]
+        LRU["⚡ LRU Cache<br/><small>Hot Layer</small><br/><small>Hit: ~1µs</small>"]
+        DG["💾 DGraph<br/><small>Cold Layer</small><br/><small>Miss: ~1-5ms</small>"]
+
+        REQ --> LRU
+        LRU -->|"Cache Miss"| DG
+    end
+
+    subgraph Policy["📋 Cache Policy"]
+        direction TB
+        P1["Product rules: 5 min TTL"]
+        P2["Bytecode: Until product changes"]
+        P3["Eviction: LRU, 1000 entries"]
+    end
+
+    style CachingLayers fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Policy fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style REQ fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style LRU fill:#065f46,stroke:#10b981,color:#fff
+    style DG fill:#4c1d95,stroke:#8b5cf6,color:#fff
 ```
 
 <div class="callout callout-performance">
@@ -151,64 +162,48 @@ fn build_dag(rules: Vec<Rule>) -> DAG {
 
 For our insurance premium calculator:
 
-```
-                    INPUT LAYER
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
-   ┌───────────┐  ┌───────────┐  ┌───────────┐
-   │customer_  │  │coverage_  │  │smoker_    │
-   │   age     │  │  amount   │  │  status   │
-   └─────┬─────┘  └─────┬─────┘  └─────┬─────┘
-         │               │               │
-         │               │               │
-         ▼               ▼               ▼
-                    LEVEL 0 (Parallel)
-                         │
-   ┌─────────────────────┼─────────────────────┐
-   │                     │                     │
-   ▼                     ▼                     ▼
-┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-│calculate_age_  │ │calculate_base_ │ │calculate_      │
-│   factor       │ │   premium      │ │smoker_factor   │
-│                │ │                │ │                │
-│IN: age         │ │IN: coverage    │ │IN: smoker_     │
-│OUT: age_factor │ │OUT: base_prem  │ │    status      │
-└───────┬────────┘ └───────┬────────┘ │OUT: smoker_    │
-        │                  │          │    factor      │
-        │                  │          └───────┬────────┘
-        │                  │                  │
-        └──────────────────┼──────────────────┘
-                           │
-                           ▼
-                    LEVEL 1 (Sequential)
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │ calculate_final_       │
-              │       premium          │
-              │                        │
-              │ IN: base_premium,      │
-              │     age_factor,        │
-              │     smoker_factor      │
-              │ OUT: final_premium     │
-              └───────────┬────────────┘
-                          │
-                          ▼
-                    LEVEL 2 (Sequential)
-                          │
-                          ▼
-              ┌────────────────────────┐
-              │ calculate_monthly_     │
-              │       payment          │
-              │                        │
-              │ IN: final_premium      │
-              │ OUT: monthly_payment   │
-              └───────────┬────────────┘
-                          │
-                          ▼
-                    OUTPUT LAYER
+```mermaid
+flowchart TB
+    subgraph Input["📥 INPUT LAYER"]
+        direction LR
+        I1["customer_age"]
+        I2["coverage_amount"]
+        I3["smoker_status"]
+    end
+
+    subgraph L0["⚡ LEVEL 0 - Parallel Execution"]
+        direction LR
+        R1["<b>calculate_age_factor</b><br/><small>IN: age</small><br/><small>OUT: age_factor</small>"]
+        R2["<b>calculate_base_premium</b><br/><small>IN: coverage</small><br/><small>OUT: base_prem</small>"]
+        R3["<b>calculate_smoker_factor</b><br/><small>IN: smoker_status</small><br/><small>OUT: smoker_factor</small>"]
+    end
+
+    subgraph L1["🔗 LEVEL 1 - Sequential"]
+        R4["<b>calculate_final_premium</b><br/><small>IN: base_premium, age_factor, smoker_factor</small><br/><small>OUT: final_premium</small>"]
+    end
+
+    subgraph L2["🔗 LEVEL 2 - Sequential"]
+        R5["<b>calculate_monthly_payment</b><br/><small>IN: final_premium</small><br/><small>OUT: monthly_payment</small>"]
+    end
+
+    subgraph Output["📤 OUTPUT LAYER"]
+        O1["monthly_payment<br/>final_premium"]
+    end
+
+    I1 --> R1
+    I2 --> R2
+    I3 --> R3
+    R1 --> R4
+    R2 --> R4
+    R3 --> R4
+    R4 --> R5
+    R5 --> O1
+
+    style Input fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style L0 fill:#065f46,stroke:#10b981,color:#fff
+    style L1 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style L2 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style Output fill:#1e3a5f,stroke:#3b82f6,color:#fff
 ```
 
 ### Execution Levels
@@ -227,49 +222,45 @@ For our insurance premium calculator:
 
 Product-FARM uses a custom JSON Logic implementation with a **tiered compilation** strategy:
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                    TIERED COMPILATION PIPELINE                               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   JSON Logic          Parse           Tier Check        Execute              │
-│   Expression          ─────►          ─────────►        ───────►             │
-│                                                                              │
-│   {"*": [...]}        AST             eval_count?       Result               │
-│                        │                  │                                  │
-│                        │         ┌────────┴────────┐                         │
-│                        │         │                 │                         │
-│                        ▼         ▼                 ▼                         │
-│                    ┌───────┐  < 100           >= 100                         │
-│                    │  AST  │    │                 │                          │
-│                    │ Tree  │    │                 │                          │
-│                    └───┬───┘    │                 │                          │
-│                        │        │                 │                          │
-│                        │        ▼                 ▼                          │
-│                        │   ┌─────────┐      ┌─────────┐                      │
-│                        │   │ Tier 0  │      │Compiler │                      │
-│                        │   │AST Eval │      │         │                      │
-│                        │   └────┬────┘      └────┬────┘                      │
-│                        │        │                │                           │
-│                        │        │                ▼                           │
-│                        │        │          ┌─────────┐                       │
-│                        │        │          │Bytecode │                       │
-│                        │        │          └────┬────┘                       │
-│                        │        │                │                           │
-│                        │        │                ▼                           │
-│                        │        │          ┌─────────┐                       │
-│                        │        │          │ Tier 1  │                       │
-│                        │        │          │ VM Exec │                       │
-│                        │        │          └────┬────┘                       │
-│                        │        │                │                           │
-│                        │        └────────┬───────┘                           │
-│                        │                 │                                   │
-│                        ▼                 ▼                                   │
-│                             ┌─────────────────┐                              │
-│                             │     Result      │                              │
-│                             └─────────────────┘                              │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Pipeline["⚙️ TIERED COMPILATION PIPELINE"]
+        direction TB
+        JSON["📝 JSON Logic<br/><small>{\"*\": [...]}</small>"]
+        PARSE["🔍 Parse"]
+        AST["🌳 AST Tree"]
+        CHECK{"eval_count?"}
+
+        subgraph Tier0Path["Tier 0 Path"]
+            T0["⚡ Tier 0<br/>AST Eval<br/><small>~1.15µs</small>"]
+        end
+
+        subgraph Tier1Path["Tier 1 Path"]
+            COMPILE["🔧 Compiler"]
+            BC["📦 Bytecode"]
+            T1["🚀 Tier 1<br/>VM Exec<br/><small>~330ns</small>"]
+        end
+
+        RESULT["✅ Result"]
+
+        JSON --> PARSE
+        PARSE --> AST
+        AST --> CHECK
+        CHECK -->|"< 100 evals"| T0
+        CHECK -->|">= 100 evals"| COMPILE
+        COMPILE --> BC
+        BC --> T1
+        T0 --> RESULT
+        T1 --> RESULT
+    end
+
+    style Pipeline fill:#0f172a,stroke:#3b82f6,color:#fff
+    style JSON fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style AST fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style CHECK fill:#f59e0b,stroke:#d97706,color:#000
+    style T0 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style T1 fill:#065f46,stroke:#10b981,color:#fff
+    style RESULT fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ### Tier 0: AST Interpretation
@@ -441,39 +432,37 @@ async fn execute_dag(dag: &DAG, context: &mut Context) {
 
 ### Execution Timeline
 
+```mermaid
+gantt
+    title ⏱️ Parallel Execution Timeline
+    dateFormat X
+    axisFormat %L
+
+    section Level 0
+    age_factor (0.8µs)       :L0_1, 0, 8
+    base_premium (0.6µs)     :L0_2, 0, 6
+    smoker_factor (0.7µs)    :L0_3, 0, 7
+
+    section Sync Barrier
+    barrier                  :milestone, 8, 0
+
+    section Level 1
+    final_premium (0.4µs)    :L1_1, 8, 4
+
+    section Sync Barrier
+    barrier                  :milestone, 12, 0
+
+    section Level 2
+    monthly_payment (0.3µs)  :L2_1, 12, 3
 ```
-Time ──────────────────────────────────────────────────────────────►
 
-Level 0:
-  ┌──────────────┐
-  │ age_factor   │  (0.8µs)
-  └──────────────┘
-  ┌──────────────┐
-  │ base_premium │  (0.6µs)
-  └──────────────┘
-  ┌──────────────┐
-  │smoker_factor │  (0.7µs)
-  └──────────────┘
-                   │
-                   │ Synchronization barrier
-                   │
-Level 1:           ▼
-                  ┌──────────────┐
-                  │final_premium │  (0.4µs)
-                  └──────────────┘
-                                  │
-                                  │ Synchronization barrier
-                                  │
-Level 2:                          ▼
-                                 ┌────────────────┐
-                                 │monthly_payment │  (0.3µs)
-                                 └────────────────┘
+**Performance Summary:**
 
-Total time: max(L0) + L1 + L2 = 0.8 + 0.4 + 0.3 = 1.5µs
-
-Without parallelism: 0.8 + 0.6 + 0.7 + 0.4 + 0.3 = 2.8µs
-Speedup: 1.87x
-```
+| Metric | Value |
+|--------|-------|
+| **With Parallelism** | max(L0) + L1 + L2 = 0.8 + 0.4 + 0.3 = **1.5µs** |
+| **Without Parallelism** | 0.8 + 0.6 + 0.7 + 0.4 + 0.3 = **2.8µs** |
+| **Speedup** | **1.87x** |
 
 <div class="callout callout-info">
 <strong>Parallel Scaling:</strong> Speedup increases with DAG width. Products with many independent rules at each level see greater parallelization benefits—up to 5.4x for deep DAGs with 100+ rules.
@@ -559,101 +548,48 @@ Let's trace a complete evaluation:
 
 ### Step-by-Step Trace
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 1: Parse Request                                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Product: insurance-premium-v1                                               │
-│ Functionality: quote                                                        │
-│ Inputs: {customer_age: 45, coverage_amount: 250000, smoker_status: ...}     │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 2: Load Rules (from cache)                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Rules loaded: 5                                                             │
-│ - calculate_age_factor                                                      │
-│ - calculate_base_premium                                                    │
-│ - calculate_smoker_factor                                                   │
-│ - calculate_final_premium                                                   │
-│ - calculate_monthly_payment                                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 3: Build DAG                                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Level 0: [age_factor, base_premium, smoker_factor] - run in parallel        │
-│ Level 1: [final_premium] - depends on Level 0                               │
-│ Level 2: [monthly_payment] - depends on Level 1                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 4: Execute Level 0 (Parallel)                                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│ calculate_age_factor:                                                       │
-│   Expression: IF age > 60 THEN 1.5 ELSE IF age > 40 THEN 1.2 ELSE 1.0       │
-│   Input: customer_age = 45                                                  │
-│   Evaluation: 45 > 60? NO → 45 > 40? YES → 1.2                              │
-│   Output: age_factor = 1.2                                                  │
-│                                                                             │
-│ calculate_base_premium:                                                     │
-│   Expression: coverage_amount × 0.02                                        │
-│   Input: coverage_amount = 250000                                           │
-│   Evaluation: 250000 × 0.02 = 5000                                          │
-│   Output: base_premium = 5000.00                                            │
-│                                                                             │
-│ calculate_smoker_factor:                                                    │
-│   Expression: CASE smoker_status WHEN REGULAR 1.8 WHEN OCCASIONAL 1.3 ...   │
-│   Input: smoker_status = NON_SMOKER                                         │
-│   Evaluation: NON_SMOKER → default → 1.0                                    │
-│   Output: smoker_factor = 1.0                                               │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 5: Execute Level 1                                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│ calculate_final_premium:                                                    │
-│   Expression: base_premium × age_factor × smoker_factor                     │
-│   Inputs: base_premium=5000, age_factor=1.2, smoker_factor=1.0              │
-│   Evaluation: 5000 × 1.2 × 1.0 = 6000                                       │
-│   Output: final_premium = 6000.00                                           │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 6: Execute Level 2                                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│ calculate_monthly_payment:                                                  │
-│   Expression: final_premium ÷ 12                                            │
-│   Input: final_premium = 6000                                               │
-│   Evaluation: 6000 ÷ 12 = 500                                               │
-│   Output: monthly_payment = 500.00                                          │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ STEP 7: Return Response                                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ {                                                                           │
-│   "outputs": {                                                              │
-│     "base_premium": 5000.00,                                                │
-│     "age_factor": 1.2,                                                      │
-│     "smoker_factor": 1.0,                                                   │
-│     "final_premium": 6000.00,                                               │
-│     "monthly_payment": 500.00                                               │
-│   }                                                                         │
-│ }                                                                           │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph S1["📥 STEP 1: Parse Request"]
+        S1_C["<b>Product:</b> insurance-premium-v1<br/><b>Functionality:</b> quote<br/><b>Inputs:</b> customer_age: 45, coverage: 250000, smoker: NON_SMOKER"]
+    end
+
+    subgraph S2["📦 STEP 2: Load Rules from Cache"]
+        S2_C["<b>Rules loaded:</b> 5<br/>• calculate_age_factor<br/>• calculate_base_premium<br/>• calculate_smoker_factor<br/>• calculate_final_premium<br/>• calculate_monthly_payment"]
+    end
+
+    subgraph S3["🌳 STEP 3: Build DAG"]
+        S3_C["<b>Level 0:</b> [age_factor, base_premium, smoker_factor] ⚡ parallel<br/><b>Level 1:</b> [final_premium] → depends on L0<br/><b>Level 2:</b> [monthly_payment] → depends on L1"]
+    end
+
+    subgraph S4["⚡ STEP 4: Execute Level 0 - Parallel"]
+        direction LR
+        S4_A["<b>age_factor</b><br/><small>IF age > 60 THEN 1.5...</small><br/>45 > 40? YES<br/><b>→ 1.2</b>"]
+        S4_B["<b>base_premium</b><br/><small>coverage × 0.02</small><br/>250000 × 0.02<br/><b>→ 5000.00</b>"]
+        S4_C["<b>smoker_factor</b><br/><small>CASE smoker_status...</small><br/>NON_SMOKER<br/><b>→ 1.0</b>"]
+    end
+
+    subgraph S5["🔗 STEP 5: Execute Level 1"]
+        S5_C["<b>final_premium</b><br/>base × age × smoker<br/>5000 × 1.2 × 1.0<br/><b>→ 6000.00</b>"]
+    end
+
+    subgraph S6["🔗 STEP 6: Execute Level 2"]
+        S6_C["<b>monthly_payment</b><br/>final ÷ 12<br/>6000 ÷ 12<br/><b>→ 500.00</b>"]
+    end
+
+    subgraph S7["✅ STEP 7: Return Response"]
+        S7_C["base_premium: 5000.00<br/>age_factor: 1.2<br/>smoker_factor: 1.0<br/>final_premium: 6000.00<br/>monthly_payment: 500.00"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+
+    style S1 fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style S2 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style S3 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style S4 fill:#065f46,stroke:#10b981,color:#fff
+    style S5 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style S6 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style S7 fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ---
@@ -679,20 +615,31 @@ Let's trace a complete evaluation:
 
 ### Throughput
 
-```
-┌────────────────────────────────────────────────────────────┐
-│               THROUGHPUT BENCHMARKS                        │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Single Thread:                                            │
-│  ├── Tier 0: ~870,000 evaluations/second                   │
-│  └── Tier 1: ~3,000,000 evaluations/second                 │
-│                                                            │
-│  Multi-Thread (8 cores):                                   │
-│  ├── Tier 0: ~6,500,000 evaluations/second                 │
-│  └── Tier 1: ~22,000,000 evaluations/second                │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Throughput["📊 THROUGHPUT BENCHMARKS"]
+        direction TB
+
+        subgraph Single["🔹 Single Thread"]
+            direction LR
+            ST0["Tier 0<br/><b>~870K/sec</b>"]
+            ST1["Tier 1<br/><b>~3M/sec</b>"]
+        end
+
+        subgraph Multi["🔸 Multi-Thread - 8 cores"]
+            direction LR
+            MT0["Tier 0<br/><b>~6.5M/sec</b>"]
+            MT1["Tier 1<br/><b>~22M/sec</b>"]
+        end
+    end
+
+    style Throughput fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Single fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Multi fill:#065f46,stroke:#10b981,color:#fff
+    style ST0 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style ST1 fill:#065f46,stroke:#10b981,color:#fff
+    style MT0 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style MT1 fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ---

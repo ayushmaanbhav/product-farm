@@ -211,11 +211,40 @@ Rules are assigned to execution levels using topological sort:
 2. **Level 1** - Rules depending only on Level 0 outputs
 3. **Level N** - Rules depending on Level N-1 outputs
 
-```
-Level 0: [get_age, get_income, get_credit_score]
-Level 1: [calculate_age_factor, calculate_income_ratio]
-Level 2: [calculate_risk_score]
-Level 3: [calculate_final_premium]
+```mermaid
+flowchart TB
+    subgraph L0["⚡ Level 0 - Parallel"]
+        direction LR
+        R0_1["get_age"]
+        R0_2["get_income"]
+        R0_3["get_credit_score"]
+    end
+
+    subgraph L1["🔗 Level 1"]
+        direction LR
+        R1_1["calculate_age_factor"]
+        R1_2["calculate_income_ratio"]
+    end
+
+    subgraph L2["🔗 Level 2"]
+        R2_1["calculate_risk_score"]
+    end
+
+    subgraph L3["🔗 Level 3"]
+        R3_1["calculate_final_premium"]
+    end
+
+    R0_1 --> R1_1
+    R0_2 --> R1_2
+    R0_3 --> R2_1
+    R1_1 --> R2_1
+    R1_2 --> R2_1
+    R2_1 --> R3_1
+
+    style L0 fill:#065f46,stroke:#10b981,color:#fff
+    style L1 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style L2 fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style L3 fill:#6366f1,stroke:#8b5cf6,color:#fff
 ```
 
 ### Parallel Execution Strategy

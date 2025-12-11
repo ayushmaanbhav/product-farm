@@ -51,23 +51,31 @@ Product-FARM is designed to become the **central nervous system** for product co
 
 Import entire product configurations from spreadsheets—perfect for migrating existing rule systems or bulk updates.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         EXCEL IMPORT WORKFLOW                               │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
-│   │   Upload    │───►│   Parse &   │───►│  Validate   │───►│   Import    │ │
-│   │   Excel     │    │   Preview   │    │   Rules     │    │  to System  │ │
-│   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘ │
-│                                                                             │
-│   Supported Formats:                                                        │
-│   • .xlsx (Excel 2007+)                                                     │
-│   • .csv (Comma-separated)                                                  │
-│   • .json (Structured JSON)                                                 │
-│   • .yaml (YAML configuration)                                              │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Workflow["📥 EXCEL IMPORT WORKFLOW"]
+        direction LR
+        S1["📤 Upload<br/>Excel"]
+        S2["🔍 Parse &<br/>Preview"]
+        S3["✅ Validate<br/>Rules"]
+        S4["💾 Import<br/>to System"]
+
+        S1 --> S2 --> S3 --> S4
+    end
+
+    subgraph Formats["📄 Supported Formats"]
+        F1[".xlsx - Excel 2007+"]
+        F2[".csv - Comma-separated"]
+        F3[".json - Structured JSON"]
+        F4[".yaml - YAML config"]
+    end
+
+    style Workflow fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Formats fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style S1 fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style S2 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style S3 fill:#065f46,stroke:#10b981,color:#fff
+    style S4 fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 **Example Excel Format:**
@@ -115,45 +123,37 @@ GET /api/products/{id}/export?format=markdown
 
 Transform Product-FARM into the **source of truth** for all product logic across your microservices ecosystem.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    PRODUCT-FARM ECOSYSTEM ARCHITECTURE                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│                          ┌─────────────────────┐                            │
-│                          │    PRODUCT-FARM     │                            │
-│                          │   (Source of Truth) │                            │
-│                          │                     │                            │
-│                          │  ┌───────────────┐  │                            │
-│                          │  │ Products      │  │                            │
-│                          │  │ Rules         │  │                            │
-│                          │  │ Configurations│  │                            │
-│                          │  └───────────────┘  │                            │
-│                          └──────────┬──────────┘                            │
-│                                     │                                       │
-│               ┌─────────────────────┼─────────────────────┐                 │
-│               │                     │                     │                 │
-│               ▼                     ▼                     ▼                 │
-│      ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐       │
-│      │  PRICING        │   │  UNDERWRITING   │   │  CLAIMS         │       │
-│      │  SERVICE        │   │  SERVICE        │   │  SERVICE        │       │
-│      │                 │   │                 │   │                 │       │
-│      │  Consumes:      │   │  Consumes:      │   │  Consumes:      │       │
-│      │  • pricing      │   │  • underwriting │   │  • claims       │       │
-│      │  • discount     │   │  • risk         │   │  • settlement   │       │
-│      │  • tax          │   │  • eligibility  │   │  • validation   │       │
-│      └────────┬────────┘   └────────┬────────┘   └────────┬────────┘       │
-│               │                     │                     │                 │
-│               └─────────────────────┼─────────────────────┘                 │
-│                                     │                                       │
-│                                     ▼                                       │
-│      ┌─────────────────────────────────────────────────────────────────┐   │
-│      │                      CONSUMER CHANNELS                           │   │
-│      │                                                                  │   │
-│      │    [Web Portal]    [Mobile App]    [Partner API]    [Agents]    │   │
-│      └─────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph PF["🎯 PRODUCT-FARM (Source of Truth)"]
+        PFC["📦 Products<br/>⚡ Rules<br/>⚙️ Configurations"]
+    end
+
+    subgraph Services["🔧 MICROSERVICES"]
+        direction LR
+        PS["💰 PRICING<br/>SERVICE<br/><small>pricing, discount, tax</small>"]
+        US["📋 UNDERWRITING<br/>SERVICE<br/><small>underwriting, risk, eligibility</small>"]
+        CS["📝 CLAIMS<br/>SERVICE<br/><small>claims, settlement, validation</small>"]
+    end
+
+    subgraph Channels["🌐 CONSUMER CHANNELS"]
+        direction LR
+        WP["Web Portal"]
+        MA["Mobile App"]
+        PA["Partner API"]
+        AG["Agents"]
+    end
+
+    PF --> PS
+    PF --> US
+    PF --> CS
+    PS --> Channels
+    US --> Channels
+    CS --> Channels
+
+    style PF fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style Services fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Channels fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 #### Service Integration Patterns
@@ -203,30 +203,39 @@ service ProductFarmService {
 
 Get notified when rules change, products are deployed, or evaluations fail.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          EVENT SYSTEM                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   Events:                          Destinations:                            │
-│   ┌─────────────────────┐          ┌─────────────────────┐                  │
-│   │ product.created     │─────────►│ Webhook Endpoints   │                  │
-│   │ product.updated     │          │                     │                  │
-│   │ product.activated   │          │ • Slack             │                  │
-│   │ product.deprecated  │          │ • Teams             │                  │
-│   │ rule.created        │          │ • PagerDuty         │                  │
-│   │ rule.updated        │          │ • Custom HTTP       │                  │
-│   │ evaluation.failed   │          └─────────────────────┘                  │
-│   │ evaluation.slow     │                                                   │
-│   └─────────────────────┘          ┌─────────────────────┐                  │
-│                                    │ Message Queues      │                  │
-│                          ─────────►│                     │                  │
-│                                    │ • Kafka             │                  │
-│                                    │ • RabbitMQ          │                  │
-│                                    │ • AWS SQS           │                  │
-│                                    └─────────────────────┘                  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Events["📡 EVENTS"]
+        direction TB
+        E1["product.created"]
+        E2["product.updated"]
+        E3["product.activated"]
+        E4["product.deprecated"]
+        E5["rule.created"]
+        E6["rule.updated"]
+        E7["evaluation.failed"]
+        E8["evaluation.slow"]
+    end
+
+    subgraph Webhooks["🔔 WEBHOOK ENDPOINTS"]
+        W1["Slack"]
+        W2["Teams"]
+        W3["PagerDuty"]
+        W4["Custom HTTP"]
+    end
+
+    subgraph Queues["📬 MESSAGE QUEUES"]
+        Q1["Kafka"]
+        Q2["RabbitMQ"]
+        Q3["AWS SQS"]
+    end
+
+    Events --> Webhooks
+    Events --> Queues
+
+    style Events fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style Webhooks fill:#065f46,stroke:#10b981,color:#fff
+    style Queues fill:#1e3a5f,stroke:#3b82f6,color:#fff
 ```
 
 **Webhook Configuration**
@@ -254,98 +263,99 @@ Get notified when rules change, products are deployed, or evaluations fail.
 
 Describe rules in plain English; AI converts them to JSON Logic.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     AI-POWERED RULE CREATION                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   User: "Create a discount rule that gives 15% off for customers who        │
-│          have been with us more than 3 years AND have made at least         │
-│          5 purchases this year"                                             │
-│                                                                             │
-│   ─────────────────────────────────────────────────────────────────────────│
-│                                                                             │
-│   AI Response:                                                              │
-│                                                                             │
-│   I've created the loyalty discount rule:                                   │
-│                                                                             │
-│   Name: loyalty_discount                                                    │
-│   Type: CALCULATION                                                         │
-│                                                                             │
-│   Expression:                                                               │
-│   IF (years_as_customer > 3 AND annual_purchases >= 5)                      │
-│   THEN price * 0.85                                                         │
-│   ELSE price                                                                │
-│                                                                             │
-│   Inputs: [years_as_customer, annual_purchases, price]                      │
-│   Output: [discounted_price]                                                │
-│                                                                             │
-│   [Create Rule]  [Modify]  [Test with Sample Data]                          │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant U as 👤 User
+    participant AI as 🤖 AI Assistant
+
+    U->>AI: Create a discount rule that gives 15% off<br/>for customers who have been with us<br/>more than 3 years AND have made<br/>at least 5 purchases this year
+
+    AI->>AI: Parse natural language
+
+    AI->>U: I've created the loyalty discount rule:
+
+    Note right of AI: Name: loyalty_discount<br/>Type: CALCULATION<br/><br/>Expression:<br/>IF (years_as_customer > 3<br/>AND annual_purchases >= 5)<br/>THEN price * 0.85<br/>ELSE price<br/><br/>Inputs: years_as_customer,<br/>annual_purchases, price<br/>Output: discounted_price
+
+    U->>AI: [Create Rule] [Modify] [Test]
 ```
 
 #### Intelligent Optimization
 
 AI analyzes your rules and suggests optimizations.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     AI OPTIMIZATION SUGGESTIONS                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   🔍 Analysis of: insurance-premium-v1                                      │
-│                                                                             │
-│   ⚡ Performance Issues Found:                                               │
-│                                                                             │
-│   1. Rule 'calculate_complex_factor' evaluated 50,000 times                 │
-│      but only returns 3 distinct values.                                    │
-│      → Suggestion: Convert to lookup table (3x faster)                      │
-│                                                                             │
-│   2. Rules 'validate_age' and 'check_age_range' are redundant               │
-│      → Suggestion: Merge into single rule                                   │
-│                                                                             │
-│   3. DAG level 4 has single rule blocking parallelism                       │
-│      → Suggestion: Restructure to enable parallel execution                 │
-│                                                                             │
-│   📈 Estimated Improvement: 2.1x faster evaluation                          │
-│                                                                             │
-│   [Apply All]  [Review Each]  [Dismiss]                                     │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Analysis["🔍 AI OPTIMIZATION SUGGESTIONS"]
+        direction TB
+        subgraph Header["Analysis of: insurance-premium-v1"]
+            H1["⚡ Performance Issues Found"]
+        end
+
+        subgraph Issues["Issues Detected"]
+            I1["1️⃣ <b>calculate_complex_factor</b><br/>50K evals, only 3 distinct values<br/>→ Convert to lookup table (3x faster)"]
+            I2["2️⃣ <b>validate_age + check_age_range</b><br/>Redundant rules detected<br/>→ Merge into single rule"]
+            I3["3️⃣ <b>DAG Level 4</b><br/>Single rule blocking parallelism<br/>→ Restructure for parallel execution"]
+        end
+
+        subgraph Result["📈 Estimated Improvement"]
+            R1["2.1x faster evaluation"]
+        end
+
+        Actions["[Apply All] [Review Each] [Dismiss]"]
+    end
+
+    style Analysis fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Header fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style Issues fill:#4a1a1a,stroke:#ef4444,color:#fff
+    style Result fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 #### Rule Testing & Simulation
 
 AI generates test cases and validates rule behavior.
 
-```
-User: "Generate test cases for the premium calculation rules"
+```mermaid
+flowchart TB
+    subgraph TestGen["🧪 AI TEST CASE GENERATION"]
+        direction TB
+        Request["👤 Generate test cases for the premium calculation rules"]
 
-AI: I've generated 15 test cases covering:
+        subgraph Generated["🤖 AI Generated 15 Test Cases"]
+            direction LR
+            subgraph Edge["🔴 Edge Cases (5)"]
+                E1["Age = 0 (min)"]
+                E2["Age = 150 (max)"]
+                E3["Coverage = 0"]
+                E4["All factors max"]
+                E5["All factors min"]
+            end
 
-├── Edge Cases (5)
-│   ├── Age = 0 (minimum)
-│   ├── Age = 150 (maximum)
-│   ├── Coverage = 0
-│   ├── All factors at maximum
-│   └── All factors at minimum
-│
-├── Boundary Conditions (5)
-│   ├── Age = 40 (boundary)
-│   ├── Age = 41 (just above)
-│   ├── Age = 60 (boundary)
-│   ├── Age = 61 (just above)
-│   └── Coverage = 1,000,000 (high value)
-│
-└── Representative Scenarios (5)
-    ├── Young non-smoker, basic coverage
-    ├── Middle-aged occasional smoker
-    ├── Senior regular smoker
-    ├── Average customer profile
-    └── High-risk profile
+            subgraph Boundary["🟡 Boundary Conditions (5)"]
+                B1["Age = 40"]
+                B2["Age = 41"]
+                B3["Age = 60"]
+                B4["Age = 61"]
+                B5["Coverage = 1M"]
+            end
 
-[Run All Tests]  [Export as JSON]  [Add to CI/CD]
+            subgraph Scenarios["🟢 Representative (5)"]
+                S1["Young non-smoker"]
+                S2["Middle-aged occ."]
+                S3["Senior regular"]
+                S4["Average profile"]
+                S5["High-risk"]
+            end
+        end
+
+        Actions["[Run All Tests] [Export as JSON] [Add to CI/CD]"]
+    end
+
+    Request --> Generated --> Actions
+
+    style TestGen fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Edge fill:#4a1a1a,stroke:#ef4444,color:#fff
+    style Boundary fill:#422006,stroke:#f59e0b,color:#fff
+    style Scenarios fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 ---
@@ -356,30 +366,37 @@ AI: I've generated 15 test cases covering:
 
 Isolate products and rules by tenant for SaaS deployments.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       MULTI-TENANT ARCHITECTURE                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                     PRODUCT-FARM PLATFORM                           │   │
-│   │                                                                     │   │
-│   │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │   │
-│   │   │  TENANT A    │  │  TENANT B    │  │  TENANT C    │             │   │
-│   │   │              │  │              │  │              │             │   │
-│   │   │ Products: 5  │  │ Products: 12 │  │ Products: 3  │             │   │
-│   │   │ Rules: 45    │  │ Rules: 120   │  │ Rules: 28    │             │   │
-│   │   │ Users: 10    │  │ Users: 50    │  │ Users: 5     │             │   │
-│   │   │              │  │              │  │              │             │   │
-│   │   │ Plan: Basic  │  │ Plan: Pro    │  │ Plan: Basic  │             │   │
-│   │   └──────────────┘  └──────────────┘  └──────────────┘             │   │
-│   │                                                                     │   │
-│   │   Isolation: Complete data separation                               │   │
-│   │   Billing: Per-evaluation metering                                  │   │
-│   │   Limits: Configurable per tenant                                   │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Platform["🏢 PRODUCT-FARM PLATFORM"]
+        direction TB
+
+        subgraph Tenants["Multi-Tenant Architecture"]
+            direction LR
+            subgraph TA["🔹 TENANT A"]
+                TA1["Products: 5<br/>Rules: 45<br/>Users: 10<br/><b>Plan: Basic</b>"]
+            end
+            subgraph TB["🔸 TENANT B"]
+                TB1["Products: 12<br/>Rules: 120<br/>Users: 50<br/><b>Plan: Pro</b>"]
+            end
+            subgraph TC["🔹 TENANT C"]
+                TC1["Products: 3<br/>Rules: 28<br/>Users: 5<br/><b>Plan: Basic</b>"]
+            end
+        end
+
+        subgraph Features["Platform Features"]
+            direction LR
+            F1["🔒 Isolation: Complete data separation"]
+            F2["💰 Billing: Per-evaluation metering"]
+            F3["📊 Limits: Configurable per tenant"]
+        end
+    end
+
+    style Platform fill:#0f172a,stroke:#3b82f6,color:#fff
+    style TA fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style TB fill:#6366f1,stroke:#8b5cf6,color:#fff
+    style TC fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style Features fill:#065f46,stroke:#10b981,color:#fff
 ```
 
 #### Role-Based Access Control (RBAC)
@@ -437,46 +454,48 @@ Complete audit trail for regulatory compliance.
 
 Product-FARM evolves into a **complete product platform** where:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                             │
-│                        THE PRODUCT PLATFORM VISION                          │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   Today's State                    Tomorrow's Vision                        │
-│   ─────────────                    ─────────────────                        │
-│                                                                             │
-│   • Rules in code                  • Rules in Product-FARM                  │
-│   • Logic in spreadsheets          • Visual rule builder                    │
-│   • Inconsistent calculations      • Single source of truth                 │
-│   • Slow changes                   • Real-time updates                      │
-│   • No audit trail                 • Complete compliance                    │
-│   • Developer bottleneck           • Business self-service                  │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   The Product Platform serves as:                                           │
-│                                                                             │
-│   📦 PRODUCT CATALOG                                                        │
-│      Central registry of all business products                              │
-│                                                                             │
-│   🧮 CALCULATION ENGINE                                                     │
-│      Execute any product logic with sub-microsecond latency                 │
-│                                                                             │
-│   📋 CONFIGURATION STORE                                                    │
-│      Store and serve all product configurations                             │
-│                                                                             │
-│   🔍 AUDIT SYSTEM                                                           │
-│      Track every change, every decision, every calculation                  │
-│                                                                             │
-│   🤖 AI ASSISTANT                                                           │
-│      Help create, optimize, and test product rules                          │
-│                                                                             │
-│   🔄 INTEGRATION HUB                                                        │
-│      Connect to all your systems via REST, gRPC, events                     │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Vision["🎯 THE PRODUCT PLATFORM VISION"]
+        direction TB
+
+        subgraph Comparison["Today vs Tomorrow"]
+            direction LR
+            subgraph Today["❌ Today's State"]
+                T1["Rules in code"]
+                T2["Logic in spreadsheets"]
+                T3["Inconsistent calculations"]
+                T4["Slow changes"]
+                T5["No audit trail"]
+                T6["Developer bottleneck"]
+            end
+            subgraph Tomorrow["✅ Tomorrow's Vision"]
+                V1["Rules in Product-FARM"]
+                V2["Visual rule builder"]
+                V3["Single source of truth"]
+                V4["Real-time updates"]
+                V5["Complete compliance"]
+                V6["Business self-service"]
+            end
+        end
+
+        subgraph Capabilities["The Product Platform Serves As"]
+            direction LR
+            C1["📦 PRODUCT CATALOG<br/><small>Central registry</small>"]
+            C2["🧮 CALCULATION ENGINE<br/><small>Sub-µs latency</small>"]
+            C3["📋 CONFIGURATION STORE<br/><small>All configs</small>"]
+            C4["🔍 AUDIT SYSTEM<br/><small>Every change tracked</small>"]
+            C5["🤖 AI ASSISTANT<br/><small>Create & optimize</small>"]
+            C6["🔄 INTEGRATION HUB<br/><small>REST, gRPC, events</small>"]
+        end
+    end
+
+    Today -.->|Transform| Tomorrow
+
+    style Vision fill:#0f172a,stroke:#3b82f6,color:#fff
+    style Today fill:#4a1a1a,stroke:#ef4444,color:#fff
+    style Tomorrow fill:#065f46,stroke:#10b981,color:#fff
+    style Capabilities fill:#1e3a5f,stroke:#3b82f6,color:#fff
 ```
 
 ### Impact Metrics

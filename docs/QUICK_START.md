@@ -210,7 +210,7 @@ This script will start:
 - **Frontend** on port 5173
 
 **What happens during startup:**
-```
+```text
 [Starting DGraph Zero...]        ✓ Port 5080
 [Starting DGraph Alpha...]       ✓ Ports 7080, 8080, 9080
 [Building Backend...]            ✓ Compiling Rust (first run takes 2-3 min)
@@ -592,18 +592,32 @@ The DAG shows:
 
 Rules at the same level execute in parallel:
 
-```
-Level 0 (Parallel):
-├── calculate_base_premium (inputs: coverage_amount)
-├── calculate_age_factor (inputs: customer_age)
-├── calculate_smoker_factor (inputs: smoker_status)
-└── classify_risk_level (inputs: customer_age, smoker_status)
+```mermaid
+flowchart TB
+    subgraph L0["⚡ Level 0 - Parallel Execution"]
+        direction LR
+        R1["calculate_base_premium<br/><small>inputs: coverage_amount</small>"]
+        R2["calculate_age_factor<br/><small>inputs: customer_age</small>"]
+        R3["calculate_smoker_factor<br/><small>inputs: smoker_status</small>"]
+        R4["classify_risk_level<br/><small>inputs: customer_age, smoker_status</small>"]
+    end
 
-Level 1 (After Level 0):
-└── calculate_final_premium (inputs: base_premium, age_factor, smoker_factor)
+    subgraph L1["🔗 Level 1 - After Level 0"]
+        R5["calculate_final_premium<br/><small>inputs: base_premium, age_factor, smoker_factor</small>"]
+    end
 
-Level 2 (After Level 1):
-└── calculate_monthly_payment (inputs: final_premium)
+    subgraph L2["🔗 Level 2 - After Level 1"]
+        R6["calculate_monthly_payment<br/><small>inputs: final_premium</small>"]
+    end
+
+    R1 --> R5
+    R2 --> R5
+    R3 --> R5
+    R5 --> R6
+
+    style L0 fill:#065f46,stroke:#10b981,color:#fff
+    style L1 fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style L2 fill:#4c1d95,stroke:#8b5cf6,color:#fff
 ```
 
 <div class="callout callout-performance">
