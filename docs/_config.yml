@@ -8,14 +8,16 @@ url: "https://ayushmaanbhav.github.io"
 nav:
   - title: Home
     url: /
+  - title: Why
+    url: /WHY
   - title: Quick Start
     url: /QUICK_START
+  - title: Concepts
+    url: /CONCEPTS
+  - title: How It Works
+    url: /HOW_IT_WORKS
   - title: Architecture
     url: /ARCHITECTURE
-  - title: Use Cases
-    url: /USE_CASES
-  - title: API Reference
-    url: /API_REFERENCE
   - title: GitHub
     url: https://github.com/ayushmaanbhav/Product-FARM
 

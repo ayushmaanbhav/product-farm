@@ -1151,6 +1151,198 @@
       text-decoration: underline;
     }
 
+    /* Documentation layout with sidebar */
+    .docs-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 3rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      min-height: calc(100vh - 200px);
+    }
+
+    .docs-sidebar {
+      position: sticky;
+      top: 100px;
+      height: fit-content;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      padding-right: 1rem;
+    }
+
+    .docs-sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .docs-sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .docs-sidebar::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 4px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--color-text-muted);
+      margin-bottom: 0.75rem;
+      padding-left: 0.5rem;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+    }
+
+    .sidebar-nav li {
+      margin-bottom: 2px;
+    }
+
+    .sidebar-nav a {
+      display: block;
+      padding: 0.6rem 0.75rem;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      transition: all var(--transition-fast);
+      border-left: 2px solid transparent;
+    }
+
+    .sidebar-nav a:hover {
+      background: var(--color-bg-card);
+      color: var(--color-text);
+    }
+
+    .sidebar-nav a.active {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--color-primary);
+      border-left-color: var(--color-primary);
+      font-weight: 500;
+    }
+
+    /* Table of Contents (on-page navigation) */
+    .toc-section {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .toc-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--color-text-muted);
+      margin-bottom: 0.75rem;
+      padding-left: 0.5rem;
+    }
+
+    .toc-nav {
+      list-style: none;
+    }
+
+    .toc-nav li {
+      margin-bottom: 2px;
+    }
+
+    .toc-nav a {
+      display: block;
+      padding: 0.4rem 0.75rem;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      transition: all var(--transition-fast);
+      border-left: 1px solid var(--color-border);
+    }
+
+    .toc-nav a:hover {
+      color: var(--color-text-secondary);
+      border-left-color: var(--color-text-secondary);
+    }
+
+    .toc-nav a.toc-h3 {
+      padding-left: 1.5rem;
+      font-size: 0.75rem;
+    }
+
+    .docs-content {
+      max-width: 900px;
+      min-width: 0;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 1024px) {
+      .docs-layout {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
+
+      .docs-sidebar {
+        position: relative;
+        top: 0;
+        max-height: none;
+        padding-right: 0;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .toc-section {
+        display: none;
+      }
+    }
+
+    /* Mobile sidebar toggle */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      border: none;
+      color: white;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .docs-sidebar {
+        display: none;
+      }
+
+      .docs-sidebar.open {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--color-bg);
+        z-index: 99;
+        padding: 6rem 2rem 2rem;
+        overflow-y: auto;
+      }
+    }
+
     /* Markdown content styling */
     .markdown-body {
       color: var(--color-text);
@@ -1831,12 +2023,126 @@
     </section>
 
     {% else %}
-    <!-- Regular page content -->
-    <div class="content-wrapper">
-      <article class="markdown-body">
-        {{ content }}
-      </article>
+    <!-- Documentation page with sidebar -->
+    <div class="docs-layout">
+      <!-- Left Sidebar Navigation -->
+      <aside class="docs-sidebar" id="docs-sidebar">
+        <!-- Getting Started Section -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Getting Started</div>
+          <ul class="sidebar-nav">
+            <li><a href="{{ site.baseurl }}/WHY" {% if page.url == "/WHY" or page.url == "/WHY/" %}class="active"{% endif %}>Why Product-FARM</a></li>
+            <li><a href="{{ site.baseurl }}/QUICK_START" {% if page.url == "/QUICK_START" or page.url == "/QUICK_START/" %}class="active"{% endif %}>Quick Start Guide</a></li>
+            <li><a href="{{ site.baseurl }}/CONCEPTS" {% if page.url == "/CONCEPTS" or page.url == "/CONCEPTS/" %}class="active"{% endif %}>Core Concepts</a></li>
+          </ul>
+        </div>
+
+        <!-- Technical Reference Section -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Technical Reference</div>
+          <ul class="sidebar-nav">
+            <li><a href="{{ site.baseurl }}/HOW_IT_WORKS" {% if page.url == "/HOW_IT_WORKS" or page.url == "/HOW_IT_WORKS/" %}class="active"{% endif %}>How It Works</a></li>
+            <li><a href="{{ site.baseurl }}/ARCHITECTURE" {% if page.url == "/ARCHITECTURE" or page.url == "/ARCHITECTURE/" %}class="active"{% endif %}>Architecture</a></li>
+            <li><a href="{{ site.baseurl }}/API_REFERENCE" {% if page.url == "/API_REFERENCE" or page.url == "/API_REFERENCE/" %}class="active"{% endif %}>API Reference</a></li>
+          </ul>
+        </div>
+
+        <!-- Resources Section -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Resources</div>
+          <ul class="sidebar-nav">
+            <li><a href="{{ site.baseurl }}/USE_CASES" {% if page.url == "/USE_CASES" or page.url == "/USE_CASES/" %}class="active"{% endif %}>Use Cases</a></li>
+            <li><a href="{{ site.baseurl }}/ROADMAP" {% if page.url == "/ROADMAP" or page.url == "/ROADMAP/" %}class="active"{% endif %}>Roadmap</a></li>
+          </ul>
+        </div>
+
+        <!-- On-Page Table of Contents -->
+        <div class="toc-section" id="toc-container">
+          <div class="toc-title">On This Page</div>
+          <ul class="toc-nav" id="toc-nav">
+            <!-- Populated by JavaScript -->
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="docs-content">
+        <article class="markdown-body">
+          {{ content }}
+        </article>
+      </div>
     </div>
+
+    <!-- Mobile sidebar toggle button -->
+    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18M3 6h18M3 18h18"/>
+      </svg>
+    </button>
+
+    <script>
+      // Mobile sidebar toggle
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('docs-sidebar');
+
+      if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', () => {
+          sidebar.classList.toggle('open');
+        });
+      }
+
+      // Generate table of contents from headings
+      function generateTOC() {
+        const content = document.querySelector('.markdown-body');
+        const tocNav = document.getElementById('toc-nav');
+        const tocContainer = document.getElementById('toc-container');
+
+        if (!content || !tocNav) return;
+
+        const headings = content.querySelectorAll('h2, h3');
+
+        if (headings.length < 2) {
+          if (tocContainer) tocContainer.style.display = 'none';
+          return;
+        }
+
+        headings.forEach((heading, index) => {
+          // Create ID if not exists
+          if (!heading.id) {
+            heading.id = 'heading-' + index;
+          }
+
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = '#' + heading.id;
+          a.textContent = heading.textContent;
+
+          if (heading.tagName === 'H3') {
+            a.classList.add('toc-h3');
+          }
+
+          li.appendChild(a);
+          tocNav.appendChild(li);
+        });
+      }
+
+      // Smooth scroll for TOC links
+      document.addEventListener('click', (e) => {
+        if (e.target.matches('.toc-nav a')) {
+          e.preventDefault();
+          const targetId = e.target.getAttribute('href').slice(1);
+          const target = document.getElementById(targetId);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Update URL without scrolling
+            history.pushState(null, null, '#' + targetId);
+          }
+        }
+      });
+
+      // Initialize TOC
+      document.addEventListener('DOMContentLoaded', generateTOC);
+    </script>
     {% endif %}
   </main>
 
@@ -1853,10 +2159,12 @@
       <div class="footer-section">
         <h4>Documentation</h4>
         <ul class="footer-links">
+          <li><a href="{{ site.baseurl }}/WHY">Why Product-FARM</a></li>
           <li><a href="{{ site.baseurl }}/QUICK_START">Quick Start</a></li>
+          <li><a href="{{ site.baseurl }}/CONCEPTS">Core Concepts</a></li>
+          <li><a href="{{ site.baseurl }}/HOW_IT_WORKS">How It Works</a></li>
           <li><a href="{{ site.baseurl }}/ARCHITECTURE">Architecture</a></li>
           <li><a href="{{ site.baseurl }}/API_REFERENCE">API Reference</a></li>
-          <li><a href="{{ site.baseurl }}/USE_CASES">Use Cases</a></li>
         </ul>
       </div>
 
