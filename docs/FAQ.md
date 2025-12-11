@@ -13,6 +13,7 @@ A comprehensive guide to common questions, edge cases, and best practices for Pr
 
 - [General Questions](#general-questions)
 - [Getting Started](#getting-started)
+- [AI Assistant](#ai-assistant)
 - [Rule Engine & JSON Logic](#rule-engine--json-logic)
 - [Performance & Optimization](#performance--optimization)
 - [Data Model & Validation](#data-model--validation)
@@ -181,6 +182,148 @@ CACHE_ATTRIBUTES_SIZE=10000      # Max cached attributes
 CACHE_RULES_SIZE=10000           # Max cached rules
 CACHE_COMPILED_SIZE=10000        # Max cached bytecode
 ```
+
+---
+
+## AI Assistant
+
+### What can the AI assistant do?
+
+The AI assistant is a built-in feature that helps you work with rules more efficiently:
+
+| Capability | Description | Example |
+|-----------|-------------|---------|
+| **Create Rules** | Generate rules from natural language | "Create a rule that adds 20% if age > 60" |
+| **Explain Rules** | Get plain English explanations | "Explain how the premium calculation works" |
+| **Analyze Impact** | See what's affected by changes | "What would change if I modify vehicle_value?" |
+| **Optimize** | Get improvement suggestions | "Suggest optimizations for my rules" |
+
+### How do I create a rule using AI?
+
+Simply describe your rule in plain English:
+
+```text
+You: "Create a rule: if customer_age > 65 AND income < 50000, apply senior discount of 15%"
+
+AI: I've created a rule based on your description:
+
+    Name: apply_senior_discount
+    Expression: IF (age > 65 AND income < 50000) THEN price * 0.85 ELSE price
+    Inputs: [customer_age, income, price]
+    Outputs: [discounted_price]
+```
+
+**Tips for better results:**
+- Be specific about conditions and values
+- Mention input and output names if you have preferences
+- Use common business terms (discount, premium, rate, factor)
+
+### How accurate is the AI rule generation?
+
+The AI understands common patterns well:
+
+| Pattern | Accuracy | Example |
+|---------|----------|---------|
+| Simple conditions | High | "if age > 30" |
+| Percentages | High | "add 20%", "discount by 15%" |
+| AND/OR logic | High | "if A and B or C" |
+| Nested conditions | Medium | "if A then (if B then X else Y)" |
+| Complex math | Medium | "calculate compound interest" |
+
+**Always review generated rules** in the visual editor before activating.
+
+### Can AI explain my existing rules?
+
+Yes! The AI can explain any rule or the entire DAG:
+
+```text
+You: "Explain how premium calculation works"
+
+AI: The premium calculation follows a multi-step process:
+
+    1. **Base Premium** (Level 0)
+       - Calculated from coverage_amount × rate_per_1000
+
+    2. **Risk Factors** (Level 0, parallel)
+       - age_factor: 0.9x (under 30), 1.0x (30-50), 1.2x (over 50)
+       - smoker_factor: 1.3x if smoker, 1.0x otherwise
+
+    3. **Final Premium** (Level 1)
+       - base_premium × age_factor × smoker_factor
+
+    4. **Monthly Payment** (Level 2)
+       - final_premium ÷ 12
+```
+
+### How does impact analysis work?
+
+When you ask about changing an attribute, the AI traces all dependencies:
+
+```text
+You: "What would be affected if I change base_rate?"
+
+AI: Changing base_rate would impact:
+
+    ┌─ Direct Dependencies ─────────────────────┐
+    │ • calculate_base_premium (uses base_rate) │
+    │ • calculate_tier_premium (uses base_rate) │
+    └───────────────────────────────────────────┘
+
+    ┌─ Downstream Effects ──────────────────────┐
+    │ • final_premium (depends on base_premium) │
+    │ • monthly_payment (depends on final)      │
+    │ • annual_cost (depends on final)          │
+    └───────────────────────────────────────────┘
+
+    ⚠️ Total: 5 rules affected across 3 DAG levels
+```
+
+### What optimization suggestions does the AI provide?
+
+The AI analyzes your rules and identifies:
+
+**Performance Issues:**
+- Rules that could be combined
+- Duplicate calculations
+- Unnecessary dependencies
+
+**Maintainability Issues:**
+- Missing descriptions
+- Duplicate logic patterns
+- Confusing naming
+
+**Potential Bugs:**
+- Impossible conditions (dead code)
+- Missing edge cases
+- Type mismatches
+
+### Does the AI require an internet connection?
+
+The AI assistant requires connectivity to process your requests. Your rule data is sent to the AI service for analysis.
+
+**Data Privacy:**
+- Only rule definitions and metadata are sent
+- No customer/transaction data is transmitted
+- Requests are not stored or used for training
+
+### Can I disable the AI assistant?
+
+Yes, the AI assistant panel can be hidden. Click the AI button in the top right to toggle it off. The core rule engine functionality works completely without AI.
+
+### Why did the AI generate an incorrect rule?
+
+The AI may misunderstand complex or ambiguous requirements:
+
+**Common Issues:**
+
+| Problem | Solution |
+|---------|----------|
+| Wrong variable names | Specify exact names: "use `customer_age` not `age`" |
+| Wrong direction | Be explicit: "add 20%" vs "reduce by 20%" |
+| Missing conditions | List all conditions: "if A AND B AND C" |
+| Wrong operators | Specify: "greater than or equal" vs "greater than" |
+
+**Best Practice:** Use AI for first drafts, then refine in the visual editor.
 
 ---
 

@@ -360,6 +360,135 @@ approval_workflow:
 
 ---
 
+## AI-Powered Assistance
+
+Product-FARM includes an intelligent AI assistant that transforms how you create, understand, and optimize business rules.
+
+### Natural Language Rule Creation
+
+Describe your rules in plain English, and the AI generates complete, executable rule definitions:
+
+**Example Interaction:**
+
+```text
+You: "Create a rule: if age > 60, add 20% to premium"
+
+AI: I've created a rule based on your description. Here's what I generated:
+
+    Name: apply_age_premium
+    Expression: IF age > 60 THEN premium * 1.2 ELSE premium
+    Inputs: [age, premium]
+    Outputs: [adjusted_premium]
+```
+
+The AI understands:
+- **Conditional logic** - If/then/else statements
+- **Mathematical operations** - Percentages, multiplications, additions
+- **Business terminology** - Premium, discount, rate, factor
+- **Complex conditions** - AND/OR combinations, nested logic
+
+![AI Rule Generation](screenshots/ai-rule-generation.png)
+
+### Rule Explanation
+
+Have the AI explain complex rule logic in plain English:
+
+```text
+You: "Explain how premium calculation works"
+
+AI: The premium calculation follows these steps:
+
+    1. Base premium is determined by coverage amount ($10 per $1,000)
+    2. Age factor is applied:
+       - Under 30: 0.9x (10% discount)
+       - 30-50: 1.0x (standard rate)
+       - Over 50: 1.2x (20% increase)
+    3. Smoker status adds 30% if applicable
+    4. Final premium = base × age_factor × smoker_factor
+```
+
+Features:
+- **Step-by-step breakdowns** - Understand execution flow
+- **Dependency visualization** - See how rules connect
+- **Input/output mapping** - Know what each rule needs and produces
+
+![AI Explain Rule](screenshots/ai-explain-rule.png)
+
+### Impact Analysis
+
+Before making changes, understand what will be affected:
+
+```text
+You: "What would be affected if I change vehicle_value?"
+
+AI: Changing vehicle_value would impact:
+
+    Direct Dependencies:
+    ├── calculate_collision_premium (uses vehicle_value directly)
+    ├── calculate_comprehensive_premium (uses vehicle_value directly)
+    └── determine_deductible_options (based on value ranges)
+
+    Downstream Effects:
+    ├── total_premium (sum of all premiums)
+    ├── monthly_payment (derived from total_premium)
+    └── quote_display (formats final values)
+
+    Functionalities Affected:
+    ├── generate_quote
+    └── calculate_renewal
+```
+
+### Optimization Suggestions
+
+Get AI-powered recommendations to improve your rules:
+
+```text
+You: "Suggest improvements for my rules"
+
+AI: I've analyzed your rules and found opportunities:
+
+    🚀 Performance Optimizations:
+    - Rules "check_age" and "check_income" can be combined
+    - "calculate_factor" runs twice with same inputs - consider caching
+
+    📋 Maintainability:
+    - "rule_123" has no description - add documentation
+    - 3 rules have similar logic - consider extracting common pattern
+
+    ⚠️ Potential Issues:
+    - "discount_rule" never triggers (impossible condition)
+    - "premium_calc" references undefined attribute "base_rate"
+```
+
+### Quick Actions
+
+The AI assistant provides instant access to common operations:
+
+| Action | Description |
+|--------|-------------|
+| **Create Rule** | Generate rules from natural language descriptions |
+| **Explain Rule** | Get plain-English explanation of any rule |
+| **Analyze Impact** | See what's affected by changes |
+| **Optimize** | Get suggestions for improvement |
+
+### AI Capabilities
+
+| Capability | Description |
+|-----------|-------------|
+| Natural Language Processing | Understands business requirements in plain English |
+| JSON Logic Generation | Converts descriptions to executable JSON Logic expressions |
+| Context Awareness | Knows your product's attributes, rules, and dependencies |
+| DAG Understanding | Explains how rules connect and execute in parallel |
+| Error Detection | Identifies potential issues before they cause problems |
+
+<div class="callout callout-tip">
+<strong>Best Practice:</strong> Start with the AI to draft rules, then refine in the visual editor. This combines the speed of natural language with the precision of visual validation.
+</div>
+
+![AI Assistant Panel](screenshots/ai-assistant-panel.png)
+
+---
+
 ## API Architecture
 
 Product-FARM provides dual API support for different use cases.
