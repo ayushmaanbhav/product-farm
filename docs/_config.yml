@@ -51,6 +51,8 @@ docs_nav:
         url: /USE_CASES
       - title: Roadmap
         url: /ROADMAP
+      - title: FAQ
+        url: /FAQ
 
 # Mermaid diagram support
 mermaid:
