@@ -1,3 +1,8 @@
+---
+layout: default
+title: Quick Start
+---
+
 # Quick Start Guide
 
 Get Product-FARM up and running in 5 minutes.
@@ -15,7 +20,7 @@ Before you begin, ensure you have the following installed:
 ## Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/product-farm.git
+git clone https://github.com/ayushmaanbhav/product-farm.git
 cd product-farm
 ```
 

@@ -1,0 +1,35 @@
+# GitHub Pages Configuration for Product-FARM
+title: Product-FARM
+description: High-Performance Domain-Agnostic Rule Engine with AI-Powered Configuration
+baseurl: "/product-farm"
+url: "https://ayushmaanbhav.github.io"
+
+# Navigation
+nav:
+  - title: Home
+    url: /
+  - title: Quick Start
+    url: /QUICK_START
+  - title: Architecture
+    url: /ARCHITECTURE
+  - title: Use Cases
+    url: /USE_CASES
+  - title: API Reference
+    url: /API_REFERENCE
+  - title: GitHub
+    url: https://github.com/ayushmaanbhav/product-farm
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+# Exclude files from Jekyll processing
+exclude:
+  - "*.pdf"
+  - BACKEND_GAP_ANALYSIS.md
+  - INTEGRATION_PLAN.md
+  - LEGACY_RUST_COMPARISON.md
+  - REST_API_REFACTORING_PLAN.md
+  - PRODUCT_FARM_EVOLUTION_DESIGN.md
+  - DGRAPH_SETUP.md
+  - DGRAPH_OPERATIONS_GUIDE.md

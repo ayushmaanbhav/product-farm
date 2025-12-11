@@ -1,3 +1,8 @@
+---
+layout: default
+title: Use Cases
+---
+
 # Use Cases
 
 Product-FARM is a domain-agnostic rule engine that can power various business applications. This document provides detailed examples across different industries.

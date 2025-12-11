@@ -1,3 +1,8 @@
+---
+layout: default
+title: Architecture
+---
+
 # Product-FARM Architecture
 
 This document provides a comprehensive overview of Product-FARM's system architecture, component design, and data flow.

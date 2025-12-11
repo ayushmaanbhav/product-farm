@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Product-FARM Dashboard" width="800"/>
+  <img src="docs/screenshots/dashboard-populated.png" alt="Product-FARM Dashboard" width="800"/>
 </p>
 
 <h1 align="center">Product-FARM</h1>
@@ -121,42 +121,49 @@ Product-FARM (**F**unctionality, **A**ttribute, and **R**ule **M**anagement) is 
 <details>
 <summary><b>Dashboard</b> - Overview with metrics and quick actions</summary>
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800"/>
+  <img src="docs/screenshots/dashboard-populated.png" alt="Dashboard" width="800"/>
 </p>
 </details>
 
 <details>
 <summary><b>Rule Canvas</b> - Visual DAG editor with execution levels</summary>
 <p align="center">
-  <img src="docs/screenshots/rules-canvas.png" alt="Rule Canvas" width="800"/>
+  <img src="docs/screenshots/rules-dag-full-view.png" alt="Rule Canvas" width="800"/>
+</p>
+</details>
+
+<details>
+<summary><b>Rule Builder</b> - Block-based expression builder</summary>
+<p align="center">
+  <img src="docs/screenshots/rule-builder-expression.png" alt="Rule Builder" width="800"/>
 </p>
 </details>
 
 <details>
 <summary><b>Products</b> - Lifecycle management and configuration</summary>
 <p align="center">
-  <img src="docs/screenshots/products.png" alt="Products" width="800"/>
+  <img src="docs/screenshots/products-populated.png" alt="Products" width="800"/>
 </p>
 </details>
 
 <details>
 <summary><b>Datatypes</b> - Type system with constraints</summary>
 <p align="center">
-  <img src="docs/screenshots/datatypes.png" alt="Datatypes" width="800"/>
+  <img src="docs/screenshots/datatypes-populated.png" alt="Datatypes" width="800"/>
 </p>
 </details>
 
 <details>
 <summary><b>Attributes</b> - Hierarchical attribute management</summary>
 <p align="center">
-  <img src="docs/screenshots/attributes.png" alt="Attributes" width="800"/>
+  <img src="docs/screenshots/attributes-populated.png" alt="Attributes" width="800"/>
 </p>
 </details>
 
 <details>
 <summary><b>Enumerations</b> - Type-safe value definitions</summary>
 <p align="center">
-  <img src="docs/screenshots/enumerations.png" alt="Enumerations" width="800"/>
+  <img src="docs/screenshots/enumerations-populated.png" alt="Enumerations" width="800"/>
 </p>
 </details>
 
@@ -390,7 +397,7 @@ Input Variables
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/product-farm.git
+git clone https://github.com/ayushmaanbhav/product-farm.git
 cd product-farm
 
 # Start all services (DGraph, Backend, Frontend)
@@ -721,7 +728,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/product-farm.git
+git clone https://github.com/ayushmaanbhav/product-farm.git
 cd product-farm
 
 # Backend development
@@ -766,7 +773,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 <p align="center">
   Made with Rust + React
   <br/>
-  <a href="https://github.com/yourusername/product-farm">GitHub</a> ·
+  <a href="https://github.com/ayushmaanbhav/product-farm">GitHub</a> ·
   <a href="docs/QUICK_START.md">Documentation</a> ·
   <a href="docs/USE_CASES.md">Examples</a>
 </p>

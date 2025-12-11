@@ -1,3 +1,8 @@
+---
+layout: default
+title: API Reference
+---
+
 # API Reference
 
 Product-FARM provides both REST and gRPC APIs for integration.
