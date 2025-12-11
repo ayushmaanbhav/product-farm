@@ -843,6 +843,139 @@
       line-height: 1.6;
     }
 
+    /* AI Showcase Section */
+    .ai-showcase-section {
+      position: relative;
+      padding: 4rem 0;
+    }
+
+    .ai-features-container {
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    .ai-feature-highlight {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 3rem;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: var(--radius-xl);
+      padding: 2.5rem;
+    }
+
+    .ai-feature-content h3 {
+      font-size: 1.5rem;
+      color: var(--color-text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .ai-feature-content p {
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .ai-example {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+
+    .ai-prompt {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .ai-arrow {
+      text-align: center;
+      font-size: 1.5rem;
+      color: var(--color-primary);
+      margin: 0.5rem 0;
+    }
+
+    .ai-result {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10b981;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+    }
+
+    .ai-feature-image {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--color-border);
+    }
+
+    .ai-feature-image img {
+      width: 100%;
+      display: block;
+    }
+
+    .ai-capabilities-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+
+    .ai-capability-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      transition: all var(--transition-base);
+    }
+
+    .ai-capability-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--color-border-glow);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .ai-capability-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .ai-capability-card h4 {
+      font-size: 1rem;
+      color: var(--color-text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .ai-capability-card p {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1024px) {
+      .ai-feature-highlight {
+        grid-template-columns: 1fr;
+      }
+
+      .ai-capabilities-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .ai-capabilities-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* Screenshot gallery with hover effects */
     .gallery-section {
       position: relative;
@@ -2741,6 +2874,57 @@
       </div>
     </section>
 
+    <!-- AI Assistant Showcase -->
+    <section class="ai-showcase-section content-wrapper">
+      <div class="section-header">
+        <span class="section-label">AI-Powered</span>
+        <h2 class="section-title">Your Intelligent Rule Assistant</h2>
+        <p class="section-description">
+          Create, explain, and optimize rules using natural language. The AI understands your business logic.
+        </p>
+      </div>
+
+      <div class="ai-features-container">
+        <div class="ai-feature-highlight">
+          <div class="ai-feature-content">
+            <h3>&#x1F4AC; Natural Language Rule Creation</h3>
+            <p>Describe your rules in plain English. The AI translates them into optimized JSON Logic expressions.</p>
+            <div class="ai-example">
+              <div class="ai-prompt">"Create a rule: if age > 60, add 20% to premium"</div>
+              <div class="ai-arrow">&#x2193;</div>
+              <div class="ai-result">AI generates the complete rule with inputs, outputs, and JSON Logic expression</div>
+            </div>
+          </div>
+          <div class="ai-feature-image">
+            <img src="{{ site.baseurl }}/screenshots/ai-rule-generation.png" alt="AI Rule Generation">
+          </div>
+        </div>
+
+        <div class="ai-capabilities-grid">
+          <div class="ai-capability-card">
+            <div class="ai-capability-icon">&#x1F9E0;</div>
+            <h4>Explain Rules & DAG</h4>
+            <p>Don't understand a complex rule? Ask AI to explain it in plain language, including dependencies.</p>
+          </div>
+          <div class="ai-capability-card">
+            <div class="ai-capability-icon">&#x1F50D;</div>
+            <h4>Impact Analysis</h4>
+            <p>Before changes, understand ripple effects. AI shows which rules and attributes will be affected.</p>
+          </div>
+          <div class="ai-capability-card">
+            <div class="ai-capability-icon">&#x1F680;</div>
+            <h4>Optimization Hints</h4>
+            <p>Get intelligent recommendations to improve rules, find redundancies, and boost performance.</p>
+          </div>
+          <div class="ai-capability-card">
+            <div class="ai-capability-icon">&#x2728;</div>
+            <h4>Quick Actions</h4>
+            <p>One-click access: Create Rule, Explain Rule, Optimize, and Impact Analysis buttons always ready.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Screenshots Gallery -->
     <section class="gallery-section content-wrapper">
       <div class="section-header">
@@ -2753,6 +2937,10 @@
 
       <div class="screenshots-gallery">
         <div class="gallery-item">
+          <img src="{{ site.baseurl }}/screenshots/ai-assistant-panel.png" alt="AI Assistant Panel">
+          <div class="gallery-item-label">AI Assistant Panel</div>
+        </div>
+        <div class="gallery-item">
           <img src="{{ site.baseurl }}/screenshots/rules-dag-full-view.png" alt="Rule DAG Visualization">
           <div class="gallery-item-label">Interactive Rule DAG Visualization</div>
         </div>
@@ -2763,10 +2951,6 @@
         <div class="gallery-item">
           <img src="{{ site.baseurl }}/screenshots/attributes-populated.png" alt="Attribute Management">
           <div class="gallery-item-label">Attribute Management System</div>
-        </div>
-        <div class="gallery-item">
-          <img src="{{ site.baseurl }}/screenshots/datatypes-populated.png" alt="Custom Datatypes">
-          <div class="gallery-item-label">Custom Datatype Configuration</div>
         </div>
       </div>
     </section>
