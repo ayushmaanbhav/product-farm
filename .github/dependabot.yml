@@ -1,0 +1,81 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # Rust/Cargo dependencies for backend
+  - package-ecosystem: "cargo"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ayushmaanbhav"
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Group minor and patch updates together
+      rust-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # NPM dependencies for frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ayushmaanbhav"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Group development dependencies
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "typescript*"
+          - "@typescript-eslint/*"
+          - "vite*"
+          - "@vitejs/*"
+          - "playwright*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group production dependencies
+      prod-dependencies:
+        patterns:
+          - "react*"
+          - "@radix-ui/*"
+          - "lucide-react"
+          - "zustand"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "ayushmaanbhav"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"

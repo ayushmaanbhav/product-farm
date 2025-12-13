@@ -1,0 +1,171 @@
+# Rust CI workflow for backend
+name: Rust CI
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/rust.yml'
+      - 'Cargo.lock'
+  pull_request:
+    branches: ["master"]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/rust.yml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-check-
+
+      - name: Run cargo check
+        run: cargo check --workspace --all-targets
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+
+      - name: Run tests
+        run: cargo test --workspace --all-targets
+
+      - name: Run doc tests
+        run: cargo test --workspace --doc
+
+  build:
+    name: Build Release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    needs: [format, clippy, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
+      - name: Build release
+        run: cargo build --workspace --release
+
+  # Security audit for dependencies
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: cargo audit --ignore RUSTSEC-2024-0336 --ignore RUSTSEC-2025-0009
+        # Note: Ignoring known vulnerabilities in dgraph-tonic dependencies
+        # See backend/Cargo.toml for details on mitigation
