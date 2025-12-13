@@ -13,6 +13,10 @@
 </p>
 
 <p align="center">
+  <a href="https://ayushmaanbhav.github.io/Product-FARM/">https://ayushmaanbhav.github.io/Product-FARM/</a>
+</p>
+
+<p align="center">
   <!-- Build & Quality -->
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge&logo=github-actions" alt="Build Status"/>
   <img src="https://img.shields.io/badge/rust-1.75+-orange?style=for-the-badge&logo=rust" alt="Rust"/>
