@@ -36,7 +36,7 @@ hyper = { version = "1.4", features = ["full"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 
 [build-dependencies]
-tonic-build = "0.12"
+tonic-build = "0.14"
 
 [features]
 default = []
