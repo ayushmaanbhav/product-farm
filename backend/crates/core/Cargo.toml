@@ -4,7 +4,10 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "Core domain types for Product-FARM rule engine"
+keywords = ["rules", "attributes", "domain", "types", "engine"]
+categories = ["data-structures", "config"]
 
 [dependencies]
 serde = { workspace = true }
