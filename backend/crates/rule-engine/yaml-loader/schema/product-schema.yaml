@@ -1,0 +1,246 @@
+# =============================================================================
+# Product YAML Schema
+# =============================================================================
+# This file defines the schema for product.yaml files in Product-FARM.
+#
+# product.yaml defines:
+#   - Product metadata (id, name, description, version)
+#   - Layer configuration (what entities and functions belong to each layer)
+
+schema:
+  version:
+    type: string
+    required: true
+    description: Schema version, always "1.0"
+    example: "1.0"
+
+  product:
+    type: object
+    required: true
+    description: Product metadata
+    properties:
+
+      id:
+        type: string
+        required: true
+        pattern: "^[a-z][a-z0-9-]*-v[0-9]+$"
+        description: Unique product identifier in kebab-case with version suffix
+        examples:
+          - incident-response-v1
+          - sales-assessment-v2
+          - leadership-eval-v1
+
+      name:
+        type: string
+        required: true
+        description: Human-readable product name
+        examples:
+          - "Incident Response Assessment"
+          - "Sales Competency Evaluation"
+
+      description:
+        type: string
+        required: true
+        description: Detailed description of what the assessment evaluates
+        multiline: true
+        example: |
+          Evaluates an engineer's ability to diagnose and resolve
+          production incidents under time pressure.
+
+      version:
+        type: string
+        required: true
+        pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        description: Semantic version of the product
+        example: "1.0.0"
+
+      tags:
+        type: array
+        items: string
+        required: false
+        description: Categorization tags for filtering/search
+        examples:
+          - [engineering, backend, incident-response]
+          - [sales, communication, negotiation]
+
+  layers:
+    type: object
+    required: true
+    description: |
+      Layer configuration. Product-FARM uses a 5-layer architecture.
+      Each layer groups related entities and functions.
+
+    properties:
+      layer-1-requirements:
+        type: layer_config
+        description: |
+          Business requirements layer.
+          Contains client objectives, success criteria, and competencies to assess.
+        typical_entities:
+          - ClientRequirement
+          - Competency
+          - SuccessCriteria
+        typical_functions: []
+
+      layer-2-domain:
+        type: layer_config
+        description: |
+          Domain/scenario layer.
+          Contains scenario specification, narrative, phases, and personas.
+        typical_entities:
+          - ScenarioSpec
+          - Phase
+          - AgentPersona
+          - Complication
+        typical_functions:
+          - evaluate-phase-transition
+          - select-complication
+
+      layer-3-backend:
+        type: layer_config
+        description: |
+          Backend logic layer.
+          Contains state machine, events, detection rules, and branches.
+        typical_entities:
+          - PhaseSpec
+          - EventSpec
+          - DetectionRule
+          - BranchSpec
+          - Transition
+        typical_functions:
+          - detect-* (detection rules)
+          - check-* (condition checks)
+          - compute-* (calculations)
+
+      layer-4-session-ui:
+        type: layer_config
+        description: |
+          Session UI layer.
+          Contains candidate interface components and state.
+        typical_entities:
+          - SessionState
+          - ChatChannel
+          - Dashboard
+          - Terminal
+        typical_functions:
+          - apply-state-patch
+          - render-component
+
+      layer-5-portal:
+        type: layer_config
+        description: |
+          Client portal layer.
+          Contains reports, scores, and analytics.
+        typical_entities:
+          - AssessmentReport
+          - CompetencyScore
+          - EvidenceItem
+        typical_functions:
+          - generate-report
+          - compute-final-score
+
+# Layer configuration structure
+layer_config:
+  type: object
+  properties:
+    name:
+      type: string
+      required: true
+      description: Human-readable layer name
+
+    description:
+      type: string
+      required: true
+      description: What this layer represents
+
+    entities:
+      type: array
+      items: string
+      required: true
+      description: |
+        List of entity names (PascalCase) defined in entities.yaml
+        that belong to this layer.
+
+    functions:
+      type: array
+      items: string
+      required: true
+      description: |
+        List of function names (kebab-case) defined in functions.yaml
+        that belong to this layer. Can be empty array.
+
+# =============================================================================
+# Complete Example
+# =============================================================================
+
+example: |
+  version: "1.0"
+
+  product:
+    id: technical-interview-v1
+    name: Technical Interview Assessment
+    description: |
+      Comprehensive assessment of software engineering candidates.
+      Evaluates coding skills, system design thinking, and communication.
+    version: "1.0.0"
+    tags:
+      - engineering
+      - technical-interview
+      - coding
+
+  layers:
+    layer-1-requirements:
+      name: Client Requirements
+      description: Hiring manager's assessment objectives
+      entities:
+        - ClientRequirement
+        - RoleSpecification
+        - SuccessCriteria
+      functions: []
+
+    layer-2-domain:
+      name: Interview Scenario
+      description: Interview structure and problem sets
+      entities:
+        - InterviewSpec
+        - ProblemSet
+        - InterviewerPersona
+      functions:
+        - select-next-problem
+        - evaluate-solution-quality
+
+    layer-3-backend:
+      name: Evaluation Engine
+      description: Code execution and behavior detection
+      entities:
+        - CodeSubmission
+        - TestResult
+        - DetectionRule
+      functions:
+        - execute-code
+        - detect-optimal-solution
+        - detect-edge-case-handling
+        - compute-code-quality-score
+
+    layer-4-session-ui:
+      name: Interview Interface
+      description: Candidate coding environment
+      entities:
+        - SessionState
+        - CodeEditor
+        - Terminal
+        - ProblemDisplay
+      functions:
+        - apply-code-update
+        - render-test-results
+
+    layer-5-portal:
+      name: Hiring Dashboard
+      description: Recruiter and manager reporting
+      entities:
+        - CandidateReport
+        - SkillScore
+        - ComparisonAnalytics
+      functions:
+        - generate-scorecard
+        - compute-percentile-rank

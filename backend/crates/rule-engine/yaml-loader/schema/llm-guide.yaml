@@ -1,0 +1,839 @@
+# =============================================================================
+# Product-FARM YAML Schema Guide for LLM Generation
+# =============================================================================
+#
+# This document provides complete schema definitions and guidelines for
+# generating Product-FARM assessment scenarios from client requirements.
+#
+# USAGE: Provide this entire file as context when asking an LLM to generate
+# a scenario from client requirements.
+#
+# OUTPUT: The LLM should generate THREE separate YAML files:
+#   1. product.yaml  - Product definition and layer configuration
+#   2. entities.yaml - Entity/data type definitions with attributes
+#   3. functions.yaml - Business rules and evaluation logic
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ARCHITECTURE OVERVIEW
+# -----------------------------------------------------------------------------
+#
+# Product-FARM uses a 5-layer architecture for assessment scenarios:
+#
+# Layer 1 - Requirements:  What the client wants to assess (business goals)
+# Layer 2 - Domain:        Scenario narrative and structure
+# Layer 3 - Backend:       Phase machine, events, detection rules
+# Layer 4 - Session UI:    Candidate-facing interface
+# Layer 5 - Portal:        Client reports and analytics
+#
+# Each layer has:
+#   - Entities: Data structures/types used in that layer
+#   - Functions: Business logic/rules operating on entities
+#
+# -----------------------------------------------------------------------------
+
+
+# =============================================================================
+# FILE 1: product.yaml
+# =============================================================================
+# Defines the product metadata and layer configuration.
+
+product_yaml_schema:
+  # Root structure
+  version: "1.0"  # Schema version, always "1.0"
+
+  product:
+    id: string           # Unique identifier (kebab-case, e.g., "crisis-response-v1")
+    name: string         # Human-readable name
+    description: string  # Multi-line description of the assessment
+    version: string      # Semantic version (e.g., "1.0.0")
+    tags: string[]       # Optional categorization tags
+
+  layers:
+    # Each layer follows this pattern:
+    layer-1-requirements:
+      name: string              # Human-readable layer name
+      description: string       # What this layer represents
+      entities: string[]        # List of entity names defined in entities.yaml
+      functions: string[]       # List of function names defined in functions.yaml
+
+    layer-2-domain:
+      name: string
+      description: string
+      entities: string[]
+      functions: string[]
+
+    layer-3-backend:
+      name: string
+      description: string
+      entities: string[]
+      functions: string[]
+
+    layer-4-session-ui:
+      name: string
+      description: string
+      entities: string[]
+      functions: string[]
+
+    layer-5-portal:
+      name: string
+      description: string
+      entities: string[]
+      functions: string[]
+
+# EXAMPLE product.yaml:
+product_yaml_example: |
+  version: "1.0"
+
+  product:
+    id: incident-response-v1
+    name: Incident Response Assessment
+    description: |
+      Assess an engineer's ability to handle production incidents.
+      Evaluates technical debugging, communication, and escalation.
+    version: "1.0.0"
+    tags:
+      - engineering
+      - incident-response
+      - technical
+
+  layers:
+    layer-1-requirements:
+      name: Client Requirements
+      description: Business objectives for the assessment
+      entities:
+        - ClientRequirement
+        - SuccessCriteria
+      functions: []
+
+    layer-2-domain:
+      name: Scenario Domain
+      description: Scenario narrative and phases
+      entities:
+        - ScenarioSpec
+        - Phase
+        - AgentPersona
+      functions:
+        - evaluate-phase-transition
+
+    layer-3-backend:
+      name: Backend Logic
+      description: State machine and detection rules
+      entities:
+        - PhaseSpec
+        - EventSpec
+        - DetectionRule
+      functions:
+        - detect-quick-response
+        - check-escalation-needed
+
+    layer-4-session-ui:
+      name: Assessment UI
+      description: Candidate interface components
+      entities:
+        - SessionState
+        - ChatChannel
+      functions:
+        - apply-state-patch
+
+    layer-5-portal:
+      name: Reports
+      description: Client-facing results
+      entities:
+        - AssessmentReport
+        - CompetencyScore
+      functions:
+        - compute-final-score
+        - generate-report
+
+
+# =============================================================================
+# FILE 2: entities.yaml
+# =============================================================================
+# Defines all data structures/types used in the scenario.
+
+entities_yaml_schema:
+  entities:
+    # Each entity follows this pattern:
+    EntityName:                    # PascalCase name
+      description: string          # What this entity represents
+
+      attributes:
+        # Simple attribute
+        attribute_name: type       # type = string | decimal | boolean | object
+
+        # Attribute with constraints
+        attribute_name:
+          type: string | decimal | boolean | object | string[]
+          required: boolean        # Default: false
+          default: any             # Default value if not provided
+          min: number              # For decimal: minimum value
+          max: number              # For decimal: maximum value
+          enum: value1 | value2    # Pipe-separated allowed values
+
+        # Nested object attribute
+        nested_attribute:
+          type: object
+          properties:
+            prop1: string
+            prop2: decimal
+            prop3: boolean
+
+      # Optional: Define relationships to other entities
+      relationships:
+        relationship_name:
+          target: OtherEntityName
+          cardinality: one-to-one | one-to-many | many-to-many
+
+# SUPPORTED TYPES:
+#   string   - Text values
+#   decimal  - Numeric values (integers or floats)
+#   boolean  - true/false
+#   object   - Nested structure with properties
+#   string[] - Array of strings
+#   <Type>[] - Array of any type
+
+# ENUM SYNTAX:
+#   Use pipe (|) to separate allowed values:
+#   status: active | inactive | pending
+#   severity: critical | high | medium | low
+
+entities_yaml_example: |
+  entities:
+    # Layer 1: Client Requirements
+    ClientRequirement:
+      description: What the client wants to assess
+      attributes:
+        id:
+          type: string
+          required: true
+        name: string
+        description: string
+        role:
+          type: object
+          properties:
+            title: string
+            level: Senior | Mid-Level | Junior
+            domain: string
+
+    # Layer 2: Domain
+    ScenarioSpec:
+      description: Complete scenario specification
+      attributes:
+        id:
+          type: string
+          required: true
+        name: string
+        difficulty: Senior | Mid-Level | Junior
+        duration_minutes:
+          type: decimal
+          min: 15
+          max: 120
+        narrative:
+          type: object
+          properties:
+            premise: string
+            inciting_incident: string
+            resolution_paths: string[]
+
+    Phase:
+      description: A phase in the scenario
+      attributes:
+        id:
+          type: string
+          required: true
+        name: string
+        goals: string[]
+        min_duration_secs:
+          type: decimal
+          min: 0
+        max_duration_secs:
+          type: decimal
+          min: 0
+
+    AgentPersona:
+      description: AI character in the simulation
+      attributes:
+        id:
+          type: string
+          required: true
+        name: string
+        role: string
+        personality: string
+        communication_style: formal | casual | technical | urgent
+
+    # Layer 3: Backend
+    DetectionRule:
+      description: Rule for detecting candidate behaviors
+      attributes:
+        id: string
+        name: string
+        competency_id: string
+        signal_type: positive | negative
+        weight:
+          type: decimal
+          min: 0
+          max: 1
+
+    # Layer 4: Session
+    SessionState:
+      description: Assessment session state
+      attributes:
+        session_id: string
+        current_phase: string
+        elapsed_secs:
+          type: decimal
+          default: 0
+        paused:
+          type: boolean
+          default: false
+
+    # Layer 5: Reports
+    AssessmentReport:
+      description: Final assessment report
+      attributes:
+        overall_score:
+          type: decimal
+          min: 0
+          max: 100
+        recommendation: strong_hire | hire | no_hire | strong_no_hire
+
+
+# =============================================================================
+# FILE 3: functions.yaml
+# =============================================================================
+# Defines business rules and evaluation logic.
+
+functions_yaml_schema:
+  functions:
+    # Each function follows this pattern:
+    function-name:                 # kebab-case name
+      description: string          # What this function does
+
+      inputs:                      # List of input variable names
+        - input_name_1
+        - input_name_2
+
+      outputs:                     # List of output variable names
+        - output_name_1
+
+      evaluator: farmscript | llm  # Evaluation method
+
+      # For FarmScript evaluator:
+      expression: string           # FarmScript expression
+
+      # For LLM evaluator:
+      evaluator_config:
+        model: string              # Model name (e.g., "gpt-4", "claude-sonnet")
+        temperature: decimal       # 0.0-1.0, lower = more deterministic
+        output_format: json | boolean | number | text
+        prompt_template: string    # Template with {{variable}} placeholders
+
+# -----------------------------------------------------------------------------
+# FARMSCRIPT EXPRESSION LANGUAGE
+# -----------------------------------------------------------------------------
+# FarmScript is a human-friendly expression language that compiles to JSON Logic.
+#
+# VARIABLES:
+#   /variable_name    - Access a variable (path-style)
+#   variable_name     - Also valid (identifier-style)
+#
+# ARITHMETIC:
+#   a + b, a - b, a * b, a / b, a % b
+#   -a                - Negation
+#   a /? b            - Safe division (returns 0 if b is 0)
+#   a /! b            - Safe division (returns null if b is 0)
+#
+# COMPARISONS:
+#   a < b, a <= b, a > b, a >= b
+#   a == b, a != b    - Equality
+#   a === b, a is b   - Strict equality
+#
+# BOOLEAN:
+#   a and b, a or b, not a
+#   a?                - Truthy check (converts to boolean)
+#
+# CONDITIONALS:
+#   if condition then value1 else value2
+#   if c1 then v1 else if c2 then v2 else v3
+#
+# FUNCTIONS:
+#   min(a, b, ...)    - Minimum value
+#   max(a, b, ...)    - Maximum value
+#   abs(x)            - Absolute value
+#   clamp(min, max, value) - Clamp value to range
+#
+# ARRAYS:
+#   x in [1, 2, 3]           - Check membership
+#   items.filter(x => x > 0) - Filter array
+#   items.map(x => x * 2)    - Transform array
+#   items.reduce((acc, x) => acc + x, 0) - Reduce array
+#
+# NULL HANDLING:
+#   a ?? b            - Null coalescing (returns b if a is null)
+#
+# STRINGS:
+#   "hello" in text   - Check if substring exists
+
+functions_yaml_example: |
+  functions:
+    # Detection Rules - check for specific behaviors
+    detect-quick-response:
+      description: Detect if candidate responded quickly to alert
+      inputs:
+        - alert_acknowledged
+        - time_since_alert_secs
+      outputs:
+        - quick_response_detected
+      evaluator: farmscript
+      expression: "/alert_acknowledged and /time_since_alert_secs < 120"
+
+    detect-escalation:
+      description: Detect if candidate escalated appropriately
+      inputs:
+        - escalated_to_manager
+        - severity_level
+      outputs:
+        - proper_escalation
+      evaluator: farmscript
+      expression: |
+        /escalated_to_manager and /severity_level in ["critical", "high"]
+
+    # Scoring Functions
+    compute-signal-score:
+      description: Compute competency score from signals
+      inputs:
+        - positive_signals
+        - negative_signals
+        - max_score
+      outputs:
+        - score
+      evaluator: farmscript
+      expression: |
+        clamp(0, 100, /max_score * (/positive_signals - /negative_signals * 0.5))
+
+    compute-recommendation:
+      description: Compute final hiring recommendation
+      inputs:
+        - overall_score
+        - critical_failures
+      outputs:
+        - recommendation
+      evaluator: farmscript
+      expression: |
+        if /critical_failures > 0 then "strong_no_hire"
+        else if /overall_score >= 85 then "strong_hire"
+        else if /overall_score >= 65 then "hire"
+        else if /overall_score >= 45 then "no_hire"
+        else "strong_no_hire"
+
+    # Time/Progress Functions
+    calculate-time-remaining:
+      description: Calculate remaining time
+      inputs:
+        - time_limit_secs
+        - elapsed_secs
+      outputs:
+        - remaining_secs
+      evaluator: farmscript
+      expression: "max(0, /time_limit_secs - /elapsed_secs)"
+
+    calculate-progress:
+      description: Calculate phase progress percentage
+      inputs:
+        - elapsed_secs
+        - max_duration_secs
+      outputs:
+        - progress_percent
+      evaluator: farmscript
+      expression: "min(100, 100 * /elapsed_secs / /max_duration_secs)"
+
+    # LLM-based Evaluation
+    evaluate-communication:
+      description: Use LLM to evaluate communication quality
+      inputs:
+        - message_text
+        - context
+        - recipient
+      outputs:
+        - quality_score
+        - clarity_score
+        - analysis
+      evaluator: llm
+      evaluator_config:
+        model: claude-sonnet
+        temperature: 0.2
+        output_format: json
+        prompt_template: |
+          Evaluate this message from a candidate during an assessment.
+
+          Context: {{context}}
+          Recipient: {{recipient}}
+          Message: {{message_text}}
+
+          Provide JSON with:
+          - quality_score (1-100)
+          - clarity_score (1-100)
+          - analysis (brief text explanation)
+
+    analyze-technical-approach:
+      description: Analyze candidate's problem-solving approach
+      inputs:
+        - actions_taken
+        - tools_used
+        - hypotheses
+      outputs:
+        - approach_score
+        - methodology_analysis
+      evaluator: llm
+      evaluator_config:
+        model: claude-sonnet
+        temperature: 0.3
+        output_format: json
+        prompt_template: |
+          Analyze the technical problem-solving approach:
+
+          Actions: {{actions_taken}}
+          Tools: {{tools_used}}
+          Hypotheses: {{hypotheses}}
+
+          Return JSON with approach_score (1-100) and methodology_analysis.
+
+
+# =============================================================================
+# GENERATION GUIDELINES FOR LLM
+# =============================================================================
+
+generation_guidelines:
+  step_1_understand_requirements: |
+    First, identify from the client requirements:
+    - What role/position is being assessed?
+    - What competencies need evaluation?
+    - What type of scenario fits (technical, communication, leadership)?
+    - What difficulty level is appropriate?
+    - What is the expected duration?
+
+  step_2_design_scenario: |
+    Create a scenario with:
+    - Clear premise and inciting incident
+    - 3-5 distinct phases with clear goals
+    - Multiple resolution paths (optimal, acceptable, poor)
+    - 2-4 AI agent personas that interact with the candidate
+    - Complications that can arise based on candidate behavior
+
+  step_3_define_entities: |
+    Define entities for each layer:
+    - Layer 1: ClientRequirement, SuccessCriteria
+    - Layer 2: ScenarioSpec, Phase, AgentPersona, Complication
+    - Layer 3: PhaseSpec, EventSpec, DetectionRule, BranchSpec
+    - Layer 4: SessionState, ChatChannel, relevant UI components
+    - Layer 5: AssessmentReport, CompetencyScore, EvidenceItem
+
+  step_4_create_functions: |
+    Create functions for:
+    - Detection rules: Detect specific candidate behaviors
+    - Branch activation: Determine when alternative paths activate
+    - Phase transitions: Check conditions for moving between phases
+    - Score computation: Calculate competency scores
+    - Report generation: Compute final recommendations
+
+    Use FarmScript for deterministic logic.
+    Use LLM evaluator for subjective assessments (communication quality, etc.)
+
+  best_practices:
+    - Use descriptive IDs and names (kebab-case for IDs, clear descriptions)
+    - Keep FarmScript expressions simple and readable
+    - Document all entities and functions with descriptions
+    - Ensure all referenced entities/functions exist
+    - Use appropriate data types (decimal for numbers, not string)
+    - Define sensible defaults and constraints
+    - Group related functions together with comments
+    - Test edge cases in expressions (division by zero, null values)
+
+
+# =============================================================================
+# COMMON PATTERNS
+# =============================================================================
+
+common_patterns:
+  # Pattern: Time-based detection
+  time_detection: |
+    detect-quick-action:
+      description: Detect if action was taken within time limit
+      inputs:
+        - action_completed
+        - time_since_trigger_secs
+        - time_limit_secs
+      outputs:
+        - quick_action_detected
+      evaluator: farmscript
+      expression: "/action_completed and /time_since_trigger_secs < /time_limit_secs"
+
+  # Pattern: Multi-condition check
+  multi_condition: |
+    check-excellent-performance:
+      description: Check multiple conditions for excellent rating
+      inputs:
+        - condition_a
+        - condition_b
+        - condition_c
+      outputs:
+        - excellent_rating
+      evaluator: farmscript
+      expression: "/condition_a and /condition_b and /condition_c"
+
+  # Pattern: Tiered scoring
+  tiered_scoring: |
+    compute-tier:
+      description: Compute tier from score
+      inputs:
+        - score
+      outputs:
+        - tier
+      evaluator: farmscript
+      expression: |
+        if /score >= 90 then "exceptional"
+        else if /score >= 75 then "proficient"
+        else if /score >= 60 then "developing"
+        else "needs_improvement"
+
+  # Pattern: Weighted score computation
+  weighted_score: |
+    compute-weighted-score:
+      description: Compute weighted average
+      inputs:
+        - score_a
+        - weight_a
+        - score_b
+        - weight_b
+      outputs:
+        - weighted_score
+      evaluator: farmscript
+      expression: "(/score_a * /weight_a + /score_b * /weight_b) / (/weight_a + /weight_b)"
+
+  # Pattern: Null-safe access
+  null_safe: |
+    safe-score-check:
+      description: Check score with null handling
+      inputs:
+        - score
+        - threshold
+      outputs:
+        - passes
+      evaluator: farmscript
+      expression: "(/score ?? 0) >= /threshold"
+
+
+# =============================================================================
+# EXAMPLE: COMPLETE SCENARIO GENERATION
+# =============================================================================
+# Given requirement: "Assess a senior backend engineer's incident response skills"
+
+example_complete_scenario:
+  product_yaml: |
+    version: "1.0"
+
+    product:
+      id: backend-incident-v1
+      name: Backend Incident Response Assessment
+      description: |
+        Evaluates a senior backend engineer's ability to diagnose and resolve
+        production incidents, communicate effectively under pressure, and make
+        appropriate escalation decisions.
+      version: "1.0.0"
+      tags: [engineering, backend, incident-response, senior]
+
+    layers:
+      layer-1-requirements:
+        name: Client Requirements
+        description: What competencies the client wants assessed
+        entities: [ClientRequirement, Competency, SuccessCriteria]
+        functions: []
+
+      layer-2-domain:
+        name: Scenario
+        description: Incident scenario specification
+        entities: [ScenarioSpec, Phase, AgentPersona, Complication]
+        functions: [evaluate-phase-quality]
+
+      layer-3-backend:
+        name: Backend
+        description: Phase machine and detection rules
+        entities: [PhaseSpec, EventSpec, DetectionRule, BranchSpec]
+        functions:
+          - detect-quick-acknowledgment
+          - detect-root-cause-identified
+          - detect-proper-escalation
+          - check-communication-gap
+          - compute-technical-score
+
+      layer-4-session-ui:
+        name: Session
+        description: Candidate interface
+        entities: [SessionState, ChatChannel, Terminal, Dashboard]
+        functions: [apply-state-patch]
+
+      layer-5-portal:
+        name: Reports
+        description: Assessment results
+        entities: [AssessmentReport, CompetencyScore, EvidenceItem]
+        functions: [compute-final-score, generate-recommendation]
+
+  entities_yaml: |
+    entities:
+      # Layer 1
+      ClientRequirement:
+        description: Assessment requirements from client
+        attributes:
+          id: { type: string, required: true }
+          role: string
+          level: Senior | Mid-Level | Junior
+          competencies: string[]
+
+      Competency:
+        description: A competency being evaluated
+        attributes:
+          id: { type: string, required: true }
+          name: string
+          weight: { type: decimal, min: 0, max: 1 }
+          indicators: string[]
+
+      # Layer 2
+      ScenarioSpec:
+        description: The incident scenario
+        attributes:
+          id: { type: string, required: true }
+          name: string
+          difficulty: Senior
+          duration_minutes: { type: decimal, default: 45 }
+          narrative:
+            type: object
+            properties:
+              premise: string
+              incident_type: string
+              affected_systems: string[]
+
+      Phase:
+        description: A phase in the incident timeline
+        attributes:
+          id: { type: string, required: true }
+          name: string
+          goals: string[]
+          min_duration_secs: { type: decimal, min: 0 }
+          max_duration_secs: { type: decimal, min: 0 }
+
+      AgentPersona:
+        description: AI character (team member, manager, etc.)
+        attributes:
+          id: { type: string, required: true }
+          name: string
+          role: string
+          personality: string
+          availability: always | sometimes | on-escalation
+
+      # Layer 3
+      DetectionRule:
+        description: Detects candidate behavior
+        attributes:
+          id: string
+          competency_id: string
+          signal_type: positive | negative
+          weight: { type: decimal, min: 0, max: 1 }
+
+      # Layer 4
+      SessionState:
+        description: Current session state
+        attributes:
+          phase_id: string
+          elapsed_secs: { type: decimal, default: 0 }
+          incident_resolved: { type: boolean, default: false }
+
+      # Layer 5
+      AssessmentReport:
+        description: Final report
+        attributes:
+          overall_score: { type: decimal, min: 0, max: 100 }
+          recommendation: strong_hire | hire | no_hire | strong_no_hire
+          competency_scores:
+            type: object
+
+  functions_yaml: |
+    functions:
+      # Detection Rules
+      detect-quick-acknowledgment:
+        description: Candidate acknowledged alert within 2 minutes
+        inputs: [alert_acknowledged, time_since_alert_secs]
+        outputs: [quick_ack]
+        evaluator: farmscript
+        expression: "/alert_acknowledged and /time_since_alert_secs < 120"
+
+      detect-root-cause-identified:
+        description: Candidate correctly identified root cause
+        inputs: [hypothesis_formed, correct_diagnosis]
+        outputs: [root_cause_found]
+        evaluator: farmscript
+        expression: "/hypothesis_formed and /correct_diagnosis"
+
+      detect-proper-escalation:
+        description: Candidate escalated at appropriate severity
+        inputs: [escalated, severity, escalation_threshold]
+        outputs: [proper_escalation]
+        evaluator: farmscript
+        expression: |
+          /escalated and /severity in ["critical", "high"] and
+          /severity >= /escalation_threshold
+
+      check-communication-gap:
+        description: Check if candidate has been silent too long
+        inputs: [last_message_secs, gap_threshold]
+        outputs: [communication_gap]
+        evaluator: farmscript
+        expression: "/last_message_secs > /gap_threshold"
+
+      # Scoring
+      compute-technical-score:
+        description: Compute technical competency score
+        inputs: [diagnosis_correct, resolution_effective, time_to_resolve]
+        outputs: [technical_score]
+        evaluator: farmscript
+        expression: |
+          clamp(0, 100,
+            (if /diagnosis_correct then 40 else 0) +
+            (if /resolution_effective then 40 else 0) +
+            (if /time_to_resolve < 1800 then 20 else if /time_to_resolve < 3600 then 10 else 0)
+          )
+
+      compute-final-score:
+        description: Compute overall assessment score
+        inputs:
+          - technical_score
+          - communication_score
+          - escalation_score
+        outputs: [overall_score, recommendation]
+        evaluator: farmscript
+        expression: |
+          if /technical_score < 30 or /communication_score < 30 then "strong_no_hire"
+          else if (/technical_score + /communication_score + /escalation_score) / 3 >= 80 then "strong_hire"
+          else if (/technical_score + /communication_score + /escalation_score) / 3 >= 60 then "hire"
+          else "no_hire"
+
+      # LLM Evaluation
+      evaluate-communication-quality:
+        description: Evaluate clarity and professionalism of messages
+        inputs: [message, context, urgency_level]
+        outputs: [communication_score, feedback]
+        evaluator: llm
+        evaluator_config:
+          model: claude-sonnet
+          temperature: 0.2
+          output_format: json
+          prompt_template: |
+            Evaluate this incident response communication:
+
+            Context: {{context}}
+            Urgency: {{urgency_level}}
+            Message: {{message}}
+
+            Score (0-100) for clarity, urgency-appropriateness, and professionalism.
+            Return JSON with communication_score and brief feedback.

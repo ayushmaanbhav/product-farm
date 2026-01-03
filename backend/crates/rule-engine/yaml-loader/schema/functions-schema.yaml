@@ -1,0 +1,904 @@
+# =============================================================================
+# Functions YAML Schema
+# =============================================================================
+# This file defines the schema for functions.yaml files in Product-FARM.
+#
+# functions.yaml defines the evaluation rules that process data and make
+# decisions throughout the assessment. Functions can be:
+#   - FarmScript expressions (declarative logic)
+#   - LLM prompts (natural language evaluation)
+
+schema:
+  functions:
+    type: object
+    required: true
+    description: Map of function names to their definitions
+
+    # Pattern: Function names are kebab-case
+    additionalProperties:
+      $ref: "#/function_definition"
+
+# -----------------------------------------------------------------------------
+# Function Definition
+# -----------------------------------------------------------------------------
+function_definition:
+  type: object
+  properties:
+
+    description:
+      type: string
+      required: true
+      description: Human-readable description of what this function evaluates
+
+    # The function must have exactly ONE of: expression, llm, or composite
+    expression:
+      type: string
+      description: |
+        FarmScript expression for deterministic evaluation.
+        See FarmScript language reference for syntax.
+
+    llm:
+      type: object
+      description: |
+        LLM-based evaluation configuration.
+        Used for subjective or nuanced assessments.
+      $ref: "#/llm_config"
+
+    composite:
+      type: object
+      description: |
+        Composite function that combines multiple evaluations.
+        Used when you need both deterministic and LLM logic.
+      $ref: "#/composite_config"
+
+    # Common properties
+    inputs:
+      type: object
+      description: |
+        Input parameters for this function.
+        Maps parameter names to their types/descriptions.
+      additionalProperties:
+        $ref: "#/input_definition"
+
+    output:
+      type: object
+      description: Output specification
+      $ref: "#/output_definition"
+
+    layer:
+      type: string
+      enum: [layer-1, layer-2, layer-3, layer-4, layer-5]
+      description: Which layer this function belongs to
+
+    tags:
+      type: array
+      items: string
+      description: Categorization tags (detection, scoring, transition, etc.)
+
+# -----------------------------------------------------------------------------
+# Input Definition
+# -----------------------------------------------------------------------------
+input_definition:
+  oneOf:
+    # Simple form: just the type
+    - type: string
+      description: Type name (string, decimal, boolean, object, array, entity name)
+
+    # Extended form
+    - type: object
+      properties:
+        type:
+          type: string
+          required: true
+          description: Data type or entity name
+
+        required:
+          type: boolean
+          default: true
+          description: Whether this input is required
+
+        description:
+          type: string
+          description: What this input represents
+
+        default:
+          type: any
+          description: Default value if not provided
+
+# -----------------------------------------------------------------------------
+# Output Definition
+# -----------------------------------------------------------------------------
+output_definition:
+  type: object
+  properties:
+    type:
+      type: string
+      required: true
+      description: |
+        Output type. Common types:
+        - boolean: Yes/no decision
+        - decimal: Numeric score
+        - string: Text result
+        - object: Structured result with multiple fields
+
+    description:
+      type: string
+      description: What the output represents
+
+    schema:
+      type: object
+      description: |
+        For object outputs, defines the structure.
+        Maps field names to their types.
+
+# -----------------------------------------------------------------------------
+# LLM Configuration
+# -----------------------------------------------------------------------------
+llm_config:
+  type: object
+  properties:
+    prompt:
+      type: string
+      required: true
+      multiline: true
+      description: |
+        The prompt template for LLM evaluation.
+        Use {{variable}} syntax for input interpolation.
+        Should clearly describe what to evaluate and expected output format.
+
+    model:
+      type: string
+      required: false
+      description: |
+        Model to use. Options:
+        - claude-sonnet (default): Fast, balanced
+        - claude-opus: Most capable, slower
+        - claude-haiku: Fastest, simple tasks
+        - ollama:llama3: Local model via Ollama
+
+    temperature:
+      type: decimal
+      required: false
+      default: 0.3
+      min: 0
+      max: 2
+      description: |
+        Sampling temperature. Lower = more deterministic.
+        Use 0-0.3 for objective evaluations.
+        Use 0.5-1.0 for creative assessments.
+
+    output_format:
+      type: string
+      required: false
+      enum: [json, text, boolean, score]
+      default: json
+      description: Expected output format from LLM
+
+    output_schema:
+      type: object
+      required: false
+      description: |
+        For json output_format, defines the expected structure.
+        The LLM will be instructed to return this format.
+
+    max_tokens:
+      type: integer
+      required: false
+      default: 1024
+      description: Maximum tokens in LLM response
+
+    retry_on_parse_error:
+      type: boolean
+      required: false
+      default: true
+      description: Whether to retry if LLM output fails to parse
+
+    fallback:
+      type: string
+      required: false
+      description: |
+        FarmScript expression to use if LLM fails.
+        Ensures graceful degradation.
+
+# -----------------------------------------------------------------------------
+# Composite Configuration
+# -----------------------------------------------------------------------------
+composite_config:
+  type: object
+  properties:
+    steps:
+      type: array
+      required: true
+      items:
+        $ref: "#/composite_step"
+      description: |
+        Ordered list of evaluation steps.
+        Each step can be a FarmScript expression or LLM call.
+        Results from earlier steps can be used in later steps.
+
+    combine:
+      type: string
+      required: false
+      description: |
+        FarmScript expression to combine step results.
+        Has access to all step outputs by name.
+
+composite_step:
+  type: object
+  properties:
+    name:
+      type: string
+      required: true
+      description: Step identifier (used to reference result)
+
+    expression:
+      type: string
+      required: false
+      description: FarmScript expression for this step
+
+    llm:
+      type: object
+      required: false
+      $ref: "#/llm_config"
+      description: LLM configuration for this step
+
+    condition:
+      type: string
+      required: false
+      description: |
+        FarmScript expression that must be true to execute step.
+        Allows conditional evaluation paths.
+
+# -----------------------------------------------------------------------------
+# FarmScript Language Reference
+# -----------------------------------------------------------------------------
+farmscript:
+  description: |
+    FarmScript is a declarative expression language for writing evaluation rules.
+    It compiles to JSON Logic for efficient execution.
+
+  operators:
+    comparison:
+      - "==": Equal (loose equality)
+      - "===": Strict equal (type-sensitive)
+      - "!=": Not equal
+      - "!==": Strict not equal
+      - "<": Less than
+      - "<=": Less than or equal
+      - ">": Greater than
+      - ">=": Greater than or equal
+
+    logical:
+      - "and": Logical AND
+      - "or": Logical OR
+      - "not": Logical NOT
+      - "!": Negation prefix
+
+    arithmetic:
+      - "+": Addition
+      - "-": Subtraction
+      - "*": Multiplication
+      - "/": Division
+      - "%": Modulo
+
+    special:
+      - "if": Conditional (ternary)
+      - "in": Membership check
+      - "??": Null coalesce
+
+  variable_access:
+    description: |
+      Access variables with dot notation or bracket notation.
+      Variables come from the evaluation context (entities, session state, etc.)
+
+    examples:
+      - "candidate.score"
+      - "session.current_phase"
+      - "competencies[0].name"
+      - "responses['key-with-dashes']"
+
+  built_in_functions:
+    array:
+      - name: map
+        syntax: "map(array, item => expression)"
+        description: Transform each element
+
+      - name: filter
+        syntax: "filter(array, item => condition)"
+        description: Keep elements matching condition
+
+      - name: reduce
+        syntax: "reduce(array, (acc, item) => expression, initial)"
+        description: Reduce array to single value
+
+      - name: all
+        syntax: "all(array, item => condition)"
+        description: True if all elements match
+
+      - name: some
+        syntax: "some(array, item => condition)"
+        description: True if any element matches
+
+      - name: none
+        syntax: "none(array, item => condition)"
+        description: True if no elements match
+
+      - name: merge
+        syntax: "merge(array1, array2)"
+        description: Concatenate arrays
+
+    string:
+      - name: substr
+        syntax: "substr(string, start, length?)"
+        description: Extract substring
+
+      - name: cat
+        syntax: "cat(str1, str2, ...)"
+        description: Concatenate strings
+
+      - name: log
+        syntax: "log(value)"
+        description: Debug logging (returns value)
+
+    numeric:
+      - name: min
+        syntax: "min(a, b, ...)"
+        description: Minimum value
+
+      - name: max
+        syntax: "max(a, b, ...)"
+        description: Maximum value
+
+    missing:
+      - name: missing
+        syntax: "missing(path1, path2, ...)"
+        description: Returns list of paths that don't exist
+
+      - name: missing_some
+        syntax: "missing_some(count, [path1, path2, ...])"
+        description: True if at least N paths are missing
+
+  examples:
+    simple_comparison: |
+      candidate.score >= 70
+
+    conditional_logic: |
+      if candidate.experience_years > 5 then "senior"
+      else if candidate.experience_years > 2 then "mid"
+      else "junior"
+
+    array_operations: |
+      all(
+        competencies,
+        c => c.score >= c.threshold
+      )
+
+    weighted_average: |
+      reduce(
+        scores,
+        (sum, s) => sum + (s.value * s.weight),
+        0
+      ) / reduce(scores, (sum, s) => sum + s.weight, 0)
+
+    null_safe_access: |
+      (candidate.certifications ?? []).length > 0
+
+# -----------------------------------------------------------------------------
+# Function Categories
+# -----------------------------------------------------------------------------
+categories:
+
+  detection:
+    description: |
+      Functions that detect candidate behaviors or signals.
+      Typically return boolean or score with evidence.
+    naming_pattern: "detect-*"
+    typical_layer: layer-3
+    examples:
+      - detect-problem-decomposition
+      - detect-communication-quality
+      - detect-time-management
+
+  scoring:
+    description: |
+      Functions that compute scores for competencies or overall.
+      Return numeric values, often with breakdown.
+    naming_pattern: "compute-*-score, calculate-*"
+    typical_layer: layer-3, layer-5
+    examples:
+      - compute-competency-score
+      - calculate-weighted-average
+      - compute-final-recommendation
+
+  transition:
+    description: |
+      Functions that evaluate whether to transition between phases.
+      Return boolean or object with next phase info.
+    naming_pattern: "evaluate-*-transition, check-*"
+    typical_layer: layer-2, layer-3
+    examples:
+      - evaluate-phase-transition
+      - check-completion-criteria
+      - should-trigger-complication
+
+  selection:
+    description: |
+      Functions that select content, complications, or paths.
+      Return entity ID or object.
+    naming_pattern: "select-*, choose-*"
+    typical_layer: layer-2
+    examples:
+      - select-next-complication
+      - choose-agent-response
+      - select-difficulty-adjustment
+
+  validation:
+    description: |
+      Functions that validate data or state.
+      Return boolean with optional error details.
+    naming_pattern: "validate-*, is-valid-*"
+    typical_layer: layer-4
+    examples:
+      - validate-submission
+      - is-valid-state-patch
+
+  reporting:
+    description: |
+      Functions that generate report content or analytics.
+      Return structured objects.
+    naming_pattern: "generate-*, format-*"
+    typical_layer: layer-5
+    examples:
+      - generate-competency-summary
+      - format-evidence-item
+      - generate-recommendation
+
+# -----------------------------------------------------------------------------
+# Complete Example
+# -----------------------------------------------------------------------------
+example: |
+  functions:
+
+    # ==========================================================================
+    # Detection Functions (Layer 3)
+    # ==========================================================================
+
+    detect-problem-decomposition:
+      description: |
+        Detects whether the candidate properly decomposed a complex problem
+        into smaller, manageable parts.
+      layer: layer-3
+      tags: [detection, competency, problem-solving]
+
+      inputs:
+        messages:
+          type: array
+          description: Candidate's messages in the conversation
+        problem_description:
+          type: string
+          description: The problem they were asked to solve
+
+      output:
+        type: object
+        schema:
+          detected: boolean
+          confidence: decimal
+          evidence: string[]
+
+      llm:
+        prompt: |
+          Analyze the candidate's approach to the following problem:
+
+          PROBLEM:
+          {{problem_description}}
+
+          CANDIDATE'S MESSAGES:
+          {{messages}}
+
+          Evaluate whether the candidate demonstrated problem decomposition:
+          1. Did they break down the problem into smaller parts?
+          2. Did they identify dependencies between parts?
+          3. Did they tackle parts in a logical order?
+
+          Respond with JSON:
+          {
+            "detected": true/false,
+            "confidence": 0.0-1.0,
+            "evidence": ["specific quote or behavior 1", "specific quote 2"]
+          }
+
+        model: claude-sonnet
+        temperature: 0.2
+        output_format: json
+        output_schema:
+          detected: boolean
+          confidence: decimal
+          evidence: string[]
+
+    detect-communication-clarity:
+      description: |
+        Evaluates the clarity and effectiveness of candidate communication.
+      layer: layer-3
+      tags: [detection, competency, communication]
+
+      inputs:
+        message:
+          type: string
+          description: The message to evaluate
+
+      output:
+        type: object
+        schema:
+          score: decimal
+          issues: string[]
+
+      llm:
+        prompt: |
+          Rate the clarity of this communication on a scale of 0-100:
+
+          MESSAGE:
+          {{message}}
+
+          Consider:
+          - Is the message well-structured?
+          - Is technical terminology used appropriately?
+          - Is the main point clear?
+          - Is it appropriately concise?
+
+          Respond with JSON:
+          {
+            "score": 0-100,
+            "issues": ["issue 1", "issue 2"] // empty if score > 80
+          }
+
+        temperature: 0.3
+        output_format: json
+
+    # ==========================================================================
+    # Scoring Functions (Layer 3/5)
+    # ==========================================================================
+
+    compute-competency-score:
+      description: |
+        Computes the final score for a competency based on detection signals.
+      layer: layer-3
+      tags: [scoring, competency]
+
+      inputs:
+        competency:
+          type: Competency
+          description: The competency being scored
+        signals:
+          type: array
+          description: Detection signals collected during session
+
+      output:
+        type: object
+        schema:
+          score: decimal
+          confidence: decimal
+          signal_count: decimal
+
+      expression: |
+        {
+          score: if signals.length == 0 then 50
+                 else reduce(
+                   filter(signals, s => s.competency_id == competency.id),
+                   (acc, s) => acc + (s.value * s.weight),
+                   0
+                 ) / max(
+                   reduce(
+                     filter(signals, s => s.competency_id == competency.id),
+                     (acc, s) => acc + s.weight,
+                     0
+                   ),
+                   1
+                 ),
+          confidence: min(signals.length / 10, 1),
+          signal_count: filter(signals, s => s.competency_id == competency.id).length
+        }
+
+    compute-weighted-average:
+      description: Computes a weighted average of scores
+      layer: layer-5
+      tags: [scoring, utility]
+
+      inputs:
+        items:
+          type: array
+          description: Array of {value, weight} objects
+
+      output:
+        type: decimal
+
+      expression: |
+        if items.length == 0 then 0
+        else reduce(items, (sum, i) => sum + (i.value * i.weight), 0)
+             / reduce(items, (sum, i) => sum + i.weight, 0)
+
+    # ==========================================================================
+    # Transition Functions (Layer 2/3)
+    # ==========================================================================
+
+    evaluate-phase-transition:
+      description: |
+        Evaluates whether conditions are met to transition to the next phase.
+      layer: layer-2
+      tags: [transition, phase]
+
+      inputs:
+        current_phase:
+          type: Phase
+          description: Current phase configuration
+        session:
+          type: SessionState
+          description: Current session state
+        events:
+          type: array
+          description: Events that occurred in this phase
+
+      output:
+        type: object
+        schema:
+          should_transition: boolean
+          reason: string
+          next_phase_id: string
+
+      composite:
+        steps:
+          - name: time_check
+            expression: |
+              session.phase_elapsed_secs >= current_phase.min_duration_secs
+
+          - name: goals_check
+            expression: |
+              all(
+                current_phase.goals,
+                goal => some(events, e => e.satisfies_goal == goal)
+              )
+
+          - name: force_transition
+            expression: |
+              session.phase_elapsed_secs >= current_phase.max_duration_secs
+
+        combine: |
+          {
+            should_transition: force_transition or (time_check and goals_check),
+            reason: if force_transition then "max_duration_reached"
+                    else if goals_check then "goals_completed"
+                    else "conditions_not_met",
+            next_phase_id: current_phase.next_phase_id
+          }
+
+    check-completion-criteria:
+      description: Checks if assessment completion criteria are met
+      layer: layer-3
+      tags: [transition, completion]
+
+      inputs:
+        session:
+          type: SessionState
+        scenario:
+          type: ScenarioSpec
+
+      output:
+        type: boolean
+
+      expression: |
+        session.current_phase == scenario.final_phase_id
+        or session.elapsed_secs >= scenario.max_duration_secs
+        or session.candidate_ended
+
+    # ==========================================================================
+    # Selection Functions (Layer 2)
+    # ==========================================================================
+
+    select-next-complication:
+      description: |
+        Selects the most appropriate complication to introduce based on
+        current session state and candidate performance.
+      layer: layer-2
+      tags: [selection, complication]
+
+      inputs:
+        available_complications:
+          type: array
+          description: Complications that could be triggered
+        session:
+          type: SessionState
+        candidate_performance:
+          type: object
+          description: Current performance metrics
+
+      output:
+        type: object
+        schema:
+          complication_id: string
+          reasoning: string
+
+      llm:
+        prompt: |
+          Select the most appropriate complication to introduce.
+
+          AVAILABLE COMPLICATIONS:
+          {{available_complications}}
+
+          CURRENT SESSION STATE:
+          - Phase: {{session.current_phase}}
+          - Elapsed: {{session.elapsed_secs}} seconds
+          - Complications used: {{session.complications_triggered}}
+
+          CANDIDATE PERFORMANCE:
+          - Overall score trend: {{candidate_performance.score_trend}}
+          - Recent behaviors: {{candidate_performance.recent_signals}}
+
+          Select a complication that:
+          1. Hasn't been used yet
+          2. Is appropriate for current phase
+          3. Will challenge based on performance (harder if doing well)
+          4. Creates interesting assessment opportunity
+
+          Respond with JSON:
+          {
+            "complication_id": "id of selected complication",
+            "reasoning": "brief explanation of why this was selected"
+          }
+
+        temperature: 0.5
+        output_format: json
+
+    # ==========================================================================
+    # Validation Functions (Layer 4)
+    # ==========================================================================
+
+    validate-state-patch:
+      description: Validates that a state patch is safe to apply
+      layer: layer-4
+      tags: [validation, state]
+
+      inputs:
+        patch:
+          type: object
+          description: The patch to validate
+        current_state:
+          type: SessionState
+
+      output:
+        type: object
+        schema:
+          valid: boolean
+          errors: string[]
+
+      expression: |
+        {
+          valid: patch != null
+                 and (patch.session_id ?? current_state.session_id) == current_state.session_id
+                 and not (patch.elapsed_secs < current_state.elapsed_secs),
+          errors: filter(
+            [
+              if patch == null then "patch is null" else null,
+              if (patch.session_id ?? current_state.session_id) != current_state.session_id
+                 then "session_id mismatch" else null,
+              if patch.elapsed_secs < current_state.elapsed_secs
+                 then "elapsed_secs cannot decrease" else null
+            ],
+            e => e != null
+          )
+        }
+
+    # ==========================================================================
+    # Reporting Functions (Layer 5)
+    # ==========================================================================
+
+    generate-competency-summary:
+      description: |
+        Generates a human-readable summary of competency assessment.
+      layer: layer-5
+      tags: [reporting, competency]
+
+      inputs:
+        competency:
+          type: Competency
+        score:
+          type: decimal
+        evidence:
+          type: array
+
+      output:
+        type: object
+        schema:
+          summary: string
+          strengths: string[]
+          areas_for_improvement: string[]
+          recommendation: string
+
+      llm:
+        prompt: |
+          Generate a professional summary for this competency assessment:
+
+          COMPETENCY: {{competency.name}}
+          DESCRIPTION: {{competency.description}}
+          SCORE: {{score}}/100
+          EVIDENCE ITEMS:
+          {{evidence}}
+
+          Write a summary that:
+          1. Is professional and constructive
+          2. Highlights specific strengths demonstrated
+          3. Notes areas for improvement (if score < 80)
+          4. Provides actionable feedback
+
+          Respond with JSON:
+          {
+            "summary": "2-3 sentence overall summary",
+            "strengths": ["strength 1", "strength 2"],
+            "areas_for_improvement": ["area 1", "area 2"],
+            "recommendation": "brief hiring recommendation for this competency"
+          }
+
+        temperature: 0.4
+        output_format: json
+
+    generate-final-recommendation:
+      description: Generates final hiring recommendation
+      layer: layer-5
+      tags: [reporting, recommendation]
+
+      inputs:
+        competency_scores:
+          type: array
+        overall_score:
+          type: decimal
+        critical_failures:
+          type: array
+
+      output:
+        type: string
+        enum: [strong_hire, hire, no_hire, strong_no_hire]
+
+      expression: |
+        if critical_failures.length > 0 then "strong_no_hire"
+        else if overall_score >= 85 and all(competency_scores, c => c.score >= 70) then "strong_hire"
+        else if overall_score >= 70 and all(competency_scores, c => c.score >= 50) then "hire"
+        else if overall_score >= 50 then "no_hire"
+        else "strong_no_hire"
+
+# =============================================================================
+# Best Practices
+# =============================================================================
+best_practices:
+
+  when_to_use_farmscript:
+    - Deterministic logic (thresholds, calculations, data transformation)
+    - Performance-critical paths
+    - Validation rules
+    - Score aggregation
+    - State transition conditions
+
+  when_to_use_llm:
+    - Subjective evaluation (communication quality, creativity)
+    - Natural language understanding (parsing responses)
+    - Complex pattern recognition
+    - Generating human-readable content
+    - Evaluating nuanced behaviors
+
+  when_to_use_composite:
+    - Need both deterministic checks AND subjective evaluation
+    - Want LLM to explain a calculated result
+    - Complex multi-step evaluations
+    - Fallback scenarios (try FarmScript, use LLM if edge case)
+
+  prompt_engineering_tips:
+    - Be specific about output format (always request JSON with schema)
+    - Provide concrete examples in prompts
+    - Use lower temperatures (0.2-0.4) for evaluation tasks
+    - Include rubrics or criteria in prompts
+    - Always specify what NOT to include (avoid verbose explanations)
+    - Define fallback behavior for parse failures
+
+  performance_considerations:
+    - LLM calls are expensive - batch when possible
+    - Cache LLM results for identical inputs
+    - Use FarmScript for pre-filtering before LLM
+    - Set appropriate timeouts
+    - Design graceful degradation paths

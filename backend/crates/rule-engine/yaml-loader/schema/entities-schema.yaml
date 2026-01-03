@@ -1,0 +1,373 @@
+# =============================================================================
+# Entities YAML Schema
+# =============================================================================
+# This file defines the schema for entities.yaml files in Product-FARM.
+#
+# entities.yaml defines data structures/types used throughout the assessment.
+# Each entity represents a domain concept with typed attributes.
+
+schema:
+  entities:
+    type: object
+    required: true
+    description: Map of entity names to their definitions
+
+    # Pattern: Entity names are PascalCase
+    additionalProperties:
+      $ref: "#/entity_definition"
+
+# -----------------------------------------------------------------------------
+# Entity Definition
+# -----------------------------------------------------------------------------
+entity_definition:
+  type: object
+  properties:
+
+    description:
+      type: string
+      required: true
+      description: Human-readable description of what this entity represents
+
+    attributes:
+      type: object
+      required: true
+      description: Map of attribute names to their type definitions
+      additionalProperties:
+        $ref: "#/attribute_definition"
+
+    relationships:
+      type: object
+      required: false
+      description: Relationships to other entities
+      additionalProperties:
+        $ref: "#/relationship_definition"
+
+# -----------------------------------------------------------------------------
+# Attribute Definition
+# -----------------------------------------------------------------------------
+# Attributes can be defined in simple or extended form.
+
+attribute_definition:
+  oneOf:
+    # Simple form: just the type
+    - type: string
+      description: |
+        Simple type declaration.
+        Supported types: string, decimal, boolean, object, string[]
+        Enum syntax: value1 | value2 | value3
+
+    # Extended form: type with constraints
+    - type: object
+      properties:
+        type:
+          type: string
+          required: true
+          enum: [string, decimal, boolean, object, "string[]"]
+          description: The data type
+
+        required:
+          type: boolean
+          default: false
+          description: Whether this attribute is required
+
+        default:
+          type: any
+          description: Default value if not provided
+
+        min:
+          type: number
+          description: Minimum value (for decimal type)
+
+        max:
+          type: number
+          description: Maximum value (for decimal type)
+
+        enum:
+          type: string
+          description: |
+            Pipe-separated list of allowed values.
+            Example: "active | inactive | pending"
+
+        properties:
+          type: object
+          description: |
+            For object type, defines nested properties.
+            Each property follows attribute_definition schema.
+
+# -----------------------------------------------------------------------------
+# Relationship Definition
+# -----------------------------------------------------------------------------
+relationship_definition:
+  type: object
+  properties:
+    target:
+      type: string
+      required: true
+      description: Name of the related entity (PascalCase)
+
+    cardinality:
+      type: string
+      required: true
+      enum: [one-to-one, one-to-many, many-to-many]
+      description: Relationship cardinality
+
+# -----------------------------------------------------------------------------
+# Supported Types
+# -----------------------------------------------------------------------------
+types:
+  string:
+    description: Text value
+    examples: ["hello", "user-123", ""]
+
+  decimal:
+    description: Numeric value (integer or floating point)
+    examples: [42, 3.14, -10, 0]
+
+  boolean:
+    description: Boolean value
+    examples: [true, false]
+
+  object:
+    description: Nested object with properties
+    example:
+      metadata:
+        type: object
+        properties:
+          name: string
+          count: decimal
+
+  "string[]":
+    description: Array of strings
+    example: ["tag1", "tag2", "tag3"]
+
+  enum:
+    description: |
+      Enumeration of allowed values.
+      Use pipe (|) to separate values.
+    examples:
+      - "active | inactive"
+      - "low | medium | high | critical"
+      - "pending | approved | rejected"
+
+# =============================================================================
+# Common Entity Patterns
+# =============================================================================
+
+common_entities:
+
+  # Layer 1: Requirements
+  ClientRequirement:
+    description: What the client wants to assess
+    typical_attributes:
+      id: { type: string, required: true }
+      name: string
+      description: string
+      role:
+        type: object
+        properties:
+          title: string
+          level: "Senior | Mid-Level | Junior"
+          domain: string
+      competencies: "string[]"
+
+  Competency:
+    description: A skill or ability being evaluated
+    typical_attributes:
+      id: { type: string, required: true }
+      name: string
+      description: string
+      importance: "Critical | Important | Nice-to-have"
+      weight: { type: decimal, min: 0, max: 1 }
+      indicators: "string[]"
+
+  # Layer 2: Domain
+  ScenarioSpec:
+    description: Complete scenario specification
+    typical_attributes:
+      id: { type: string, required: true }
+      name: string
+      difficulty: "Senior | Mid-Level | Junior"
+      duration_minutes: { type: decimal, min: 15, max: 120 }
+      narrative:
+        type: object
+        properties:
+          premise: string
+          inciting_incident: string
+          resolution_paths: "string[]"
+
+  Phase:
+    description: A distinct phase in the assessment
+    typical_attributes:
+      id: { type: string, required: true }
+      name: string
+      goals: "string[]"
+      min_duration_secs: { type: decimal, min: 0 }
+      max_duration_secs: { type: decimal, min: 0 }
+
+  AgentPersona:
+    description: AI character in the simulation
+    typical_attributes:
+      id: { type: string, required: true }
+      name: string
+      role: string
+      personality: string
+      communication_style: "formal | casual | technical | urgent"
+
+  # Layer 3: Backend
+  DetectionRule:
+    description: Rule for detecting candidate behaviors
+    typical_attributes:
+      id: string
+      name: string
+      competency_id: string
+      signal_type: "positive | negative"
+      weight: { type: decimal, min: 0, max: 1 }
+
+  EventSpec:
+    description: An event that can occur in the scenario
+    typical_attributes:
+      id: { type: string, required: true }
+      event_type: string
+      category: "Technical | Communication | Pressure"
+      prerequisites: "string[]"
+      max_occurrences: { type: decimal, min: 1 }
+
+  # Layer 4: Session
+  SessionState:
+    description: Current assessment session state
+    typical_attributes:
+      session_id: string
+      current_phase: string
+      elapsed_secs: { type: decimal, default: 0 }
+      paused: { type: boolean, default: false }
+
+  # Layer 5: Reports
+  AssessmentReport:
+    description: Final assessment report
+    typical_attributes:
+      overall_score: { type: decimal, min: 0, max: 100 }
+      recommendation: "strong_hire | hire | no_hire | strong_no_hire"
+      duration_minutes: decimal
+
+  CompetencyScore:
+    description: Score for a single competency
+    typical_attributes:
+      competency_id: string
+      score: { type: decimal, min: 0, max: 100 }
+      evidence_count: { type: decimal, min: 0 }
+
+# =============================================================================
+# Complete Example
+# =============================================================================
+
+example: |
+  entities:
+    # Layer 1: Requirements
+    ClientRequirement:
+      description: Assessment requirements from the hiring team
+      attributes:
+        id:
+          type: string
+          required: true
+        company_name: string
+        role_title: string
+        level: Senior | Mid-Level | Junior
+        must_have_skills: string[]
+        nice_to_have_skills: string[]
+
+    # Layer 2: Domain
+    InterviewScenario:
+      description: The interview scenario configuration
+      attributes:
+        id:
+          type: string
+          required: true
+        name: string
+        type: technical | behavioral | system-design
+        duration_minutes:
+          type: decimal
+          min: 30
+          max: 90
+          default: 60
+        problems:
+          type: object
+          properties:
+            easy_count: decimal
+            medium_count: decimal
+            hard_count: decimal
+
+    Interviewer:
+      description: AI interviewer persona
+      attributes:
+        id:
+          type: string
+          required: true
+        name: string
+        style: friendly | neutral | challenging
+        expertise: string[]
+
+    # Layer 3: Backend
+    CodeSubmission:
+      description: A code submission from the candidate
+      attributes:
+        id: string
+        problem_id: string
+        language: python | javascript | java | cpp
+        code: string
+        submitted_at: string
+
+    TestResult:
+      description: Result of running tests on code
+      attributes:
+        submission_id: string
+        passed:
+          type: boolean
+        test_cases_passed:
+          type: decimal
+          min: 0
+        test_cases_total:
+          type: decimal
+          min: 1
+        execution_time_ms: decimal
+        memory_used_mb: decimal
+
+    # Layer 4: Session
+    SessionState:
+      description: Current interview session state
+      attributes:
+        session_id: string
+        current_problem_index:
+          type: decimal
+          default: 0
+        problems_completed: string[]
+        time_remaining_secs: decimal
+        hints_used:
+          type: decimal
+          default: 0
+
+    # Layer 5: Reports
+    CandidateReport:
+      description: Final candidate assessment report
+      attributes:
+        candidate_id: string
+        overall_score:
+          type: decimal
+          min: 0
+          max: 100
+        recommendation: strong_hire | hire | no_hire | strong_no_hire
+        strengths: string[]
+        areas_for_improvement: string[]
+      relationships:
+        skill_scores:
+          target: SkillScore
+          cardinality: one-to-many
+
+    SkillScore:
+      description: Score for a specific skill
+      attributes:
+        skill_name: string
+        score:
+          type: decimal
+          min: 0
+          max: 100
+        evidence_summary: string
