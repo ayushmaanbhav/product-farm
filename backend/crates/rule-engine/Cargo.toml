@@ -27,6 +27,7 @@ parking_lot = "0.12"
 proptest = { workspace = true }
 tokio = { version = "1.35", features = ["rt-multi-thread", "macros"] }
 criterion = { workspace = true }
+product-farm-farmscript = { path = "farmscript" }
 
 [[bench]]
 name = "rule_engine_bench"
