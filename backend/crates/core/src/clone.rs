@@ -520,6 +520,7 @@ impl ProductCloneService {
             description: source.description.clone(),
             order_index: source.order_index,
             enabled: source.enabled,
+            evaluator: source.evaluator.clone(),
             created_at: now,
             updated_at: now,
         }

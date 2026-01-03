@@ -1,0 +1,20 @@
+[package]
+name = "product-farm-farmscript"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "FarmScript DSL - Human-friendly expression language that compiles to JSON Logic"
+keywords = ["dsl", "expression", "json-logic", "parser", "compiler"]
+categories = ["compilers", "parser-implementations"]
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+[dev-dependencies]

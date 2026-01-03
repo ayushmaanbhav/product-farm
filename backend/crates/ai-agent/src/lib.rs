@@ -20,6 +20,10 @@
 //! [dependencies]
 //! product-farm-ai-agent = { version = "0.1", features = ["anthropic"] }
 //! ```
+//!
+//! ## LLM Rule Evaluation
+//!
+//! For LLM-based rule evaluation, see the `product-farm-llm-evaluator` crate.
 
 pub mod tools;
 pub mod explainer;

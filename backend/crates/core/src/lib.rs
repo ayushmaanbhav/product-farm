@@ -25,6 +25,7 @@ pub mod value;
 pub mod builders;
 pub mod validation;
 pub mod clone;
+pub mod evaluator;
 
 pub use types::*;
 pub use product::*;
@@ -38,3 +39,4 @@ pub use value::*;
 pub use builders::*;
 pub use validation::*;
 pub use clone::*;
+pub use evaluator::*;

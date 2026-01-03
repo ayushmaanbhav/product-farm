@@ -2,17 +2,19 @@
 //!
 //! Provides:
 //! - Sequential execution following topological order
-//! - Parallel execution within dependency levels
+//! - Parallel execution within dependency levels (using rayon)
 //! - Caching of compiled expressions
 
 use hashbrown::HashMap;
+use parking_lot::RwLock;
 use product_farm_core::{Rule, RuleId, Value};
 use product_farm_json_logic::{CachedExpression, Evaluator, compile};
+use rayon::prelude::*;
 use crate::context::ExecutionContext;
 use crate::dag::RuleDag;
 use crate::error::{RuleEngineError, RuleEngineResult};
 use std::sync::Arc;
-use tracing::{debug, instrument};
+use tracing::{debug, info, instrument};
 
 /// Compiled rule with cached expression
 #[derive(Debug, Clone)]
@@ -104,12 +106,35 @@ impl RuleExecutor {
         Ok(())
     }
 
-    /// Execute rules in topological order
+    /// Execute rules in topological order with parallel execution within levels
+    ///
+    /// Rules within the same level have no dependencies on each other and
+    /// are executed in parallel using rayon.
     #[instrument(skip(self, rules, context))]
     pub fn execute(
         &mut self,
         rules: &[Rule],
         context: &mut ExecutionContext,
+    ) -> RuleEngineResult<ExecutionResult> {
+        self.execute_with_parallelism(rules, context, true)
+    }
+
+    /// Execute rules sequentially (for comparison/debugging)
+    #[instrument(skip(self, rules, context))]
+    pub fn execute_sequential(
+        &mut self,
+        rules: &[Rule],
+        context: &mut ExecutionContext,
+    ) -> RuleEngineResult<ExecutionResult> {
+        self.execute_with_parallelism(rules, context, false)
+    }
+
+    /// Internal execution with configurable parallelism
+    fn execute_with_parallelism(
+        &mut self,
+        rules: &[Rule],
+        context: &mut ExecutionContext,
+        parallel: bool,
     ) -> RuleEngineResult<ExecutionResult> {
         let start = std::time::Instant::now();
 
@@ -124,19 +149,124 @@ impl RuleExecutor {
 
         // Execute level by level
         for level in &levels {
-            for rule_id in level {
-                let result = self.execute_rule(rule_id, context)?;
-                rule_results.push(result);
+            if parallel && level.len() > 1 {
+                // Parallel execution for this level
+                let level_results = self.execute_level_parallel(level, context)?;
+
+                // Update context with all outputs from this level
+                for result in &level_results {
+                    for (key, value) in &result.outputs {
+                        context.set(key.clone(), value.clone());
+                    }
+                }
+                rule_results.extend(level_results);
+            } else {
+                // Sequential execution (single rule or parallel disabled)
+                for rule_id in level {
+                    let result = self.execute_rule(rule_id, context)?;
+                    rule_results.push(result);
+                }
             }
         }
 
         let total_time_ns = start.elapsed().as_nanos() as u64;
+        let parallel_levels = levels.iter().filter(|l| l.len() > 1).count();
+
+        info!(
+            total_rules = rules.len(),
+            total_levels = levels.len(),
+            parallel_levels = parallel_levels,
+            total_time_ms = total_time_ns / 1_000_000,
+            "Execution complete"
+        );
 
         Ok(ExecutionResult {
             rule_results,
             context: context.clone(),
             total_time_ns,
             levels,
+        })
+    }
+
+    /// Execute a level of rules in parallel using rayon
+    fn execute_level_parallel(
+        &self,
+        level: &[RuleId],
+        context: &ExecutionContext,
+    ) -> RuleEngineResult<Vec<RuleResult>> {
+        // Snapshot the context data once for all rules in this level
+        let context_data = context.to_json();
+
+        // Thread-safe collection for results
+        let results: RwLock<Vec<RuleResult>> = RwLock::new(Vec::with_capacity(level.len()));
+        let errors: RwLock<Vec<RuleEngineError>> = RwLock::new(Vec::new());
+
+        // Execute rules in parallel
+        level.par_iter().for_each(|rule_id| {
+            match self.execute_rule_with_data(rule_id, &context_data) {
+                Ok(result) => {
+                    results.write().push(result);
+                }
+                Err(e) => {
+                    errors.write().push(e);
+                }
+            }
+        });
+
+        // Check for errors
+        let errors = errors.into_inner();
+        if !errors.is_empty() {
+            return Err(errors.into_iter().next().unwrap());
+        }
+
+        Ok(results.into_inner())
+    }
+
+    /// Execute a single rule with pre-computed context data (for parallel execution)
+    fn execute_rule_with_data(
+        &self,
+        rule_id: &RuleId,
+        context_data: &serde_json::Value,
+    ) -> RuleEngineResult<RuleResult> {
+        let compiled = self.compiled_rules.get(rule_id)
+            .ok_or_else(|| RuleEngineError::RuleNotFound(format!("{:?}", rule_id)))?;
+
+        let start = std::time::Instant::now();
+
+        // Create a thread-local evaluator for parallel execution
+        let mut evaluator = Evaluator::new();
+
+        // Evaluate the expression
+        let value = evaluator
+            .evaluate_cached(&compiled.expression, context_data)
+            .map_err(|e| RuleEngineError::EvaluationError(format!(
+                "Rule '{:?}' evaluation failed: {}",
+                rule_id, e
+            )))?;
+
+        let execution_time_ns = start.elapsed().as_nanos() as u64;
+
+        // Collect outputs
+        let outputs: Vec<(String, Value)> = compiled.rule.output_attributes
+            .iter()
+            .map(|output_path| {
+                let output_str = output_path.path.as_str().to_string();
+                (output_str, value.clone())
+            })
+            .collect();
+
+        debug!(
+            rule_id = ?rule_id,
+            outputs = ?outputs.iter().map(|(k, _)| k).collect::<Vec<_>>(),
+            execution_time_ns = execution_time_ns,
+            parallel = true,
+            "Rule executed (parallel)"
+        );
+
+        Ok(RuleResult {
+            rule_id: rule_id.clone(),
+            outputs,
+            execution_time_ns,
         })
     }
 
@@ -353,5 +483,108 @@ mod tests {
 
         let stats = executor.stats();
         assert_eq!(stats.compiled_rules, 2);
+    }
+
+    #[test]
+    fn test_parallel_execution_diamond() {
+        // Diamond pattern: r1 -> (r2, r3) -> r4
+        // r2 and r3 can execute in parallel
+        let rules = vec![
+            make_rule("p", &["input"], &["a"], json!({"var": "input"})),
+            make_rule("p", &["a"], &["b"], json!({"+": [{"var": "a"}, 1]})),
+            make_rule("p", &["a"], &["c"], json!({"+": [{"var": "a"}, 2]})),
+            make_rule("p", &["b", "c"], &["d"], json!({"+": [{"var": "b"}, {"var": "c"}]})),
+        ];
+
+        let mut executor = RuleExecutor::new();
+        let mut context = ExecutionContext::from_json(&json!({"input": 10}));
+
+        // Test parallel execution
+        let result = executor.execute(&rules, &mut context).unwrap();
+
+        assert_eq!(result.levels.len(), 3);
+        assert_eq!(result.levels[0].len(), 1); // base
+        assert_eq!(result.levels[1].len(), 2); // left, right (parallel!)
+        assert_eq!(result.levels[2].len(), 1); // final
+
+        // a=10, b=11, c=12, d=23
+        assert_eq!(result.get_output("a").unwrap().to_number(), 10.0);
+        assert_eq!(result.get_output("b").unwrap().to_number(), 11.0);
+        assert_eq!(result.get_output("c").unwrap().to_number(), 12.0);
+        assert_eq!(result.get_output("d").unwrap().to_number(), 23.0);
+    }
+
+    #[test]
+    fn test_parallel_vs_sequential_same_result() {
+        // Wide parallel level: many independent rules
+        let rules = vec![
+            make_rule("p", &["input"], &["a"], json!({"+": [{"var": "input"}, 1]})),
+            make_rule("p", &["input"], &["b"], json!({"+": [{"var": "input"}, 2]})),
+            make_rule("p", &["input"], &["c"], json!({"+": [{"var": "input"}, 3]})),
+            make_rule("p", &["input"], &["d"], json!({"+": [{"var": "input"}, 4]})),
+            make_rule("p", &["a", "b", "c", "d"], &["result"], json!({
+                "+": [{"var": "a"}, {"var": "b"}, {"var": "c"}, {"var": "d"}]
+            })),
+        ];
+
+        let input_data = json!({"input": 10});
+
+        // Parallel execution
+        let mut executor_par = RuleExecutor::new();
+        let mut ctx_par = ExecutionContext::from_json(&input_data);
+        let result_par = executor_par.execute(&rules, &mut ctx_par).unwrap();
+
+        // Sequential execution
+        let mut executor_seq = RuleExecutor::new();
+        let mut ctx_seq = ExecutionContext::from_json(&input_data);
+        let result_seq = executor_seq.execute_sequential(&rules, &mut ctx_seq).unwrap();
+
+        // Both should produce the same result: (10+1)+(10+2)+(10+3)+(10+4) = 50
+        assert_eq!(
+            result_par.get_output("result").unwrap().to_number(),
+            result_seq.get_output("result").unwrap().to_number()
+        );
+        assert_eq!(result_par.get_output("result").unwrap().to_number(), 50.0);
+
+        // Parallel should have identified level with 4 rules
+        assert_eq!(result_par.levels[0].len(), 4); // a, b, c, d in parallel
+        assert_eq!(result_par.levels[1].len(), 1); // result
+    }
+
+    #[test]
+    fn test_many_parallel_rules() {
+        // Create 100 independent rules to stress test parallelism
+        let mut rules: Vec<Rule> = (0..100)
+            .map(|i| {
+                make_rule(
+                    "p",
+                    &["input"],
+                    &[&format!("out_{}", i)],
+                    json!({"+": [{"var": "input"}, i]}),
+                )
+            })
+            .collect();
+
+        // Add a final rule that depends on all outputs
+        let all_outputs: Vec<String> = (0..100).map(|i| format!("out_{}", i)).collect();
+        let final_rule = Rule::from_json_logic("p", "final", json!({"var": "out_0"}))
+            .with_inputs(all_outputs.iter().map(|s| s.to_string()))
+            .with_outputs(["final_result".to_string()]);
+        rules.push(final_rule);
+
+        let mut executor = RuleExecutor::new();
+        let mut context = ExecutionContext::from_json(&json!({"input": 1}));
+
+        let result = executor.execute(&rules, &mut context).unwrap();
+
+        // Should have 2 levels: 100 parallel rules, then 1 final
+        assert_eq!(result.levels.len(), 2);
+        assert_eq!(result.levels[0].len(), 100);
+        assert_eq!(result.levels[1].len(), 1);
+
+        // Verify a few outputs
+        assert_eq!(result.get_output("out_0").unwrap().to_number(), 1.0);
+        assert_eq!(result.get_output("out_50").unwrap().to_number(), 51.0);
+        assert_eq!(result.get_output("out_99").unwrap().to_number(), 100.0);
     }
 }

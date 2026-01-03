@@ -35,6 +35,9 @@ pub enum AgentError {
     #[error("Serialization error: {0}")]
     SerializationError(String),
 
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
     #[error("External API error: {0}")]
     ExternalApiError(String),
 

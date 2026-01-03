@@ -19,6 +19,8 @@ rust_decimal = { workspace = true }
 hashbrown = { workspace = true }
 regex = { workspace = true }
 once_cell = { workspace = true }
+async-trait = { workspace = true }
 
 [dev-dependencies]
 proptest = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros"] }
