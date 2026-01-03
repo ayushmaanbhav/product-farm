@@ -1,0 +1,96 @@
+# Banoo Assessment - Function/Rule Definitions
+
+functions:
+  # Evidence strength evaluation based on action count
+  evaluate-observable:
+    description: Determines how strongly an action sequence demonstrates an observable
+    inputs:
+      - action_count
+      - observable_id
+    outputs:
+      - evidence_strength
+    evaluator: json-logic
+    expression:
+      if:
+        - { ">=": [{ "var": "action_count" }, 3] }
+        - "strong"
+        - { ">=": [{ "var": "action_count" }, 1] }
+        - "moderate"
+        - "weak"
+
+  # Score calculation based on evidence count
+  compute-observable-score:
+    description: Compute score for observable from evidence count
+    inputs:
+      - evidence_count
+      - max_evidence
+    outputs:
+      - score
+    evaluator: json-logic
+    expression:
+      "*":
+        - 100
+        - { "/": [{ "var": "evidence_count" }, { "max": [1, { "var": "max_evidence" }] }] }
+
+  # Determine recommendation based on overall score
+  compute-recommendation:
+    description: Determine hiring recommendation from score
+    inputs:
+      - overall_score
+    outputs:
+      - recommendation
+    evaluator: json-logic
+    expression:
+      if:
+        - { ">=": [{ "var": "overall_score" }, 80] }
+        - "strong_hire"
+        - { ">=": [{ "var": "overall_score" }, 60] }
+        - "hire"
+        - { ">=": [{ "var": "overall_score" }, 40] }
+        - "no_hire"
+        - "strong_no_hire"
+
+  # Check if escalation is needed
+  check-escalation:
+    description: Determines if situation requires escalation
+    inputs:
+      - severity
+      - time_elapsed
+      - resolved
+    outputs:
+      - needs_escalation
+    evaluator: json-logic
+    expression:
+      and:
+        - { "==": [{ "var": "resolved" }, false] }
+        - or:
+            - { "==": [{ "var": "severity" }, "critical"] }
+            - { ">": [{ "var": "time_elapsed" }, 300] }
+
+  # Calculate time remaining
+  calculate-time-remaining:
+    description: Calculate time remaining in assessment
+    inputs:
+      - time_limit
+      - elapsed_time
+    outputs:
+      - time_remaining
+    evaluator: json-logic
+    expression:
+      max:
+        - 0
+        - { "-": [{ "var": "time_limit" }, { "var": "elapsed_time" }] }
+
+  # LLM-based evaluation example (for future use)
+  evaluate-communication-style:
+    description: Analyze candidate's communication style using LLM
+    inputs:
+      - message_history
+      - candidate_id
+    outputs:
+      - communication_score
+      - style_analysis
+    evaluator: llm
+    evaluator_config:
+      model: gpt-4
+      temperature: 0.3

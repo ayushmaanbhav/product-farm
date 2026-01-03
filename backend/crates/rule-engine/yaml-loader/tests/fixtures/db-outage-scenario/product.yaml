@@ -1,0 +1,71 @@
+# Database Outage Crisis - Product Definition
+# Based on example2 Six-Layer Documentation
+
+version: "1.0"
+
+product:
+  id: db-outage-crisis-v1
+  name: Database Outage Crisis Assessment
+  description: |
+    Assess an engineer's ability to handle a critical production database
+    incident. Evaluates technical problem-solving, communication under
+    pressure, escalation judgment, and crisis leadership.
+  version: "1.0.0"
+
+layers:
+  layer-1-requirements:
+    name: Client Requirements
+    description: Business objectives and what clients want assessed
+    entities:
+      - ClientRequirement
+      - SuccessCriteria
+    functions: []
+
+  layer-2-domain:
+    name: Product Domain
+    description: Scenario specification and narrative
+    entities:
+      - ScenarioSpec
+      - Phase
+      - AgentPersona
+      - Complication
+    functions:
+      - evaluate-phase-transition
+      - check-success-path
+
+  layer-3-backend:
+    name: Backend Domain
+    description: Phase machine, events, branches, detection rules
+    entities:
+      - PhaseSpec
+      - Transition
+      - EventSpec
+      - BranchSpec
+      - DetectionRule
+    functions:
+      - process-transition
+      - fire-event
+      - activate-branch
+      - detect-evidence
+
+  layer-4-session-ui:
+    name: Session UI
+    description: Candidate-facing assessment interface
+    entities:
+      - SessionState
+      - ChatChannel
+      - MonitoringDashboard
+    functions:
+      - apply-state-patch
+      - render-instrument
+
+  layer-5-portal:
+    name: Client Portal
+    description: Client-facing reports and analytics
+    entities:
+      - AssessmentReport
+      - CompetencyScore
+      - EvidenceItem
+    functions:
+      - generate-report
+      - compute-competency-score

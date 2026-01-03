@@ -1,0 +1,197 @@
+# Banoo Assessment - Entity Definitions
+
+entities:
+  # Layer 1: Client Requirements
+  ClientRequirement:
+    description: Captures what clients want to assess and why
+    attributes:
+      id: string
+      client_name: string
+      assessment_goals: string[]
+      target_roles: string[]
+      scenario_preferences:
+        type: object
+        properties:
+          domains: string[]
+          duration_minutes: decimal
+          difficulty: standard | challenging | expert
+      competency_priorities:
+        type: array
+        items:
+          name: string
+          weight: high | medium | low
+
+  # Layer 2: Domain Entities
+  Competency:
+    description: A skill or capability to be assessed
+    attributes:
+      id:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      description:
+        type: string
+        description: What this competency means
+      category: string
+    relationships:
+      observables:
+        target: Observable
+        cardinality: one-to-many
+
+  Observable:
+    description: Specific behavior that indicates competency
+    attributes:
+      id: string
+      name: string
+      description: string
+      importance: critical | high | medium | low
+    relationships:
+      competency:
+        target: Competency
+        cardinality: many-to-one
+        required: true
+
+  Scenario:
+    description: Assessment scenario definition
+    attributes:
+      id: string
+      name: string
+      domain: string
+      narrative:
+        type: string
+        description: Story description
+      duration_minutes:
+        type: decimal
+        min: 15
+        max: 180
+      difficulty: standard | challenging | expert
+    relationships:
+      competencies:
+        target: Competency
+        cardinality: many-to-many
+      agents:
+        target: AgentPersona
+        cardinality: one-to-many
+      phases:
+        target: Phase
+        cardinality: one-to-many
+
+  Phase:
+    description: A distinct phase in a scenario
+    attributes:
+      id: string
+      name: string
+      description: string
+      order:
+        type: decimal
+        min: 0
+      duration_min: decimal
+      duration_max: decimal
+    relationships:
+      scenario:
+        target: Scenario
+        cardinality: many-to-one
+      key_observables:
+        target: Observable
+        cardinality: many-to-many
+
+  AgentPersona:
+    description: AI agent character in the simulation
+    attributes:
+      id: string
+      name: string
+      role: string
+      personality_traits: string[]
+      communication_style: string
+      stress_response: string
+      expertise_areas: string[]
+
+  # Layer 3: Backend Entities
+  SessionState:
+    description: Complete state of an assessment session
+    attributes:
+      session_id: string
+      scenario_id: string
+      candidate_id: string
+      status: initializing | active | paused | completed | abandoned
+      started_at: string
+      scenario_time:
+        type: decimal
+        description: Elapsed scenario time in seconds
+      time_limit: decimal
+      current_phase: string
+      backbone_position:
+        type: decimal
+        default: 0
+
+  Event:
+    description: Something that happened during assessment
+    attributes:
+      event_id: string
+      session_id: string
+      event_type: string
+      timestamp: string
+      scenario_time: decimal
+      source: candidate | agent | system | timeline
+      payload:
+        type: object
+      evidence:
+        type: object
+        properties:
+          category: communication | technical | decision | navigation
+          importance: critical | high | medium | low
+          tags: string[]
+
+  EvidenceRule:
+    description: Rule for extracting evidence from events
+    attributes:
+      id: string
+      observable: string
+      trigger_events: string[]
+      extraction_type: temporal | behavioral | content | pattern
+      strength_calculation: string
+
+  # Layer 5: Portal Entities
+  AssessmentReport:
+    description: Complete assessment report for a candidate
+    attributes:
+      assessment_id: string
+      overall_score:
+        type: decimal
+        min: 0
+        max: 100
+      percentile: decimal
+      recommendation: strong_hire | hire | no_hire | strong_no_hire
+    relationships:
+      competency_scores:
+        target: CompetencyScore
+        cardinality: one-to-many
+
+  CompetencyScore:
+    description: Score for a single competency
+    attributes:
+      competency_id: string
+      score:
+        type: decimal
+        min: 0
+        max: 100
+      percentile: decimal
+      evidence_summary: string
+      strengths: string[]
+      areas_for_improvement: string[]
+
+  Campaign:
+    description: Assessment campaign for a cohort
+    attributes:
+      campaign_id: string
+      name: string
+      description: string
+      scenario_id: string
+      status: draft | active | paused | completed
+      start_date: string
+      end_date: string
+      time_limit_days:
+        type: decimal
+        default: 7

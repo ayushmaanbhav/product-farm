@@ -1,0 +1,325 @@
+# Database Outage Crisis - Entity Definitions
+# Extracted from example2
+
+entities:
+  # ===================
+  # Layer 1: Client Requirements
+  # ===================
+  ClientRequirement:
+    description: Captures what clients want to assess
+    attributes:
+      id:
+        type: string
+        required: true
+      version: string
+      client_id: string
+      name: string
+      description: string
+
+      role:
+        type: object
+        properties:
+          title: string
+          level: string
+          team_type: string
+          domain: string
+
+      scenario_preferences:
+        type: object
+        properties:
+          types: string[]
+          difficulty: Senior | Mid-Level | Junior
+          duration: string
+          realism: string
+
+  Competency:
+    description: A competency being assessed
+    attributes:
+      name:
+        type: string
+        required: true
+      description: string
+      importance: Critical | Important | Nice-to-have
+      examples: string[]
+
+  SuccessCriteria:
+    description: Criteria for assessment success
+    attributes:
+      must_demonstrate: string[]
+      should_demonstrate: string[]
+      bonus_if_demonstrates: string[]
+
+  # ===================
+  # Layer 2: Product Domain
+  # ===================
+  ScenarioSpec:
+    description: Complete scenario specification
+    attributes:
+      id:
+        type: string
+        required: true
+      version: string
+      derived_from: string
+
+      metadata:
+        type: object
+        properties:
+          name: string
+          description: string
+          category: string
+          difficulty: Senior | Mid-Level | Junior
+          duration_minutes: decimal
+          target_role: string
+
+      narrative:
+        type: object
+        properties:
+          premise: string
+          inciting_incident: string
+          rising_action: string[]
+          climax: string
+          resolution_paths: string[]
+
+  Phase:
+    description: A distinct phase in the scenario
+    attributes:
+      id:
+        type: string
+        required: true
+      name: string
+      duration_range: string
+      goals: string[]
+      success_indicators: string[]
+
+  AgentPersona:
+    description: AI agent character in the simulation
+    attributes:
+      id:
+        type: string
+        required: true
+      name: string
+      role: string
+      personality_summary: string
+      communication_style: string
+      expertise: string[]
+      relationship_to_candidate: string
+      key_interactions: string[]
+
+  Complication:
+    description: A complication that can occur during assessment
+    attributes:
+      name: string
+      trigger_condition: string
+      effect: string
+
+  # ===================
+  # Layer 3: Backend Domain
+  # ===================
+  PhaseSpec:
+    description: Backend phase machine specification
+    attributes:
+      id:
+        type: string
+        required: true
+      name: string
+      entry_conditions: string[]
+      min_duration_secs:
+        type: decimal
+        min: 0
+      max_duration_secs:
+        type: decimal
+        min: 0
+      active_backbone_events: string[]
+      available_branches: string[]
+    relationships:
+      transitions:
+        target: Transition
+        cardinality: one-to-many
+
+  Transition:
+    description: Phase transition definition
+    attributes:
+      id: string
+      name: string
+      target_phase: string
+      exit_quality: Excellent | Good | Acceptable | Poor
+    relationships:
+      conditions:
+        target: Condition
+        cardinality: one-to-many
+
+  Condition:
+    description: A condition for transitions or branches
+    attributes:
+      condition_type: ActionPerformed | ActionOmitted | TimeCheck | StateCheck
+      path: string
+      operator: Eq | Ne | Gt | Gte | Lt | Lte | Contains | Matches
+      value:
+        type: object
+
+  EventSpec:
+    description: Event specification
+    attributes:
+      id:
+        type: string
+        required: true
+      event_type: AlertFired | ChatMessage | EmailReceived | MetricChange | ServiceStatusChange | ComplicationInjection
+      category: Technical | Communication | Pressure
+      max_occurrences:
+        type: decimal
+        min: 1
+      prerequisites: string[]
+      conflicts_with: string[]
+
+  BranchSpec:
+    description: Branch specification for alternative paths
+    attributes:
+      id:
+        type: string
+        required: true
+      name: string
+      path_quality: Optimal | ValidAlternative | Problematic
+      exclusive_with: string[]
+      requires_branches: string[]
+    relationships:
+      activation_conditions:
+        target: Condition
+        cardinality: one-to-many
+      competency_signals:
+        target: CompetencySignal
+        cardinality: one-to-many
+
+  CompetencySignal:
+    description: Signal for competency scoring
+    attributes:
+      competency_id: string
+      signal_type: Positive | Negative
+      weight:
+        type: decimal
+        min: 0
+        max: 1
+
+  DetectionRule:
+    description: Rule for detecting candidate behaviors
+    attributes:
+      id: string
+      name: string
+      competency_id: string
+      indicator_id: string
+      rule_type: ActionPerformed | ActionOmitted
+      max_fires:
+        type: decimal
+        min: 1
+
+  # ===================
+  # Layer 4: Session UI
+  # ===================
+  SessionState:
+    description: Complete state of an assessment session
+    attributes:
+      session_id: string
+      scenario_id: string
+      candidate_id: string
+
+      timing:
+        type: object
+        properties:
+          started_at: string
+          current_time: string
+          elapsed_seconds: decimal
+          remaining_seconds: decimal
+          paused: boolean
+
+      progress:
+        type: object
+        properties:
+          current_phase_id: string
+          completed_phases: object
+          active_branches: object
+          fired_events: object
+
+  ChatChannel:
+    description: Chat channel in the simulation
+    attributes:
+      id: string
+      name: string
+      type: public | private | dm
+      description: string
+      last_activity_at:
+        type: decimal
+        default: 0
+
+  MonitoringDashboard:
+    description: Monitoring dashboard state
+    attributes:
+      active_tab: overview | services | alerts | metrics
+      active_service_id: string
+      time_range: 15m | 1h | 4h | 24h
+
+  ServiceStatus:
+    description: Status of a monitored service
+    attributes:
+      id: string
+      name: string
+      status: healthy | degraded | unhealthy
+      status_message: string
+      last_updated: string
+
+  Alert:
+    description: A monitoring alert
+    attributes:
+      id: string
+      severity: critical | error | warning | info
+      status: firing | acknowledged | resolved
+      source: string
+      service_id: string
+      title: string
+      message: string
+      fired_at: string
+      resolved_at: string
+
+  # ===================
+  # Layer 5: Reports
+  # ===================
+  AssessmentReport:
+    description: Complete assessment report
+    attributes:
+      assessment_id: string
+      candidate_id: string
+      scenario_id: string
+      overall_score:
+        type: decimal
+        min: 0
+        max: 100
+      recommendation: strong_hire | hire | no_hire | strong_no_hire
+      duration_minutes: decimal
+
+  CompetencyScore:
+    description: Score for a single competency
+    attributes:
+      competency_id: string
+      competency_name: string
+      score:
+        type: decimal
+        min: 0
+        max: 100
+      evidence_count:
+        type: decimal
+        min: 0
+      positive_signals:
+        type: decimal
+        min: 0
+      negative_signals:
+        type: decimal
+        min: 0
+
+  EvidenceItem:
+    description: A piece of evidence collected
+    attributes:
+      id: string
+      evidence_type: Timing | Communication | Action | Omission
+      category: Technical | Communication | Leadership | CrisisManagement
+      importance: Critical | High | Medium | Low
+      description: string
+      timestamp: string
+      competency_signals: string[]

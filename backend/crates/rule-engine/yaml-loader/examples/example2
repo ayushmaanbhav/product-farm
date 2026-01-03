@@ -1,0 +1,2139 @@
+# Complete Example: Database Outage Scenario
+
+> **Status:** Draft
+> **Last Updated:** 2025-01
+
+This document provides a complete, implementation-ready example of the Database Outage scenario across all 6 configuration layers.
+
+---
+
+## Table of Contents
+
+1. [Layer 1: Client Requirements](#layer-1-client-requirements)
+2. [Layer 2: Product Domain](#layer-2-product-domain)
+3. [Layer 3: Backend Domain](#layer-3-backend-domain)
+4. [Layer 4: Session UI](#layer-4-session-ui)
+5. [Layer 5: Client Portal](#layer-5-client-portal)
+6. [Complete Event Pool](#complete-event-pool)
+7. [Complete Branch Definitions](#complete-branch-definitions)
+8. [Agent Response Templates](#agent-response-templates)
+9. [Detection Rules](#detection-rules)
+10. [State Patches](#state-patches)
+
+---
+
+## Layer 1: Client Requirements
+
+```yaml
+client_requirement:
+  id: "CR_db_outage_001"
+  version: "1.0"
+  client_id: "techcorp"
+
+  name: "Database Crisis Response Assessment"
+  description: |
+    Assess an engineer's ability to handle a critical production database
+    incident. Evaluates technical problem-solving, communication under
+    pressure, escalation judgment, and crisis leadership.
+
+  role:
+    title: "Senior Software Engineer"
+    level: "Senior"
+    team_type: "Platform"
+    domain: "Backend"
+
+  competencies:
+    - name: "Technical Problem Solving"
+      description: "Systematic diagnosis and resolution of complex technical issues"
+      importance: "Critical"
+      examples:
+        - "Uses metrics and logs to narrow down problems"
+        - "Forms hypotheses before taking action"
+        - "Distinguishes root cause from symptoms"
+
+    - name: "Communication Under Pressure"
+      description: "Clear, timely updates to technical and non-technical stakeholders"
+      importance: "Critical"
+      examples:
+        - "Provides regular unprompted status updates"
+        - "Adapts communication style for different audiences"
+        - "Acknowledges uncertainty appropriately"
+
+    - name: "Escalation Judgment"
+      description: "Knowing when and how to involve others"
+      importance: "Important"
+      examples:
+        - "Escalates P0 issues promptly to leadership"
+        - "Involves specialists when needed"
+        - "Doesn't over-escalate minor issues"
+
+    - name: "Crisis Leadership"
+      description: "Taking charge and coordinating resolution efforts"
+      importance: "Important"
+      examples:
+        - "Takes ownership of the incident"
+        - "Delegates tasks effectively"
+        - "Keeps team focused on priorities"
+
+  scenario_preferences:
+    types:
+      - "Production Incidents"
+      - "Database Issues"
+    difficulty: "Senior"
+    duration: "45-60 minutes"
+    realism: "Highly Realistic"
+
+  success_criteria:
+    must_demonstrate:
+      - "Identifies the database issue"
+      - "Communicates status to stakeholders"
+      - "Takes action toward resolution"
+
+    should_demonstrate:
+      - "Escalates to VP appropriately"
+      - "Delegates to team members"
+      - "Documents actions for postmortem"
+
+    bonus_if_demonstrates:
+      - "Identifies root cause precisely"
+      - "Proposes preventive measures"
+      - "Mentors junior team member"
+
+  report_requirements:
+    include_sections:
+      - "Executive Summary"
+      - "Competency Breakdown"
+      - "Key Moments Analysis"
+      - "Timeline Review"
+      - "Recommendations"
+    scoring_preference: "Strong Hire / Hire / No Hire"
+    comparison_data: true
+```
+
+---
+
+## Layer 2: Product Domain
+
+```yaml
+scenario_spec:
+  id: "SCN_database_outage"
+  version: "1.0.0"
+  derived_from: "CR_db_outage_001"
+
+  metadata:
+    name: "Database Outage Crisis"
+    description: |
+      Production PostgreSQL database experiences severe performance
+      degradation causing cascading failures across services.
+    category: "Incident Response"
+    difficulty: "Senior"
+    duration_minutes: 45
+    target_role: "Backend Engineer"
+
+  narrative:
+    premise: |
+      Tuesday afternoon at TechCorp. The candidate is a Senior Backend
+      Engineer working on a routine feature when alerts start firing.
+
+    inciting_incident: |
+      Multiple alerts fire: database connection pool exhaustion,
+      slow queries, elevated error rates across dependent services.
+
+    rising_action:
+      - "Metrics show database response times 10x normal"
+      - "Customer-facing APIs return errors"
+      - "Team members notice and ask questions"
+      - "VP asks for status update"
+      - "Cascading failures begin"
+
+    climax: |
+      Database reaches critical load. Decision required: rollback
+      recent deployment, attempt production fix, or failover to replica.
+
+    resolution_paths:
+      - "Successful rollback resolves issue"
+      - "Root cause identified and fixed"
+      - "Controlled failover to replica"
+
+  phases:
+    - id: "detection"
+      name: "Detection & Initial Response"
+      duration_range: "5-10 minutes"
+      goals:
+        - "Notice alerts"
+        - "Begin investigation"
+        - "Post initial status"
+      success_indicators:
+        - "Acknowledges alerts within 2 minutes"
+        - "Opens monitoring dashboard"
+        - "Posts in incident channel"
+
+    - id: "triage"
+      name: "Triage & Escalation"
+      duration_range: "10-15 minutes"
+      goals:
+        - "Form hypothesis"
+        - "Escalate appropriately"
+        - "Communicate plan"
+      success_indicators:
+        - "Forms evidence-based hypothesis"
+        - "Escalates to VP within 15 minutes"
+        - "Involves DBA when needed"
+
+    - id: "resolution"
+      name: "Resolution & Recovery"
+      duration_range: "15-20 minutes"
+      goals:
+        - "Execute resolution"
+        - "Monitor recovery"
+        - "Document and communicate"
+      success_indicators:
+        - "Takes decisive action"
+        - "Monitors impact"
+        - "Provides resolution update"
+
+  agents:
+    - id: "alex_chen"
+      name: "Alex Chen"
+      role: "Senior Backend Engineer"
+      personality_summary: "Experienced, helpful, detail-oriented"
+      communication_style: "Detailed and thorough"
+      expertise: ["Database internals", "Recent deployments"]
+      relationship_to_candidate: "Peer on same team"
+      key_interactions:
+        - "Responds to technical questions"
+        - "Points out recent changes"
+        - "Can run diagnostics if asked"
+
+    - id: "jordan_lee"
+      name: "Jordan Lee"
+      role: "VP of Engineering"
+      personality_summary: "Executive, expects concise updates"
+      communication_style: "Formal and professional"
+      expertise: ["Business impact", "Resource allocation"]
+      relationship_to_candidate: "Senior stakeholder"
+      key_interactions:
+        - "Sends email about incident"
+        - "Expects regular updates"
+        - "Can authorize resources"
+
+    - id: "sam_patel"
+      name: "Sam Patel"
+      role: "Database Administrator"
+      personality_summary: "Expert, methodical, prefers Slack"
+      communication_style: "Direct and concise"
+      expertise: ["PostgreSQL", "Query optimization"]
+      relationship_to_candidate: "Specialist resource"
+      key_interactions:
+        - "Diagnoses complex DB issues"
+        - "Provides expert recommendations"
+        - "Can execute DB-level fixes"
+
+    - id: "morgan_taylor"
+      name: "Morgan Taylor"
+      role: "Junior Backend Engineer"
+      personality_summary: "Eager, needs guidance"
+      communication_style: "Casual and friendly"
+      expertise: ["Feature flags", "Basic monitoring"]
+      relationship_to_candidate: "Junior team member"
+      key_interactions:
+        - "Asks how to help"
+        - "Can run basic checks"
+        - "Needs clear instructions"
+
+  complications:
+    - name: "Cascading Failure"
+      trigger_condition: "No progress on root cause within 15 minutes"
+      effect: "Secondary service failures, increased pressure"
+
+    - name: "VP Pressure"
+      trigger_condition: "No VP communication within 10 minutes of email"
+      effect: "Urgent follow-up, escalation concern"
+
+    - name: "Conflicting Information"
+      trigger_condition: "Candidate commits to hypothesis too early"
+      effect: "New evidence contradicts hypothesis"
+
+  success_paths:
+    excellent:
+      key_actions:
+        - "Acknowledges alerts within 2 minutes"
+        - "Posts status within 5 minutes"
+        - "Contacts VP proactively"
+        - "Delegates effectively"
+        - "Identifies root cause"
+        - "Resolves within 30 minutes"
+
+    good:
+      key_actions:
+        - "Acknowledges within 5 minutes"
+        - "Communicates reasonably"
+        - "Responds to VP appropriately"
+        - "Resolves issue"
+
+    poor:
+      key_actions:
+        - "Slow to respond"
+        - "Poor communication"
+        - "Fails to escalate"
+        - "Unable to resolve"
+```
+
+---
+
+## Layer 3: Backend Domain
+
+### Phase Machine
+
+```rust
+PhaseMachine {
+    phases: {
+        "detection" => PhaseSpec {
+            id: PhaseId("detection"),
+            name: "Detection & Initial Response",
+            entry_conditions: vec![],  // Start phase
+            transitions: vec![
+                Transition {
+                    id: "tr_detection_excellent",
+                    name: "Excellent Detection",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::ActionPerformed {
+                                action_type: ActionType::MonitoringAcknowledgeAlert,
+                            },
+                            path: "$.evidence.alert_acknowledged_within_120s",
+                            operator: Operator::Eq,
+                            value: json!(true),
+                        },
+                        Condition {
+                            condition_type: ConditionType::ActionPerformed {
+                                action_type: ActionType::ChatSendMessage,
+                            },
+                            path: "$.evidence.status_posted_within_300s",
+                            operator: Operator::Eq,
+                            value: json!(true),
+                        },
+                    ],
+                    target_phase: PhaseId("triage"),
+                    exit_quality: ExitQuality::Excellent,
+                    on_transition: vec![
+                        TransitionAction::RecordEvidence {
+                            evidence_type: "phase_exit",
+                            data: json!({ "quality": "excellent", "phase": "detection" }),
+                        },
+                    ],
+                },
+                Transition {
+                    id: "tr_detection_good",
+                    name: "Good Detection",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::TimeCheck,
+                            path: "$.timing.phase_elapsed_secs",
+                            operator: Operator::Gte,
+                            value: json!(300),  // 5 minutes
+                        },
+                        Condition {
+                            condition_type: ConditionType::ActionPerformed {
+                                action_type: ActionType::MonitoringAcknowledgeAlert,
+                            },
+                            path: "$.evidence.alert_acknowledged",
+                            operator: Operator::Eq,
+                            value: json!(true),
+                        },
+                    ],
+                    target_phase: PhaseId("triage"),
+                    exit_quality: ExitQuality::Good,
+                },
+                Transition {
+                    id: "tr_detection_timeout",
+                    name: "Detection Timeout",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::TimeCheck,
+                            path: "$.timing.phase_elapsed_secs",
+                            operator: Operator::Gte,
+                            value: json!(600),  // 10 minutes max
+                        },
+                    ],
+                    target_phase: PhaseId("triage"),
+                    exit_quality: ExitQuality::Poor,
+                },
+            ],
+            min_duration_secs: Some(60),
+            max_duration_secs: Some(600),
+            active_backbone_events: vec![
+                EventId("EVT_alert_db_critical"),
+                EventId("EVT_alex_notices"),
+                EventId("EVT_metrics_degrade"),
+            ],
+            available_branches: vec![
+                BranchId("BR_quick_response"),
+            ],
+        },
+
+        "triage" => PhaseSpec {
+            id: PhaseId("triage"),
+            name: "Triage & Escalation",
+            entry_conditions: vec![],
+            transitions: vec![
+                Transition {
+                    id: "tr_triage_excellent",
+                    name: "Excellent Triage",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::StateCheck,
+                            path: "$.evidence.vp_contacted",
+                            operator: Operator::Eq,
+                            value: json!(true),
+                        },
+                        Condition {
+                            condition_type: ConditionType::StateCheck,
+                            path: "$.evidence.hypothesis_formed",
+                            operator: Operator::Eq,
+                            value: json!(true),
+                        },
+                        Condition {
+                            condition_type: ConditionType::StateCheck,
+                            path: "$.evidence.team_delegated",
+                            operator: Operator::Eq,
+                            value: json!(true),
+                        },
+                    ],
+                    target_phase: PhaseId("resolution"),
+                    exit_quality: ExitQuality::Excellent,
+                },
+                Transition {
+                    id: "tr_triage_timeout",
+                    name: "Triage Timeout",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::TimeCheck,
+                            path: "$.timing.phase_elapsed_secs",
+                            operator: Operator::Gte,
+                            value: json!(900),  // 15 minutes
+                        },
+                    ],
+                    target_phase: PhaseId("resolution"),
+                    exit_quality: ExitQuality::Acceptable,
+                },
+            ],
+            min_duration_secs: Some(300),
+            max_duration_secs: Some(900),
+            active_backbone_events: vec![
+                EventId("EVT_vp_email"),
+                EventId("EVT_more_alerts"),
+                EventId("EVT_customer_impact"),
+            ],
+            available_branches: vec![
+                BranchId("BR_escalation"),
+                BranchId("BR_delegation"),
+                BranchId("BR_vp_pressure"),
+                BranchId("BR_cascading"),
+            ],
+        },
+
+        "resolution" => PhaseSpec {
+            id: PhaseId("resolution"),
+            name: "Resolution & Recovery",
+            entry_conditions: vec![],
+            transitions: vec![
+                Transition {
+                    id: "tr_resolution_success",
+                    name: "Successful Resolution",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::StateCheck,
+                            path: "$.monitoring.services.database-primary.status",
+                            operator: Operator::Eq,
+                            value: json!("healthy"),
+                        },
+                    ],
+                    target_phase: PhaseId("complete"),
+                    exit_quality: ExitQuality::Good,
+                },
+                Transition {
+                    id: "tr_resolution_timeout",
+                    name: "Time Expired",
+                    conditions: vec![
+                        Condition {
+                            condition_type: ConditionType::TimeCheck,
+                            path: "$.timing.session_elapsed_secs",
+                            operator: Operator::Gte,
+                            value: json!(2700),  // 45 minutes total
+                        },
+                    ],
+                    target_phase: PhaseId("complete"),
+                    exit_quality: ExitQuality::Poor,
+                },
+            ],
+            active_backbone_events: vec![
+                EventId("EVT_recovery_start"),
+            ],
+            available_branches: vec![
+                BranchId("BR_rollback"),
+                BranchId("BR_fix_forward"),
+                BranchId("BR_failover"),
+            ],
+        },
+    },
+
+    phase_order: vec![
+        PhaseId("detection"),
+        PhaseId("triage"),
+        PhaseId("resolution"),
+        PhaseId("complete"),
+    ],
+
+    initial_phase: PhaseId("detection"),
+}
+```
+
+---
+
+## Complete Event Pool
+
+```rust
+event_pool: {
+    // =====================
+    // PHASE 1: DETECTION
+    // =====================
+
+    "EVT_alert_db_critical" => EventSpec {
+        id: EventId("EVT_alert_db_critical"),
+        event_type: EventType::AlertFired,
+        category: EventCategory::Technical,
+        content: EventContent::Alert {
+            alert_id: "alert_db_001",
+            severity: AlertSeverity::Critical,
+            source: "prometheus",
+            message: "Database connection pool exhausted - 98% usage (threshold: 90%)",
+            service_id: Some("database-primary"),
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/monitoring/alerts/alert_db_001",
+                value: Some(json!({
+                    "id": "alert_db_001",
+                    "severity": "critical",
+                    "status": "firing",
+                    "source": "prometheus",
+                    "service_id": "database-primary",
+                    "title": "Database Connection Pool Exhausted",
+                    "message": "Connection pool usage at 98%, threshold 90%",
+                    "metric_name": "db_connections_active",
+                    "threshold": 90,
+                    "current_value": 98,
+                    "fired_at": "{{timestamp}}",
+                    "resolved_at": null,
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/monitoring/services/database-primary/status",
+                value: Some(json!("degraded")),
+            },
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/ui/notifications/notif_alert_001",
+                value: Some(json!({
+                    "id": "notif_alert_001",
+                    "type": "error",
+                    "title": "Critical Alert",
+                    "message": "Database connection pool exhausted",
+                    "timestamp": "{{timestamp}}",
+                    "read": false,
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        triggers_agents: None,
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Technical,
+            importance: EvidenceImportance::Critical,
+        }),
+        prerequisites: vec![],
+        conflicts_with: vec![],
+        max_occurrences: 1,
+    },
+
+    "EVT_alert_api_errors" => EventSpec {
+        id: EventId("EVT_alert_api_errors"),
+        event_type: EventType::AlertFired,
+        category: EventCategory::Technical,
+        content: EventContent::Alert {
+            alert_id: "alert_api_001",
+            severity: AlertSeverity::Error,
+            source: "prometheus",
+            message: "API error rate elevated - 15% (threshold: 5%)",
+            service_id: Some("api-gateway"),
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/monitoring/alerts/alert_api_001",
+                value: Some(json!({
+                    "id": "alert_api_001",
+                    "severity": "error",
+                    "status": "firing",
+                    "source": "prometheus",
+                    "service_id": "api-gateway",
+                    "title": "Elevated API Error Rate",
+                    "message": "Error rate at 15%, threshold 5%",
+                    "metric_name": "api_error_rate",
+                    "threshold": 5,
+                    "current_value": 15,
+                    "fired_at": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        prerequisites: vec![EventId("EVT_alert_db_critical")],
+        max_occurrences: 1,
+    },
+
+    "EVT_alex_notices" => EventSpec {
+        id: EventId("EVT_alex_notices"),
+        event_type: EventType::ChatMessage,
+        category: EventCategory::Communication,
+        content: EventContent::ChatMessage {
+            channel_id: "incidents",
+            author_id: AgentId("alex_chen"),
+            text: "Hey, seeing some weird database alerts. Anyone else getting paged?",
+            mentions: vec![],
+            thread_id: None,
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_alex_001",
+                value: Some(json!({
+                    "id": "msg_alex_001",
+                    "channel_id": "incidents",
+                    "author_id": "alex_chen",
+                    "author_type": "agent",
+                    "text": "Hey, seeing some weird database alerts. Anyone else getting paged?",
+                    "attachments": {},
+                    "thread_id": null,
+                    "reply_to_id": null,
+                    "reply_count": 0,
+                    "reactions": {},
+                    "timestamp": "{{timestamp}}",
+                    "is_edited": false,
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/chat/channels/incidents/last_activity_at",
+                value: Some(json!("{{timestamp}}")),
+            },
+        ],
+        triggers_agents: None,
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::Medium,
+        }),
+        prerequisites: vec![EventId("EVT_alert_db_critical")],
+        max_occurrences: 1,
+    },
+
+    "EVT_metrics_degrade" => EventSpec {
+        id: EventId("EVT_metrics_degrade"),
+        event_type: EventType::MetricChange,
+        category: EventCategory::Technical,
+        content: EventContent::MetricChange {
+            service_id: "database-primary",
+            metric_name: "query_latency_p99",
+            old_value: 50.0,
+            new_value: 2500.0,
+            unit: "ms",
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/monitoring/metrics/database-primary/query_latency_p99/data_points/{{timestamp}}",
+                value: Some(json!({
+                    "timestamp": "{{timestamp}}",
+                    "value": 2500,
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/monitoring/metrics/database-primary/query_latency_p99/current_value",
+                value: Some(json!(2500)),
+            },
+        ],
+        max_occurrences: 5,
+    },
+
+    // =====================
+    // PHASE 2: TRIAGE
+    // =====================
+
+    "EVT_vp_email" => EventSpec {
+        id: EventId("EVT_vp_email"),
+        event_type: EventType::EmailReceived,
+        category: EventCategory::Communication,
+        content: EventContent::Email {
+            from_id: AgentId("jordan_lee"),
+            to_ids: vec!["candidate"],
+            cc_ids: vec![],
+            subject: "Urgent: Database Issues Affecting Customers?",
+            body: "I'm hearing reports about database problems affecting some customers.\n\nCan you give me a quick status update? What's the impact and what's being done?\n\nThanks,\nJordan",
+            priority: EmailPriority::High,
+            reply_to_id: None,
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/email/emails/email_vp_001",
+                value: Some(json!({
+                    "id": "email_vp_001",
+                    "thread_id": "thread_vp_001",
+                    "folder_id": "inbox",
+                    "from_id": "jordan_lee",
+                    "from_type": "agent",
+                    "to_ids": ["candidate"],
+                    "cc_ids": [],
+                    "subject": "Urgent: Database Issues Affecting Customers?",
+                    "body": "I'm hearing reports about database problems affecting some customers.\n\nCan you give me a quick status update? What's the impact and what's being done?\n\nThanks,\nJordan",
+                    "body_html": null,
+                    "attachments": {},
+                    "priority": "high",
+                    "read": false,
+                    "starred": false,
+                    "archived": false,
+                    "reply_to_id": null,
+                    "is_reply": false,
+                    "is_forward": false,
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/email/unread_counts/inbox",
+                value: Some(json!(1)),
+            },
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/ui/notifications/notif_email_vp",
+                value: Some(json!({
+                    "id": "notif_email_vp",
+                    "type": "warning",
+                    "title": "Email from VP Engineering",
+                    "message": "Urgent: Database Issues Affecting Customers?",
+                    "timestamp": "{{timestamp}}",
+                    "read": false,
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        triggers_agents: Some(AgentTriggerConfig {
+            agents: vec![AgentId("jordan_lee")],
+            trigger_on_response: true,
+        }),
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::High,
+        }),
+        max_occurrences: 1,
+    },
+
+    "EVT_alex_recent_deploy" => EventSpec {
+        id: EventId("EVT_alex_recent_deploy"),
+        event_type: EventType::ChatMessage,
+        category: EventCategory::Communication,
+        content: EventContent::ChatMessage {
+            channel_id: "incidents",
+            author_id: AgentId("alex_chen"),
+            text: "Oh wait, we pushed that connection pool optimization yesterday. PR #847. Could be related?",
+            mentions: vec![],
+            thread_id: None,
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_alex_002",
+                value: Some(json!({
+                    "id": "msg_alex_002",
+                    "channel_id": "incidents",
+                    "author_id": "alex_chen",
+                    "author_type": "agent",
+                    "text": "Oh wait, we pushed that connection pool optimization yesterday. PR #847. Could be related?",
+                    "attachments": {},
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Technical,
+            importance: EvidenceImportance::High,
+        }),
+        max_occurrences: 1,
+    },
+
+    "EVT_morgan_offers_help" => EventSpec {
+        id: EventId("EVT_morgan_offers_help"),
+        event_type: EventType::ChatMessage,
+        category: EventCategory::Communication,
+        content: EventContent::ChatMessage {
+            channel_id: "incidents",
+            author_id: AgentId("morgan_taylor"),
+            text: "I'm available if anyone needs help! What can I do?",
+            mentions: vec![],
+            thread_id: None,
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_morgan_001",
+                value: Some(json!({
+                    "id": "msg_morgan_001",
+                    "channel_id": "incidents",
+                    "author_id": "morgan_taylor",
+                    "author_type": "agent",
+                    "text": "I'm available if anyone needs help! What can I do?",
+                    "attachments": {},
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        max_occurrences: 1,
+    },
+
+    "EVT_customer_impact" => EventSpec {
+        id: EventId("EVT_customer_impact"),
+        event_type: EventType::ChatMessage,
+        category: EventCategory::Pressure,
+        content: EventContent::ChatMessage {
+            channel_id: "incidents",
+            author_id: AgentId("alex_chen"),
+            text: "Support is getting tickets now. Customers seeing timeouts on checkout flow.",
+            mentions: vec![],
+            thread_id: None,
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_alex_003",
+                value: Some(json!({
+                    "id": "msg_alex_003",
+                    "channel_id": "incidents",
+                    "author_id": "alex_chen",
+                    "author_type": "agent",
+                    "text": "Support is getting tickets now. Customers seeing timeouts on checkout flow.",
+                    "attachments": {},
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Technical,
+            importance: EvidenceImportance::Critical,
+        }),
+        max_occurrences: 1,
+    },
+
+    // =====================
+    // COMPLICATIONS
+    // =====================
+
+    "EVT_cascading_failure" => EventSpec {
+        id: EventId("EVT_cascading_failure"),
+        event_type: EventType::ComplicationInjection,
+        category: EventCategory::Pressure,
+        content: EventContent::Complication {
+            complication_type: ComplicationType::CascadingFailure,
+            description: "Payment service failing due to database timeouts",
+            affected_services: vec!["payment-service"],
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/monitoring/services/payment-service/status",
+                value: Some(json!("unhealthy")),
+            },
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/monitoring/alerts/alert_payment_001",
+                value: Some(json!({
+                    "id": "alert_payment_001",
+                    "severity": "critical",
+                    "status": "firing",
+                    "source": "prometheus",
+                    "service_id": "payment-service",
+                    "title": "Payment Service Unhealthy",
+                    "message": "Payment service failing due to database dependency",
+                    "fired_at": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_sys_cascade",
+                value: Some(json!({
+                    "id": "msg_sys_cascade",
+                    "channel_id": "incidents",
+                    "author_id": "system",
+                    "author_type": "system",
+                    "text": "⚠️ [ALERT] Payment service now reporting failures. Likely cascading from database issues.",
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        max_occurrences: 1,
+    },
+
+    "EVT_vp_pressure" => EventSpec {
+        id: EventId("EVT_vp_pressure"),
+        event_type: EventType::EmailReceived,
+        category: EventCategory::Pressure,
+        content: EventContent::Email {
+            from_id: AgentId("jordan_lee"),
+            to_ids: vec!["candidate"],
+            cc_ids: vec!["alex_chen"],
+            subject: "Re: Urgent: Database Issues Affecting Customers?",
+            body: "I haven't heard back yet and this is affecting customers.\n\nI need an update ASAP. What's the ETA for resolution?\n\nJordan",
+            priority: EmailPriority::Urgent,
+            reply_to_id: Some("email_vp_001"),
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/email/emails/email_vp_002",
+                value: Some(json!({
+                    "id": "email_vp_002",
+                    "thread_id": "thread_vp_001",
+                    "folder_id": "inbox",
+                    "from_id": "jordan_lee",
+                    "from_type": "agent",
+                    "to_ids": ["candidate"],
+                    "cc_ids": ["alex_chen"],
+                    "subject": "Re: Urgent: Database Issues Affecting Customers?",
+                    "body": "I haven't heard back yet and this is affecting customers.\n\nI need an update ASAP. What's the ETA for resolution?\n\nJordan",
+                    "priority": "urgent",
+                    "read": false,
+                    "reply_to_id": "email_vp_001",
+                    "is_reply": true,
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::High,
+        }),
+        max_occurrences: 1,
+    },
+
+    // =====================
+    // RESOLUTION EVENTS
+    // =====================
+
+    "EVT_sam_diagnosis" => EventSpec {
+        id: EventId("EVT_sam_diagnosis"),
+        event_type: EventType::ChatMessage,
+        category: EventCategory::Communication,
+        content: EventContent::ChatMessage {
+            channel_id: "incidents",
+            author_id: AgentId("sam_patel"),
+            text: "Looked at the query logs. The new pooling code is creating connections but not releasing them properly under load. Classic connection leak. We need to either rollback or hotfix.",
+            mentions: vec![],
+            thread_id: None,
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_sam_001",
+                value: Some(json!({
+                    "id": "msg_sam_001",
+                    "channel_id": "incidents",
+                    "author_id": "sam_patel",
+                    "author_type": "agent",
+                    "text": "Looked at the query logs. The new pooling code is creating connections but not releasing them properly under load. Classic connection leak. We need to either rollback or hotfix.",
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        evidence: Some(EventEvidenceConfig {
+            creates_evidence: true,
+            category: EvidenceCategory::Technical,
+            importance: EvidenceImportance::Critical,
+        }),
+        max_occurrences: 1,
+    },
+
+    "EVT_rollback_success" => EventSpec {
+        id: EventId("EVT_rollback_success"),
+        event_type: EventType::ServiceStatusChange,
+        category: EventCategory::Technical,
+        content: EventContent::MetricChange {
+            service_id: "database-primary",
+            metric_name: "status",
+            old_value: 0.0,
+            new_value: 1.0,
+            unit: "boolean",
+        },
+        patches: vec![
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/monitoring/services/database-primary/status",
+                value: Some(json!("healthy")),
+            },
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/monitoring/alerts/alert_db_001/status",
+                value: Some(json!("resolved")),
+            },
+            StatePatch {
+                op: PatchOperation::Replace,
+                path: "/monitoring/alerts/alert_db_001/resolved_at",
+                value: Some(json!("{{timestamp}}")),
+            },
+            StatePatch {
+                op: PatchOperation::Add,
+                path: "/chat/messages/incidents/msg_sys_resolved",
+                value: Some(json!({
+                    "id": "msg_sys_resolved",
+                    "channel_id": "incidents",
+                    "author_id": "system",
+                    "author_type": "system",
+                    "text": "✅ [RESOLVED] Database connection pool alert - metrics returning to normal",
+                    "timestamp": "{{timestamp}}",
+                    "sort_key": "{{timestamp}}"
+                })),
+            },
+        ],
+        max_occurrences: 1,
+    },
+}
+```
+
+---
+
+## Complete Branch Definitions
+
+```rust
+branches: {
+    // =====================
+    // POSITIVE BRANCHES
+    // =====================
+
+    "BR_quick_response" => BranchSpec {
+        id: BranchId("BR_quick_response"),
+        name: "Quick Response Path",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::MonitoringAcknowledgeAlert,
+                },
+                path: "$.timing.since_alert_secs",
+                operator: Operator::Lt,
+                value: json!(120),  // Within 2 minutes
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_alex_impressed"),
+                trigger: BranchTrigger::Delay { seconds: 30 },
+            },
+        ],
+        exclusive_with: vec![],
+        requires_branches: vec![],
+        path_quality: PathQuality::Optimal,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "CRISIS_001",
+                signal_type: SignalType::Positive,
+                weight: 0.9,
+            },
+        ],
+    },
+
+    "BR_escalation" => BranchSpec {
+        id: BranchId("BR_escalation"),
+        name: "Proper Escalation Path",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::EmailSend,
+                },
+                path: "$.payload.to_ids",
+                operator: Operator::Contains,
+                value: json!("jordan_lee"),
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_vp_acknowledges"),
+                trigger: BranchTrigger::Delay { seconds: 180 },  // 3 min response
+            },
+        ],
+        path_quality: PathQuality::Optimal,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "ESCALATION_001",
+                signal_type: SignalType::Positive,
+                weight: 0.85,
+            },
+        ],
+    },
+
+    "BR_delegation" => BranchSpec {
+        id: BranchId("BR_delegation"),
+        name: "Effective Delegation Path",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::ChatSendMessage,
+                },
+                path: "$.payload.text",
+                operator: Operator::Matches,
+                value: json!("(?i)(morgan|@morgan).*(can you|could you|please|check|monitor|help)"),
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_morgan_confirms"),
+                trigger: BranchTrigger::Delay { seconds: 30 },
+            },
+            BranchEvent {
+                event_id: EventId("EVT_morgan_reports"),
+                trigger: BranchTrigger::Delay { seconds: 300 },
+            },
+        ],
+        path_quality: PathQuality::Optimal,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "LEADERSHIP_001",
+                signal_type: SignalType::Positive,
+                weight: 0.8,
+            },
+        ],
+    },
+
+    "BR_dba_consultation" => BranchSpec {
+        id: BranchId("BR_dba_consultation"),
+        name: "DBA Consultation Path",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::ChatSendMessage,
+                },
+                path: "$.payload.text",
+                operator: Operator::Matches,
+                value: json!("(?i)(sam|@sam|dba)"),
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_sam_responds"),
+                trigger: BranchTrigger::Delay { seconds: 120 },
+            },
+            BranchEvent {
+                event_id: EventId("EVT_sam_diagnosis"),
+                trigger: BranchTrigger::Delay { seconds: 300 },
+            },
+        ],
+        path_quality: PathQuality::Optimal,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "TECHNICAL_001",
+                signal_type: SignalType::Positive,
+                weight: 0.75,
+            },
+        ],
+    },
+
+    "BR_rollback" => BranchSpec {
+        id: BranchId("BR_rollback"),
+        name: "Rollback Decision Path",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::ChatSendMessage,
+                },
+                path: "$.payload.text",
+                operator: Operator::Matches,
+                value: json!("(?i)(rollback|revert|back out|undo deploy)"),
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_alex_rollback_support"),
+                trigger: BranchTrigger::Delay { seconds: 60 },
+            },
+            BranchEvent {
+                event_id: EventId("EVT_rollback_success"),
+                trigger: BranchTrigger::Delay { seconds: 300 },
+            },
+        ],
+        exclusive_with: vec![BranchId("BR_fix_forward")],
+        path_quality: PathQuality::ValidAlternative,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "DECISION_001",
+                signal_type: SignalType::Positive,
+                weight: 0.7,
+            },
+        ],
+    },
+
+    // =====================
+    // NEGATIVE BRANCHES
+    // =====================
+
+    "BR_vp_pressure" => BranchSpec {
+        id: BranchId("BR_vp_pressure"),
+        name: "VP Pressure Complication",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::ActionOmitted {
+                    action_type: ActionType::EmailSend,
+                    within_secs: 600,  // 10 minutes
+                },
+                path: "$.evidence.vp_responded",
+                operator: Operator::Eq,
+                value: json!(false),
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_vp_pressure"),
+                trigger: BranchTrigger::Immediate,
+            },
+        ],
+        path_quality: PathQuality::Problematic,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "COMMUNICATION_001",
+                signal_type: SignalType::Negative,
+                weight: 0.7,
+            },
+            CompetencySignal {
+                competency_id: "ESCALATION_001",
+                signal_type: SignalType::Negative,
+                weight: 0.6,
+            },
+        ],
+    },
+
+    "BR_cascading" => BranchSpec {
+        id: BranchId("BR_cascading"),
+        name: "Cascading Failure Complication",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::TimeCheck,
+                path: "$.timing.phase_elapsed_secs",
+                operator: Operator::Gte,
+                value: json!(900),  // 15 minutes in triage
+            },
+            Condition {
+                condition_type: ConditionType::StateCheck,
+                path: "$.evidence.resolution_action_taken",
+                operator: Operator::Eq,
+                value: json!(false),
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_cascading_failure"),
+                trigger: BranchTrigger::Immediate,
+            },
+        ],
+        path_quality: PathQuality::Problematic,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "CRISIS_001",
+                signal_type: SignalType::Negative,
+                weight: 0.8,
+            },
+        ],
+    },
+
+    "BR_no_communication" => BranchSpec {
+        id: BranchId("BR_no_communication"),
+        name: "Silent Investigation Path",
+        activation_conditions: vec![
+            Condition {
+                condition_type: ConditionType::TimeCheck,
+                path: "$.timing.session_elapsed_secs",
+                operator: Operator::Gte,
+                value: json!(600),  // 10 minutes
+            },
+            Condition {
+                condition_type: ConditionType::StateCheck,
+                path: "$.chat.messages.incidents",
+                operator: Operator::Eq,
+                value: json!({}),  // No messages from candidate
+            },
+        ],
+        events: vec![
+            BranchEvent {
+                event_id: EventId("EVT_alex_prompts"),
+                trigger: BranchTrigger::Immediate,
+            },
+        ],
+        path_quality: PathQuality::Problematic,
+        competency_signals: vec![
+            CompetencySignal {
+                competency_id: "COMMUNICATION_001",
+                signal_type: SignalType::Negative,
+                weight: 0.9,
+            },
+        ],
+    },
+}
+```
+
+---
+
+## Agent Response Templates
+
+```rust
+// Alex Chen templates
+agents["alex_chen"].templates: {
+    "TPL_alex_greeting" => ResponseTemplate {
+        id: "TPL_alex_greeting",
+        channel_type: ChannelType::Chat,
+        text: "Hey! Yeah I'm seeing the same alerts. {{context.alert_count}} alerts firing right now.",
+        variations: vec![],
+        reveals: vec![],
+    },
+
+    "TPL_alex_recent_deploy" => ResponseTemplate {
+        id: "TPL_alex_recent_deploy",
+        channel_type: ChannelType::Chat,
+        text: "Oh wait, we pushed that connection pool optimization yesterday. PR #847. Could be related?",
+        variations: vec![],
+        reveals: vec![
+            InformationReveal {
+                key: "recent_deploy",
+                value: json!({ "pr": 847, "feature": "connection_pool_optimization" }),
+            },
+        ],
+    },
+
+    "TPL_alex_confirms_rollback" => ResponseTemplate {
+        id: "TPL_alex_confirms_rollback",
+        channel_type: ChannelType::Chat,
+        text: "Good call on the rollback. I can kick that off now if you want? Will take about 5 minutes to fully propagate.",
+        variations: vec![
+            TemplateVariation {
+                conditions: vec![
+                    Condition {
+                        condition_type: ConditionType::StateCheck,
+                        path: "$.agents.alex_chen.stress_level",
+                        operator: Operator::Gt,
+                        value: json!(70),
+                    },
+                ],
+                text: "Yeah rollback makes sense. Let me start that now.",
+                weight: 1.0,
+            },
+        ],
+        reveals: vec![],
+    },
+
+    "TPL_alex_technical_question" => ResponseTemplate {
+        id: "TPL_alex_technical_question",
+        channel_type: ChannelType::Chat,
+        text: "{{response_to_question}}",  // Dynamic based on question
+        variations: vec![],
+        reveals: vec![],
+    },
+}
+
+// Jordan Lee (VP) templates
+agents["jordan_lee"].templates: {
+    "TPL_jordan_acknowledges" => ResponseTemplate {
+        id: "TPL_jordan_acknowledges",
+        channel_type: ChannelType::Email,
+        text: "Thanks for the update. Keep me posted on progress.\n\nJordan",
+        variations: vec![
+            TemplateVariation {
+                conditions: vec![
+                    Condition {
+                        condition_type: ConditionType::StateCheck,
+                        path: "$.evidence.eta_provided",
+                        operator: Operator::Eq,
+                        value: json!(true),
+                    },
+                ],
+                text: "Thanks for the update and ETA. Let me know if you need any resources.\n\nJordan",
+                weight: 1.0,
+            },
+        ],
+        reveals: vec![],
+    },
+
+    "TPL_jordan_escalation" => ResponseTemplate {
+        id: "TPL_jordan_escalation",
+        channel_type: ChannelType::Email,
+        text: "I haven't heard back yet and this is affecting customers.\n\nI need an update ASAP. What's the ETA for resolution?\n\nJordan",
+        variations: vec![],
+        reveals: vec![],
+    },
+}
+
+// Sam Patel (DBA) templates
+agents["sam_patel"].templates: {
+    "TPL_sam_responds" => ResponseTemplate {
+        id: "TPL_sam_responds",
+        channel_type: ChannelType::Chat,
+        text: "Looking into it now. Give me a few minutes to check the query logs.",
+        variations: vec![],
+        reveals: vec![],
+    },
+
+    "TPL_sam_diagnosis" => ResponseTemplate {
+        id: "TPL_sam_diagnosis",
+        channel_type: ChannelType::Chat,
+        text: "Looked at the query logs. The new pooling code is creating connections but not releasing them properly under load. Classic connection leak. We need to either rollback or hotfix.",
+        variations: vec![],
+        reveals: vec![
+            InformationReveal {
+                key: "root_cause",
+                value: json!({
+                    "type": "connection_leak",
+                    "source": "connection_pool_optimization",
+                    "recommendation": ["rollback", "hotfix"]
+                }),
+            },
+        ],
+    },
+
+    "TPL_sam_rollback_support" => ResponseTemplate {
+        id: "TPL_sam_rollback_support",
+        channel_type: ChannelType::Chat,
+        text: "Rollback is the safest option here. I'll monitor the connection pool during the rollback to make sure we don't have any issues.",
+        variations: vec![],
+        reveals: vec![],
+    },
+}
+
+// Morgan Taylor (Junior) templates
+agents["morgan_taylor"].templates: {
+    "TPL_morgan_offers" => ResponseTemplate {
+        id: "TPL_morgan_offers",
+        channel_type: ChannelType::Chat,
+        text: "I'm available if anyone needs help! What can I do?",
+        variations: vec![],
+        reveals: vec![],
+    },
+
+    "TPL_morgan_confirms" => ResponseTemplate {
+        id: "TPL_morgan_confirms",
+        channel_type: ChannelType::Chat,
+        text: "On it! I'll {{task}} and report back.",
+        variations: vec![],
+        reveals: vec![],
+    },
+
+    "TPL_morgan_reports" => ResponseTemplate {
+        id: "TPL_morgan_reports",
+        channel_type: ChannelType::Chat,
+        text: "Update: {{report}}",
+        variations: vec![],
+        reveals: vec![],
+    },
+
+    "TPL_morgan_confused" => ResponseTemplate {
+        id: "TPL_morgan_confused",
+        channel_type: ChannelType::Chat,
+        text: "Sorry, I'm not sure what I should be looking for. Can you be more specific?",
+        variations: vec![],
+        reveals: vec![],
+    },
+}
+```
+
+---
+
+## Detection Rules
+
+```rust
+detection_rules: vec![
+    // ===========================
+    // DETECTION PHASE EVIDENCE
+    // ===========================
+
+    DetectionRule {
+        id: "DR_alert_ack_quick",
+        name: "Quick Alert Acknowledgment",
+        competency_id: "CRISIS_001",
+        indicator_id: "IND_response_time",
+        rule_type: DetectionRuleType::ActionPerformed,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::MonitoringAcknowledgeAlert,
+                },
+                path: "$.payload.alert_id",
+                operator: Operator::Eq,
+                value: json!("alert_db_001"),
+            },
+        ]),
+        timing: Some(TimingConstraint {
+            reference: TimingReference::AfterEvent,
+            reference_event_id: Some(EventId("EVT_alert_db_critical")),
+            max_secs: Some(120),
+        }),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Timing,
+            category: EvidenceCategory::CrisisManagement,
+            importance: EvidenceImportance::High,
+            description_template: "Acknowledged critical database alert within {{elapsed_secs}} seconds",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "CRISIS_001",
+                    signal_type: SignalType::Positive,
+                    weight: 0.85,
+                },
+            ],
+        },
+        max_fires: Some(1),
+    },
+
+    DetectionRule {
+        id: "DR_initial_status",
+        name: "Initial Status Update",
+        competency_id: "COMMUNICATION_001",
+        indicator_id: "IND_proactive_updates",
+        rule_type: DetectionRuleType::ActionPerformed,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::ChatSendMessage,
+                },
+                path: "$.payload.channel_id",
+                operator: Operator::Eq,
+                value: json!("incidents"),
+            },
+        ]),
+        timing: Some(TimingConstraint {
+            reference: TimingReference::SessionStart,
+            max_secs: Some(300),  // Within 5 minutes
+        }),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Communication,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::High,
+            description_template: "Posted initial status update in incident channel",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "COMMUNICATION_001",
+                    signal_type: SignalType::Positive,
+                    weight: 0.8,
+                },
+            ],
+        },
+        max_fires: Some(1),
+    },
+
+    // ===========================
+    // TRIAGE PHASE EVIDENCE
+    // ===========================
+
+    DetectionRule {
+        id: "DR_vp_contact",
+        name: "VP Communication",
+        competency_id: "ESCALATION_001",
+        indicator_id: "IND_appropriate_escalation",
+        rule_type: DetectionRuleType::ActionPerformed,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::EmailReply,
+                },
+                path: "$.payload.reply_to_id",
+                operator: Operator::Eq,
+                value: json!("email_vp_001"),
+            },
+        ]),
+        timing: Some(TimingConstraint {
+            reference: TimingReference::AfterEvent,
+            reference_event_id: Some(EventId("EVT_vp_email")),
+            max_secs: Some(600),  // Within 10 minutes
+        }),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Communication,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::High,
+            description_template: "Responded to VP's email within {{elapsed_secs}} seconds",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "ESCALATION_001",
+                    signal_type: SignalType::Positive,
+                    weight: 0.9,
+                },
+                CompetencySignal {
+                    competency_id: "COMMUNICATION_001",
+                    signal_type: SignalType::Positive,
+                    weight: 0.7,
+                },
+            ],
+        },
+        max_fires: Some(1),
+    },
+
+    DetectionRule {
+        id: "DR_delegation",
+        name: "Effective Delegation",
+        competency_id: "LEADERSHIP_001",
+        indicator_id: "IND_delegation",
+        rule_type: DetectionRuleType::ActionPerformed,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::ChatSendMessage,
+                },
+                path: "$.payload.text",
+                operator: Operator::Matches,
+                value: json!("(?i)@morgan|morgan.*can you|morgan.*could you|morgan.*please"),
+            },
+        ]),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Action,
+            category: EvidenceCategory::Leadership,
+            importance: EvidenceImportance::Medium,
+            description_template: "Delegated task to junior team member",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "LEADERSHIP_001",
+                    signal_type: SignalType::Positive,
+                    weight: 0.75,
+                },
+            ],
+        },
+        max_fires: Some(3),  // Can delegate multiple times
+    },
+
+    DetectionRule {
+        id: "DR_dba_consultation",
+        name: "DBA Consultation",
+        competency_id: "TECHNICAL_001",
+        indicator_id: "IND_uses_experts",
+        rule_type: DetectionRuleType::ActionPerformed,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::ActionPerformed {
+                    action_type: ActionType::ChatSendMessage,
+                },
+                path: "$.payload.text",
+                operator: Operator::Matches,
+                value: json!("(?i)@sam|sam.*help|sam.*look|dba"),
+            },
+        ]),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Action,
+            category: EvidenceCategory::Technical,
+            importance: EvidenceImportance::Medium,
+            description_template: "Consulted with DBA specialist",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "TECHNICAL_001",
+                    signal_type: SignalType::Positive,
+                    weight: 0.7,
+                },
+            ],
+        },
+        max_fires: Some(1),
+    },
+
+    // ===========================
+    // NEGATIVE EVIDENCE
+    // ===========================
+
+    DetectionRule {
+        id: "DR_vp_ignored",
+        name: "VP Email Ignored",
+        competency_id: "ESCALATION_001",
+        indicator_id: "IND_escalation_failure",
+        rule_type: DetectionRuleType::ActionOmitted,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::ActionOmitted {
+                    action_type: ActionType::EmailReply,
+                    within_secs: 600,
+                },
+                path: "$.evidence.vp_responded",
+                operator: Operator::Eq,
+                value: json!(false),
+            },
+        ]),
+        timing: Some(TimingConstraint {
+            reference: TimingReference::AfterEvent,
+            reference_event_id: Some(EventId("EVT_vp_email")),
+            min_secs: Some(600),
+        }),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Omission,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::High,
+            description_template: "Failed to respond to VP's email within 10 minutes",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "ESCALATION_001",
+                    signal_type: SignalType::Negative,
+                    weight: 0.8,
+                },
+                CompetencySignal {
+                    competency_id: "COMMUNICATION_001",
+                    signal_type: SignalType::Negative,
+                    weight: 0.7,
+                },
+            ],
+        },
+        max_fires: Some(1),
+    },
+
+    DetectionRule {
+        id: "DR_silent",
+        name: "No Communication",
+        competency_id: "COMMUNICATION_001",
+        indicator_id: "IND_communication_failure",
+        rule_type: DetectionRuleType::ActionOmitted,
+        conditions: CompoundCondition::And(vec![
+            Condition {
+                condition_type: ConditionType::TimeCheck,
+                path: "$.timing.session_elapsed_secs",
+                operator: Operator::Gte,
+                value: json!(600),
+            },
+            Condition {
+                condition_type: ConditionType::StateCheck,
+                path: "$.evidence.any_chat_message",
+                operator: Operator::Eq,
+                value: json!(false),
+            },
+        ]),
+        evidence_output: EvidenceOutput {
+            evidence_type: EvidenceType::Omission,
+            category: EvidenceCategory::Communication,
+            importance: EvidenceImportance::Critical,
+            description_template: "No communication in first 10 minutes of incident",
+            signals: vec![
+                CompetencySignal {
+                    competency_id: "COMMUNICATION_001",
+                    signal_type: SignalType::Negative,
+                    weight: 0.95,
+                },
+            ],
+        },
+        max_fires: Some(1),
+    },
+]
+```
+
+---
+
+## Backbone Timeline
+
+```rust
+backbone: Backbone {
+    events: vec![
+        // T+0: Initial alerts fire
+        BackboneEvent {
+            event_id: EventId("EVT_alert_db_critical"),
+            trigger: BackboneTrigger::Absolute { seconds_from_start: 0 },
+            skip_if: vec![],
+            delay_secs: 0,
+            delay_variance_secs: None,
+        },
+
+        // T+5s: API error alert
+        BackboneEvent {
+            event_id: EventId("EVT_alert_api_errors"),
+            trigger: BackboneTrigger::Absolute { seconds_from_start: 5 },
+            skip_if: vec![],
+            delay_secs: 0,
+            delay_variance_secs: Some(3),
+        },
+
+        // T+30s: Alex notices
+        BackboneEvent {
+            event_id: EventId("EVT_alex_notices"),
+            trigger: BackboneTrigger::Absolute { seconds_from_start: 30 },
+            skip_if: vec![],
+            delay_secs: 0,
+            delay_variance_secs: Some(10),
+        },
+
+        // T+60s: Metrics degrade further
+        BackboneEvent {
+            event_id: EventId("EVT_metrics_degrade"),
+            trigger: BackboneTrigger::Absolute { seconds_from_start: 60 },
+            skip_if: vec![],
+            delay_secs: 0,
+            delay_variance_secs: None,
+        },
+
+        // T+180s: Alex mentions recent deploy
+        BackboneEvent {
+            event_id: EventId("EVT_alex_recent_deploy"),
+            trigger: BackboneTrigger::Absolute { seconds_from_start: 180 },
+            skip_if: vec![
+                // Skip if candidate already asked about recent changes
+                Condition {
+                    condition_type: ConditionType::StateCheck,
+                    path: "$.evidence.asked_about_changes",
+                    operator: Operator::Eq,
+                    value: json!(true),
+                },
+            ],
+            delay_secs: 0,
+            delay_variance_secs: Some(30),
+        },
+
+        // T+300s (5m): VP sends email (triage phase)
+        BackboneEvent {
+            event_id: EventId("EVT_vp_email"),
+            trigger: BackboneTrigger::PhaseStart {
+                phase_id: PhaseId("triage"),
+                offset_secs: 0,
+            },
+            skip_if: vec![
+                // Skip if candidate already contacted VP
+                Condition {
+                    condition_type: ConditionType::StateCheck,
+                    path: "$.evidence.vp_contacted_proactively",
+                    operator: Operator::Eq,
+                    value: json!(true),
+                },
+            ],
+            delay_secs: 0,
+            delay_variance_secs: None,
+        },
+
+        // T+360s: Morgan offers help
+        BackboneEvent {
+            event_id: EventId("EVT_morgan_offers_help"),
+            trigger: BackboneTrigger::PhaseStart {
+                phase_id: PhaseId("triage"),
+                offset_secs: 60,
+            },
+            skip_if: vec![],
+            delay_secs: 0,
+            delay_variance_secs: Some(30),
+        },
+
+        // T+480s: Customer impact report
+        BackboneEvent {
+            event_id: EventId("EVT_customer_impact"),
+            trigger: BackboneTrigger::PhaseStart {
+                phase_id: PhaseId("triage"),
+                offset_secs: 180,
+            },
+            skip_if: vec![],
+            delay_secs: 0,
+            delay_variance_secs: Some(30),
+        },
+    ],
+}
+```
+
+---
+
+## Initial Session State
+
+```json
+{
+  "session_id": "{{generated}}",
+  "scenario_id": "SCN_database_outage",
+  "candidate_id": "{{candidate_id}}",
+
+  "timing": {
+    "started_at": "{{timestamp}}",
+    "current_time": "{{timestamp}}",
+    "elapsed_seconds": 0,
+    "remaining_seconds": 2700,
+    "paused": false,
+    "paused_at": null
+  },
+
+  "progress": {
+    "current_phase_id": "detection",
+    "completed_phases": {},
+    "active_branches": {},
+    "fired_events": {},
+    "pending_events": {}
+  },
+
+  "chat": {
+    "active_channel_id": "incidents",
+    "channels": {
+      "incidents": {
+        "id": "incidents",
+        "name": "#incidents",
+        "type": "public",
+        "description": "Production incident coordination",
+        "members": {
+          "candidate": { "agent_id": "candidate", "role": "member", "joined_at": 0 },
+          "alex_chen": { "agent_id": "alex_chen", "role": "member", "joined_at": 0 },
+          "sam_patel": { "agent_id": "sam_patel", "role": "member", "joined_at": 0 },
+          "morgan_taylor": { "agent_id": "morgan_taylor", "role": "member", "joined_at": 0 }
+        },
+        "pinned": {},
+        "last_activity_at": 0,
+        "sort_key": 0
+      },
+      "engineering": {
+        "id": "engineering",
+        "name": "#engineering",
+        "type": "public",
+        "description": "General engineering discussion",
+        "members": {},
+        "pinned": {},
+        "last_activity_at": 0,
+        "sort_key": 1
+      }
+    },
+    "messages": {
+      "incidents": {},
+      "engineering": {}
+    },
+    "threads": {},
+    "typing": {
+      "incidents": {},
+      "engineering": {}
+    },
+    "read_cursors": {},
+    "unread_counts": {
+      "incidents": 0,
+      "engineering": 0
+    },
+    "drafts": {}
+  },
+
+  "email": {
+    "active_folder_id": "inbox",
+    "active_email_id": null,
+    "compose_mode": false,
+    "folders": {
+      "inbox": { "id": "inbox", "name": "Inbox", "type": "inbox", "email_ids": [], "sort_key": 0 },
+      "sent": { "id": "sent", "name": "Sent", "type": "sent", "email_ids": [], "sort_key": 1 }
+    },
+    "emails": {},
+    "threads": {},
+    "drafts": {},
+    "unread_counts": { "inbox": 0 }
+  },
+
+  "monitoring": {
+    "active_tab": "overview",
+    "active_service_id": null,
+    "time_range": "1h",
+    "services": {
+      "database-primary": {
+        "id": "database-primary",
+        "name": "Primary Database",
+        "status": "healthy",
+        "status_message": "All systems operational",
+        "last_updated": "{{timestamp}}",
+        "dependencies": {},
+        "metrics_summary": {
+          "query_latency_p99": { "metric_name": "query_latency_p99", "current": 50, "trend": "stable" },
+          "connections_active": { "metric_name": "connections_active", "current": 45, "trend": "stable" }
+        },
+        "sort_key": 0
+      },
+      "api-gateway": {
+        "id": "api-gateway",
+        "name": "API Gateway",
+        "status": "healthy",
+        "status_message": "All systems operational",
+        "last_updated": "{{timestamp}}",
+        "dependencies": {
+          "database-primary": { "service_id": "database-primary", "status": "healthy", "latency_ms": 5 }
+        },
+        "metrics_summary": {},
+        "sort_key": 1
+      },
+      "payment-service": {
+        "id": "payment-service",
+        "name": "Payment Service",
+        "status": "healthy",
+        "status_message": "All systems operational",
+        "last_updated": "{{timestamp}}",
+        "dependencies": {
+          "database-primary": { "service_id": "database-primary", "status": "healthy", "latency_ms": 8 }
+        },
+        "metrics_summary": {},
+        "sort_key": 2
+      }
+    },
+    "alerts": {},
+    "acknowledged": {},
+    "metrics": {
+      "database-primary": {
+        "query_latency_p99": {
+          "service_id": "database-primary",
+          "metric_name": "query_latency_p99",
+          "unit": "ms",
+          "current_value": 50,
+          "previous_value": 48,
+          "data_points": {},
+          "warning_threshold": 200,
+          "critical_threshold": 1000
+        },
+        "connections_active": {
+          "service_id": "database-primary",
+          "metric_name": "connections_active",
+          "unit": "count",
+          "current_value": 45,
+          "previous_value": 42,
+          "data_points": {},
+          "warning_threshold": 80,
+          "critical_threshold": 95
+        }
+      }
+    },
+    "incidents": {}
+  },
+
+  "task_board": {
+    "view_mode": "board",
+    "filters": { "assignee_ids": [], "types": [], "priorities": [], "labels": [], "search": "" },
+    "sort_by": "priority",
+    "columns": {
+      "backlog": { "id": "backlog", "name": "Backlog", "task_ids": [], "wip_limit": null, "sort_key": 0 },
+      "in_progress": { "id": "in_progress", "name": "In Progress", "task_ids": [], "wip_limit": 5, "sort_key": 1 },
+      "done": { "id": "done", "name": "Done", "task_ids": [], "wip_limit": null, "sort_key": 2 }
+    },
+    "column_order": ["backlog", "in_progress", "done"],
+    "tasks": {},
+    "selected_task_id": null
+  },
+
+  "git_repository": {
+    "active_repo_id": "backend-services",
+    "active_pr_id": null,
+    "active_file_path": null,
+    "repositories": {
+      "backend-services": {
+        "id": "backend-services",
+        "name": "backend-services",
+        "full_name": "techcorp/backend-services",
+        "default_branch": "main",
+        "description": "Backend microservices",
+        "files": {},
+        "recent_commits": {},
+        "branches": {}
+      }
+    },
+    "pull_requests": {
+      "pr_847": {
+        "id": "pr_847",
+        "repo_id": "backend-services",
+        "number": 847,
+        "title": "Optimize database connection pooling",
+        "description": "Improves connection pool efficiency by reusing connections more aggressively.",
+        "source_branch": "feature/connection-pool-optimization",
+        "target_branch": "main",
+        "status": "merged",
+        "mergeable": true,
+        "merge_conflict": false,
+        "author_id": "alex_chen",
+        "reviewers": {},
+        "files_changed": {
+          "src/db/pool.rs": {
+            "path": "src/db/pool.rs",
+            "status": "modified",
+            "additions": 45,
+            "deletions": 12,
+            "hunks": {}
+          }
+        },
+        "comments": {},
+        "checks": {},
+        "created_at": "{{yesterday}}",
+        "updated_at": "{{yesterday}}",
+        "merged_at": "{{yesterday}}",
+        "sort_key": 847
+      }
+    }
+  },
+
+  "agents": {
+    "alex_chen": {
+      "agent_id": "alex_chen",
+      "status": "available",
+      "status_message": null,
+      "last_activity_at": 0,
+      "current_activity": null,
+      "stress_level": 30,
+      "pending_responses": {},
+      "revealed_info": {}
+    },
+    "jordan_lee": {
+      "agent_id": "jordan_lee",
+      "status": "busy",
+      "status_message": "In meetings",
+      "last_activity_at": 0,
+      "current_activity": null,
+      "stress_level": 20,
+      "pending_responses": {},
+      "revealed_info": {}
+    },
+    "sam_patel": {
+      "agent_id": "sam_patel",
+      "status": "available",
+      "status_message": null,
+      "last_activity_at": 0,
+      "current_activity": null,
+      "stress_level": 15,
+      "pending_responses": {},
+      "revealed_info": {}
+    },
+    "morgan_taylor": {
+      "agent_id": "morgan_taylor",
+      "status": "available",
+      "status_message": null,
+      "last_activity_at": 0,
+      "current_activity": null,
+      "stress_level": 10,
+      "pending_responses": {},
+      "revealed_info": {}
+    }
+  },
+
+  "ui": {
+    "active_instrument": "monitoring",
+    "sidebar_collapsed": false,
+    "panel_sizes": {},
+    "active_modal": null,
+    "modal_data": {},
+    "notifications": {},
+    "loading": {},
+    "errors": {},
+    "theme": "light"
+  }
+}
+```
+
+---
+
+## Related Documents
+
+- [Layer Overview](../00-LAYER-OVERVIEW.md)
+- [UST Schema](../06-UST-SCHEMA.md)
+- [Backend Domain](../03-BACKEND-DOMAIN.md)
+- [Session UI](../04-SESSION-UI.md)

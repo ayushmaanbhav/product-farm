@@ -1,0 +1,189 @@
+# Database Outage Crisis - Function/Rule Definitions
+# Using FarmScript - human-friendly expression language
+
+functions:
+  # ===================
+  # Evidence Detection Rules
+  # ===================
+  detect-quick-response:
+    description: Detect if candidate acknowledged alert quickly (within 2 min)
+    inputs:
+      - alert_acknowledged
+      - time_since_alert_secs
+    outputs:
+      - evidence_detected
+    evaluator: farmscript
+    expression: "/alert_acknowledged and /time_since_alert_secs < 120"
+
+  detect-vp-communication:
+    description: Detect if candidate responded to VP email within 10 min
+    inputs:
+      - vp_email_received
+      - vp_responded
+      - time_since_email_secs
+    outputs:
+      - responded_in_time
+    evaluator: farmscript
+    expression: "/vp_email_received and /vp_responded and /time_since_email_secs < 600"
+
+  detect-missed-vp-email:
+    description: Detect if candidate failed to respond to VP email
+    inputs:
+      - vp_email_received
+      - vp_responded
+      - time_since_email_secs
+    outputs:
+      - missed_response
+    evaluator: farmscript
+    expression: "/vp_email_received and not /vp_responded and /time_since_email_secs >= 600"
+
+  # ===================
+  # Branch Activation Rules
+  # ===================
+  check-escalation-branch:
+    description: Check if escalation branch should activate
+    inputs:
+      - email_sent_to_vp
+    outputs:
+      - activate_branch
+    evaluator: farmscript
+    expression: "/email_sent_to_vp"
+
+  check-cascading-failure:
+    description: Check if cascading failure complication should trigger
+    inputs:
+      - phase_elapsed_secs
+      - resolution_action_taken
+    outputs:
+      - trigger_complication
+    evaluator: farmscript
+    expression: "/phase_elapsed_secs >= 900 and not /resolution_action_taken"
+
+  check-no-communication:
+    description: Check if candidate has been silent too long
+    inputs:
+      - session_elapsed_secs
+      - any_chat_message
+    outputs:
+      - trigger_prompt
+    evaluator: farmscript
+    expression: "/session_elapsed_secs >= 600 and not /any_chat_message"
+
+  # ===================
+  # Phase Transition Rules
+  # ===================
+  check-excellent-detection:
+    description: Check if detection phase was completed excellently
+    inputs:
+      - alert_acknowledged
+      - time_since_alert_secs
+      - status_posted
+      - time_since_start_secs
+    outputs:
+      - excellent_exit
+    evaluator: farmscript
+    expression: "/alert_acknowledged and /time_since_alert_secs < 120 and /status_posted and /time_since_start_secs < 300"
+
+  check-detection-timeout:
+    description: Check if detection phase timed out
+    inputs:
+      - phase_elapsed_secs
+    outputs:
+      - timeout
+    evaluator: farmscript
+    expression: "/phase_elapsed_secs >= 600"
+
+  # ===================
+  # Score Computation
+  # ===================
+  compute-signal-score:
+    description: Compute score from positive and negative signals
+    inputs:
+      - positive_signals
+      - negative_signals
+      - max_possible_score
+    outputs:
+      - score
+    evaluator: farmscript
+    expression: "clamp(0, 100, /max_possible_score * (/positive_signals - /negative_signals * 0.5))"
+
+  compute-recommendation:
+    description: Compute hiring recommendation from overall score
+    inputs:
+      - overall_score
+      - critical_failures
+    outputs:
+      - recommendation
+    evaluator: farmscript
+    expression: |
+      if /critical_failures > 0 then "strong_no_hire"
+      else if /overall_score >= 85 then "strong_hire"
+      else if /overall_score >= 65 then "hire"
+      else if /overall_score >= 45 then "no_hire"
+      else "strong_no_hire"
+
+  # ===================
+  # Utility Functions
+  # ===================
+  calculate-time-remaining:
+    description: Calculate time remaining in assessment
+    inputs:
+      - time_limit_secs
+      - elapsed_secs
+    outputs:
+      - remaining_secs
+    evaluator: farmscript
+    expression: "max(0, /time_limit_secs - /elapsed_secs)"
+
+  calculate-phase-progress:
+    description: Calculate progress percentage through a phase
+    inputs:
+      - phase_elapsed_secs
+      - phase_max_duration_secs
+    outputs:
+      - progress_percent
+    evaluator: farmscript
+    expression: "min(100, 100 * /phase_elapsed_secs / /phase_max_duration_secs)"
+
+  # ===================
+  # LLM-based Evaluation
+  # ===================
+  evaluate-communication-quality:
+    description: Use LLM to evaluate quality of candidate's communication
+    inputs:
+      - message_text
+      - context
+      - recipient_role
+    outputs:
+      - quality_score
+      - clarity_score
+      - professionalism_score
+      - analysis
+    evaluator: llm
+    evaluator_config:
+      model: gpt-4
+      temperature: 0.2
+      prompt_template: |
+        Evaluate the following message sent by a candidate during a crisis response assessment.
+        Context: {{context}}
+        Recipient: {{recipient_role}}
+        Message: {{message_text}}
+
+        Provide scores (1-100) for:
+        1. Overall Quality
+        2. Clarity
+        3. Professionalism
+
+  analyze-technical-approach:
+    description: Use LLM to analyze candidate's technical problem-solving approach
+    inputs:
+      - actions_taken
+      - hypothesis_formed
+      - tools_used
+    outputs:
+      - approach_score
+      - methodology_analysis
+    evaluator: llm
+    evaluator_config:
+      model: gpt-4
+      temperature: 0.3

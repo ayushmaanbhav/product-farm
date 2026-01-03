@@ -1,0 +1,70 @@
+# Banoo Assessment Platform - Product Definition
+# Based on Six-Layer Documentation Architecture
+
+version: "1.0"
+
+product:
+  id: banoo-assessment-v1
+  name: Banoo Competency Assessment Platform
+  description: AI-powered assessment platform for evaluating technical competencies
+  version: "1.0.0"
+  tags:
+    - assessment
+    - competency
+    - ai
+
+# Layer visibility configuration
+layers:
+  layer-1-requirements:
+    name: Client Requirements
+    description: Business objectives and preferences (natural language)
+    entities:
+      - ClientRequirement
+    functions: []
+
+  layer-2-domain:
+    name: Product Domain
+    description: Domain concepts abstracted from technical implementation
+    entities:
+      - Competency
+      - Observable
+      - Scenario
+      - AgentPersona
+    functions:
+      - evaluate-observable
+      - select-next-event
+
+  layer-3-backend:
+    name: Backend/Tech Domain
+    description: Server-side implementation - state, events, actions
+    entities:
+      - SessionState
+      - Event
+      - Action
+      - EvidenceRule
+    functions:
+      - process-action
+      - apply-event
+      - extract-evidence
+      - compute-observable-score
+
+  layer-4-session-ui:
+    name: Session UI
+    description: Candidate-facing assessment interface
+    entities:
+      - InstrumentConfig
+      - ComponentConfig
+    functions:
+      - render-component
+      - apply-patches
+
+  layer-5-portal:
+    name: Client Portal
+    description: Client-facing management and reports
+    entities:
+      - AssessmentReport
+      - Campaign
+      - AnalyticsDashboard
+    functions:
+      - generate-report
+      - compute-analytics
