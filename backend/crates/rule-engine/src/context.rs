@@ -134,6 +134,66 @@ impl ExecutionContext {
         keys
     }
 
+    /// Get all available input keys as a HashSet (for dependency validation)
+    pub fn available_inputs(&self) -> hashbrown::HashSet<String> {
+        let mut inputs = hashbrown::HashSet::new();
+        for k in self.input.keys() {
+            inputs.insert(k.clone());
+        }
+        for k in self.computed.keys() {
+            inputs.insert(k.clone());
+        }
+        inputs
+    }
+
+    /// Convert context to Value for evaluation (avoids JSON intermediate step).
+    ///
+    /// This is more efficient than `to_json()` when the evaluator can work with Value directly.
+    /// Converts flat dot-separated paths into nested structures for proper var navigation.
+    pub fn to_value(&self) -> Value {
+        let mut root = std::collections::HashMap::new();
+
+        // Helper to insert a value at a dot-separated path into a nested structure
+        fn insert_at_path(map: &mut std::collections::HashMap<String, Value>, path: &str, value: Value) {
+            let segments: Vec<&str> = path.split('.').collect();
+
+            if segments.is_empty() {
+                return;
+            }
+
+            if segments.len() == 1 {
+                // Simple key without dots
+                map.insert(path.to_string(), value);
+                return;
+            }
+
+            // Navigate/create nested structure
+            let first = segments[0];
+
+            // Get or create the nested object
+            let nested = map.entry(first.to_string())
+                .or_insert_with(|| Value::Object(std::collections::HashMap::new()));
+
+            if let Value::Object(nested_map) = nested {
+                // Recurse with remaining path segments
+                let remaining_path = segments[1..].join(".");
+                insert_at_path(nested_map, &remaining_path, value);
+            }
+        }
+
+        // Add input values
+        for (k, v) in self.input.iter() {
+            insert_at_path(&mut root, k, v.clone());
+        }
+
+        // Add computed values (overwrite input if same key)
+        for (k, v) in self.computed.iter() {
+            insert_at_path(&mut root, k, v.clone());
+        }
+
+        Value::Object(root)
+    }
+
     /// Convert context to JSON for evaluation
     /// Converts flat dot-separated paths like "loan.main.input-val" into nested JSON structure
     /// so that JSON Logic's var operator can navigate them correctly.

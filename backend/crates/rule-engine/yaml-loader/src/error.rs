@@ -69,6 +69,10 @@ pub enum LoaderError {
     #[error("LLM evaluator not configured. Provide an LlmEvaluator implementation.")]
     LlmNotConfigured,
 
+    /// LLM evaluator initialization failed.
+    #[error("LLM initialization failed: {0}")]
+    LlmInitializationFailed(String),
+
     /// Unsupported evaluator type.
     #[error("Unsupported evaluator type: {0}")]
     UnsupportedEvaluator(String),
@@ -98,6 +102,10 @@ pub enum LoaderError {
     /// Rule engine error.
     #[error("Rule engine error: {0}")]
     RuleEngine(#[from] product_farm_rule_engine::RuleEngineError),
+
+    /// LLM evaluator error (preserves API error details).
+    #[error("LLM error: {0}")]
+    Llm(#[from] product_farm_llm_evaluator::LlmEvaluatorError),
 
     /// IO error.
     #[error("IO error: {0}")]

@@ -7,12 +7,46 @@
 
 use crate::config::LlmEvaluatorConfig;
 use crate::prompt::{AttributeInfo, PromptBuilder, RuleEvaluationContext, default_system_prompt};
-use product_farm_core::{LlmEvaluator, Rule, Value};
+use product_farm_core::{CoreError, LlmEvaluator, Rule, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn, error, instrument};
+
+/// Check if a CoreError indicates a retryable condition.
+///
+/// Retryable conditions (from LLM error patterns):
+/// - Network errors: connection failures, DNS issues
+/// - Rate limit errors: 429 status codes
+/// - Server errors: 5xx status codes
+/// - Timeout errors
+///
+/// Non-retryable conditions:
+/// - Parse errors: malformed response
+/// - Config errors: invalid configuration
+/// - API errors: 4xx (except 429)
+fn is_error_retryable(err: &CoreError) -> bool {
+    match err {
+        CoreError::Internal(msg) => {
+            let msg_lower = msg.to_lowercase();
+            // Check for retryable patterns
+            msg_lower.contains("network")
+                || msg_lower.contains("rate limit")
+                || msg_lower.contains("429")
+                || msg_lower.contains("server error")
+                || msg_lower.contains("500")
+                || msg_lower.contains("502")
+                || msg_lower.contains("503")
+                || msg_lower.contains("504")
+                || msg_lower.contains("timeout")
+                || msg_lower.contains("connection")
+                || msg_lower.contains("dns")
+        }
+        // Other CoreError variants are generally not retryable
+        _ => false,
+    }
+}
 
 /// Result of a single LLM rule evaluation
 #[derive(Debug, Clone)]
@@ -376,21 +410,46 @@ impl<E: LlmEvaluator + 'static> ParallelLlmExecutor<E> {
                 }
                 Ok(Err(e)) => {
                     let err_msg = e.to_string();
-                    warn!(
-                        rule_id = %rule_id,
-                        attempt = attempt,
-                        error = %err_msg,
-                        "LLM rule evaluation failed"
-                    );
+                    let retryable = is_error_retryable(&e);
+
+                    if retryable {
+                        warn!(
+                            rule_id = %rule_id,
+                            attempt = attempt,
+                            error = %err_msg,
+                            retryable = true,
+                            "LLM rule evaluation failed (will retry)"
+                        );
+                    } else {
+                        // Non-retryable error - don't waste API calls
+                        error!(
+                            rule_id = %rule_id,
+                            attempt = attempt,
+                            error = %err_msg,
+                            retryable = false,
+                            "LLM rule evaluation failed with non-retryable error"
+                        );
+                        // Return immediately without further retries
+                        let execution_time_ms = start.elapsed().as_millis() as u64;
+                        return LlmRuleResult {
+                            rule_id: rule_id.to_string(),
+                            outputs: HashMap::new(),
+                            execution_time_ms,
+                            success: false,
+                            error: Some(err_msg),
+                            retry_count,
+                        };
+                    }
                     last_error = Some(err_msg);
                 }
                 Err(_) => {
+                    // Timeout is retryable
                     let err_msg = format!("Timeout after {}ms", self.config.timeout_ms);
                     warn!(
                         rule_id = %rule_id,
                         attempt = attempt,
                         timeout_ms = self.config.timeout_ms,
-                        "LLM rule evaluation timed out"
+                        "LLM rule evaluation timed out (will retry)"
                     );
                     last_error = Some(err_msg);
                 }

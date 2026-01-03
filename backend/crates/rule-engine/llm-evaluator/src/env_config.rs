@@ -205,7 +205,7 @@ impl Default for AnthropicConfig {
             api_key: None,
             api_url: "https://api.anthropic.com/v1/messages".to_string(),
             api_version: "2023-06-01".to_string(),
-            model: "claude-sonnet-4-20250514".to_string(),
+            model: "claude-sonnet-4-latest".to_string(),
             max_concurrency: 5,  // Conservative for API rate limits
             temperature: None,
             max_output_tokens: None,

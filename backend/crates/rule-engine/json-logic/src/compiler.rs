@@ -258,6 +258,26 @@ impl Compiler {
         self.bytecode.len()
     }
 
+    /// Patch a jump instruction at the given position to jump to the current position.
+    /// Returns an error if the jump offset would overflow u16.
+    fn patch_jump(&mut self, jump_pos: usize) -> JsonLogicResult<()> {
+        let current_pos = self.position();
+        // Jump instruction is 3 bytes: opcode + 2-byte offset
+        // Offset is relative to the instruction after the jump
+        let offset = current_pos.saturating_sub(jump_pos).saturating_sub(3);
+        if offset > u16::MAX as usize {
+            return Err(JsonLogicError::CompilationError(format!(
+                "Jump offset {} exceeds maximum of {} bytes",
+                offset,
+                u16::MAX
+            )));
+        }
+        let offset = offset as u16;
+        self.bytecode[jump_pos + 1] = (offset & 0xFF) as u8;
+        self.bytecode[jump_pos + 2] = (offset >> 8) as u8;
+        Ok(())
+    }
+
     /// Add a constant and return its index
     fn add_constant(&mut self, value: Value) -> u16 {
         // Check if constant already exists
@@ -337,10 +357,13 @@ impl Compiler {
             Expr::Add(exprs) => self.compile_nary_op(exprs, OpCode::Add)?,
             Expr::Sub(exprs) => {
                 if exprs.len() == 1 {
+                    // Unary negation: {"-": [5]} = -5
                     self.compile_expr(&exprs[0])?;
                     self.emit(OpCode::Neg);
                 } else {
-                    self.compile_binary_op(&exprs[0], &exprs[1], OpCode::Sub)?;
+                    // N-ary subtraction: {"-": [10, 3, 2, 1]} = 10-3-2-1 = 4
+                    // Left-associative: ((10-3)-2)-1
+                    self.compile_nary_op(exprs, OpCode::Sub)?;
                 }
             }
             Expr::Mul(exprs) => self.compile_nary_op(exprs, OpCode::Mul)?,
@@ -505,11 +528,8 @@ impl Compiler {
         }
 
         // Patch all jumps to point to current position
-        let end_pos = self.position();
         for jump_pos in end_jumps {
-            let offset = (end_pos - jump_pos - 3) as u16;
-            self.bytecode[jump_pos + 1] = (offset & 0xFF) as u8;
-            self.bytecode[jump_pos + 2] = (offset >> 8) as u8;
+            self.patch_jump(jump_pos)?;
         }
 
         Ok(())
@@ -540,11 +560,8 @@ impl Compiler {
         }
 
         // Patch all jumps to point to current position
-        let end_pos = self.position();
         for jump_pos in end_jumps {
-            let offset = (end_pos - jump_pos - 3) as u16;
-            self.bytecode[jump_pos + 1] = (offset & 0xFF) as u8;
-            self.bytecode[jump_pos + 2] = (offset >> 8) as u8;
+            self.patch_jump(jump_pos)?;
         }
 
         Ok(())
@@ -589,10 +606,7 @@ impl Compiler {
                 }
 
                 // Patch false jump
-                let current_pos = self.position();
-                let offset = (current_pos - false_jump_pos - 3) as u16;
-                self.bytecode[false_jump_pos + 1] = (offset & 0xFF) as u8;
-                self.bytecode[false_jump_pos + 2] = (offset >> 8) as u8;
+                self.patch_jump(false_jump_pos)?;
 
                 i += 2;
             } else {
@@ -609,11 +623,8 @@ impl Compiler {
         }
 
         // Patch all end jumps
-        let end_pos = self.position();
         for jump_pos in end_jumps {
-            let offset = (end_pos - jump_pos - 3) as u16;
-            self.bytecode[jump_pos + 1] = (offset & 0xFF) as u8;
-            self.bytecode[jump_pos + 2] = (offset >> 8) as u8;
+            self.patch_jump(jump_pos)?;
         }
 
         Ok(())

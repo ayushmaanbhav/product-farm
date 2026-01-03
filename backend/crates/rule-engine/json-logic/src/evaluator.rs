@@ -6,16 +6,15 @@
 use crate::{
     ast::Expr,
     compiler::{CompiledBytecode, Compiler},
-    error::{JsonLogicError, JsonLogicResult},
+    config::Config,
+    error::JsonLogicResult,
+    iter_eval::IterativeEvaluator,
     parser::parse,
     vm::{EvalContext, VM},
 };
 use product_farm_core::Value;
 use serde_json::Value as JsonValue;
 use std::sync::Arc;
-
-/// Threshold for bytecode compilation (node count)
-const BYTECODE_COMPILE_THRESHOLD: usize = 5;
 
 /// A cached, compiled JSON Logic expression ready for evaluation
 #[derive(Debug, Clone)]
@@ -38,7 +37,7 @@ impl CachedExpression {
         let variables = ast.collect_variables().iter().map(|s| s.to_string()).collect();
 
         // Compile to bytecode if expression is complex enough
-        let bytecode = if node_count >= BYTECODE_COMPILE_THRESHOLD {
+        let bytecode = if node_count >= Config::global().bytecode_min_complexity {
             let mut compiler = Compiler::new();
             match compiler.compile(&ast) {
                 Ok(bc) => Some(Arc::new(bc)),
@@ -92,7 +91,7 @@ impl Evaluator {
         let ast = parse(rule)?;
 
         // For simple expressions, use AST interpretation
-        if ast.node_count() < BYTECODE_COMPILE_THRESHOLD {
+        if ast.node_count() < Config::global().bytecode_min_complexity {
             self.evaluate_ast(&ast, data)
         } else {
             // Try to compile and execute bytecode
@@ -129,434 +128,26 @@ impl Evaluator {
         self.vm.execute(bytecode, context)
     }
 
-    /// Evaluate an AST expression directly (Tier 0 - interpreted)
+    /// Evaluate an AST expression directly (Tier 0 - loop-based, no recursion)
     pub fn evaluate_ast(&self, expr: &Expr, data: &JsonValue) -> JsonLogicResult<Value> {
         let data_value = Value::from_json(data);
-        self.eval_expr(expr, &data_value)
+        IterativeEvaluator::new().evaluate(expr, &data_value)
     }
 
-    /// Internal AST evaluation
-    fn eval_expr(&self, expr: &Expr, data: &Value) -> JsonLogicResult<Value> {
-        match expr {
-            Expr::Literal(v) => Ok(v.clone()),
-
-            Expr::Var(var) => {
-                self.get_variable(&var.path, data)
-                    .or_else(|| var.default.clone())
-                    .ok_or_else(|| JsonLogicError::VariableNotFound(var.path.clone()))
-            }
-
-            Expr::Eq(a, b) => {
-                let a_val = self.eval_expr(a, data)?;
-                let b_val = self.eval_expr(b, data)?;
-                Ok(Value::Bool(a_val.loose_equals(&b_val)))
-            }
-
-            Expr::StrictEq(a, b) => {
-                let a_val = self.eval_expr(a, data)?;
-                let b_val = self.eval_expr(b, data)?;
-                Ok(Value::Bool(a_val == b_val))
-            }
-
-            Expr::Ne(a, b) => {
-                let a_val = self.eval_expr(a, data)?;
-                let b_val = self.eval_expr(b, data)?;
-                Ok(Value::Bool(!a_val.loose_equals(&b_val)))
-            }
-
-            Expr::StrictNe(a, b) => {
-                let a_val = self.eval_expr(a, data)?;
-                let b_val = self.eval_expr(b, data)?;
-                Ok(Value::Bool(a_val != b_val))
-            }
-
-            Expr::Lt(exprs) => self.eval_chain_comparison(exprs, data, |a, b| a < b),
-            Expr::Le(exprs) => self.eval_chain_comparison(exprs, data, |a, b| a <= b),
-            Expr::Gt(exprs) => self.eval_chain_comparison(exprs, data, |a, b| a > b),
-            Expr::Ge(exprs) => self.eval_chain_comparison(exprs, data, |a, b| a >= b),
-
-            Expr::Not(a) => {
-                let val = self.eval_expr(a, data)?;
-                Ok(Value::Bool(!val.is_truthy()))
-            }
-
-            Expr::ToBool(a) => {
-                let val = self.eval_expr(a, data)?;
-                Ok(Value::Bool(val.is_truthy()))
-            }
-
-            Expr::And(exprs) => {
-                let mut result = Value::Bool(true);
-                for expr in exprs {
-                    result = self.eval_expr(expr, data)?;
-                    if !result.is_truthy() {
-                        return Ok(result);
-                    }
-                }
-                Ok(result)
-            }
-
-            Expr::Or(exprs) => {
-                let mut result = Value::Bool(false);
-                for expr in exprs {
-                    result = self.eval_expr(expr, data)?;
-                    if result.is_truthy() {
-                        return Ok(result);
-                    }
-                }
-                Ok(result)
-            }
-
-            Expr::If(exprs) => {
-                let mut i = 0;
-                while i < exprs.len() {
-                    if i + 1 >= exprs.len() {
-                        // Last element is the else clause
-                        return self.eval_expr(&exprs[i], data);
-                    }
-
-                    let cond = self.eval_expr(&exprs[i], data)?;
-                    if cond.is_truthy() {
-                        return self.eval_expr(&exprs[i + 1], data);
-                    }
-                    i += 2;
-                }
-                Ok(Value::Null)
-            }
-
-            Expr::Ternary(cond, then, else_) => {
-                let cond_val = self.eval_expr(cond, data)?;
-                if cond_val.is_truthy() {
-                    self.eval_expr(then, data)
-                } else {
-                    self.eval_expr(else_, data)
-                }
-            }
-
-            Expr::Add(exprs) => {
-                let mut sum = 0.0_f64;
-                for expr in exprs {
-                    let val = self.eval_expr(expr, data)?;
-                    sum += val.to_number();
-                }
-                Ok(Value::Float(sum))
-            }
-
-            Expr::Sub(exprs) => {
-                if exprs.is_empty() {
-                    return Ok(Value::Float(0.0));
-                }
-                if exprs.len() == 1 {
-                    let val = self.eval_expr(&exprs[0], data)?;
-                    return Ok(Value::Float(-val.to_number()));
-                }
-                let first = self.eval_expr(&exprs[0], data)?.to_number();
-                let second = self.eval_expr(&exprs[1], data)?.to_number();
-                Ok(Value::Float(first - second))
-            }
-
-            Expr::Mul(exprs) => {
-                let mut product = 1.0_f64;
-                for expr in exprs {
-                    let val = self.eval_expr(expr, data)?;
-                    product *= val.to_number();
-                }
-                Ok(Value::Float(product))
-            }
-
-            Expr::Div(a, b) => {
-                let a_val = self.eval_expr(a, data)?.to_number();
-                let b_val = self.eval_expr(b, data)?.to_number();
-                if b_val == 0.0 {
-                    return Err(JsonLogicError::DivisionByZero);
-                }
-                Ok(Value::Float(a_val / b_val))
-            }
-
-            Expr::Mod(a, b) => {
-                let a_val = self.eval_expr(a, data)?.to_number();
-                let b_val = self.eval_expr(b, data)?.to_number();
-                if b_val == 0.0 {
-                    return Err(JsonLogicError::DivisionByZero);
-                }
-                Ok(Value::Float(a_val % b_val))
-            }
-
-            Expr::Min(exprs) => {
-                let mut min = f64::INFINITY;
-                for expr in exprs {
-                    let val = self.eval_expr(expr, data)?.to_number();
-                    if val < min {
-                        min = val;
-                    }
-                }
-                Ok(Value::Float(min))
-            }
-
-            Expr::Max(exprs) => {
-                let mut max = f64::NEG_INFINITY;
-                for expr in exprs {
-                    let val = self.eval_expr(expr, data)?.to_number();
-                    if val > max {
-                        max = val;
-                    }
-                }
-                Ok(Value::Float(max))
-            }
-
-            Expr::Cat(exprs) => {
-                let mut result = String::new();
-                for expr in exprs {
-                    let val = self.eval_expr(expr, data)?;
-                    result.push_str(&val.to_display_string());
-                }
-                Ok(Value::String(result))
-            }
-
-            Expr::Substr(s, start, len) => {
-                let s_val = self.eval_expr(s, data)?;
-                let s_str = s_val.to_display_string();
-                let start_val = self.eval_expr(start, data)?.to_number() as i64;
-
-                let chars: Vec<char> = s_str.chars().collect();
-                let len_val = chars.len() as i64;
-
-                // Handle negative start
-                let actual_start = if start_val < 0 {
-                    (len_val + start_val).max(0) as usize
-                } else {
-                    start_val.min(len_val) as usize
-                };
-
-                let result = if let Some(length_expr) = len {
-                    let length = self.eval_expr(length_expr, data)?.to_number() as i64;
-                    if length < 0 {
-                        // Negative length means "up to N characters from the end"
-                        let end = (len_val + length).max(actual_start as i64) as usize;
-                        chars[actual_start..end].iter().collect()
-                    } else {
-                        let end = (actual_start + length as usize).min(chars.len());
-                        chars[actual_start..end].iter().collect()
-                    }
-                } else {
-                    chars[actual_start..].iter().collect()
-                };
-
-                Ok(Value::String(result))
-            }
-
-            Expr::Map(arr, mapper) => {
-                let arr_val = self.eval_expr(arr, data)?;
-                let items = match arr_val {
-                    Value::Array(items) => items,
-                    _ => return Ok(Value::Array(vec![])),
-                };
-
-                let mut results = Vec::with_capacity(items.len());
-                for item in items {
-                    results.push(self.eval_expr(mapper, &item)?);
-                }
-                Ok(Value::Array(results))
-            }
-
-            Expr::Filter(arr, predicate) => {
-                let arr_val = self.eval_expr(arr, data)?;
-                let items = match arr_val {
-                    Value::Array(items) => items,
-                    _ => return Ok(Value::Array(vec![])),
-                };
-
-                let mut results = Vec::new();
-                for item in items {
-                    let keep = self.eval_expr(predicate, &item)?;
-                    if keep.is_truthy() {
-                        results.push(item);
-                    }
-                }
-                Ok(Value::Array(results))
-            }
-
-            Expr::Reduce(arr, reducer, initial) => {
-                let arr_val = self.eval_expr(arr, data)?;
-                let items = match arr_val {
-                    Value::Array(items) => items,
-                    _ => return self.eval_expr(initial, data),
-                };
-
-                let mut accumulator = self.eval_expr(initial, data)?;
-                for item in items {
-                    // Build reduce context with "current" and "accumulator"
-                    let reduce_data = Value::Object(std::collections::HashMap::from([
-                        ("current".to_string(), item),
-                        ("accumulator".to_string(), accumulator.clone()),
-                    ]));
-                    accumulator = self.eval_expr(reducer, &reduce_data)?;
-                }
-                Ok(accumulator)
-            }
-
-            Expr::All(arr, predicate) => {
-                let arr_val = self.eval_expr(arr, data)?;
-                let items = match arr_val {
-                    Value::Array(items) => items,
-                    _ => return Ok(Value::Bool(false)),
-                };
-
-                if items.is_empty() {
-                    return Ok(Value::Bool(false));
-                }
-
-                for item in items {
-                    let result = self.eval_expr(predicate, &item)?;
-                    if !result.is_truthy() {
-                        return Ok(Value::Bool(false));
-                    }
-                }
-                Ok(Value::Bool(true))
-            }
-
-            Expr::Some(arr, predicate) => {
-                let arr_val = self.eval_expr(arr, data)?;
-                let items = match arr_val {
-                    Value::Array(items) => items,
-                    _ => return Ok(Value::Bool(false)),
-                };
-
-                for item in items {
-                    let result = self.eval_expr(predicate, &item)?;
-                    if result.is_truthy() {
-                        return Ok(Value::Bool(true));
-                    }
-                }
-                Ok(Value::Bool(false))
-            }
-
-            Expr::None(arr, predicate) => {
-                let arr_val = self.eval_expr(arr, data)?;
-                let items = match arr_val {
-                    Value::Array(items) => items,
-                    _ => return Ok(Value::Bool(true)),
-                };
-
-                for item in items {
-                    let result = self.eval_expr(predicate, &item)?;
-                    if result.is_truthy() {
-                        return Ok(Value::Bool(false));
-                    }
-                }
-                Ok(Value::Bool(true))
-            }
-
-            Expr::Merge(exprs) => {
-                let mut result = Vec::new();
-                for expr in exprs {
-                    let val = self.eval_expr(expr, data)?;
-                    match val {
-                        Value::Array(items) => result.extend(items),
-                        other => result.push(other),
-                    }
-                }
-                Ok(Value::Array(result))
-            }
-
-            Expr::In(needle, haystack) => {
-                let needle_val = self.eval_expr(needle, data)?;
-                let haystack_val = self.eval_expr(haystack, data)?;
-
-                let found = match haystack_val {
-                    Value::Array(items) => items.iter().any(|item| needle_val.loose_equals(item)),
-                    Value::String(s) => {
-                        let needle_str = needle_val.to_display_string();
-                        s.contains(&needle_str)
-                    }
-                    _ => false,
-                };
-                Ok(Value::Bool(found))
-            }
-
-            Expr::Missing(keys) => {
-                let mut missing = Vec::new();
-                for key_expr in keys {
-                    let key = self.eval_expr(key_expr, data)?;
-                    let key_str = key.to_display_string();
-                    if self.get_variable(&key_str, data).is_none() {
-                        missing.push(Value::String(key_str));
-                    }
-                }
-                Ok(Value::Array(missing))
-            }
-
-            Expr::MissingSome(min_required, keys) => {
-                let min = self.eval_expr(min_required, data)?.to_number() as usize;
-                let mut missing = Vec::new();
-                let mut found = 0;
-
-                for key_expr in keys {
-                    let key = self.eval_expr(key_expr, data)?;
-                    let key_str = key.to_display_string();
-                    if self.get_variable(&key_str, data).is_some() {
-                        found += 1;
-                    } else {
-                        missing.push(Value::String(key_str));
-                    }
-                }
-
-                if found >= min {
-                    Ok(Value::Array(vec![]))
-                } else {
-                    Ok(Value::Array(missing))
-                }
-            }
-
-            Expr::Log(expr) => {
-                let val = self.eval_expr(expr, data)?;
-                #[cfg(debug_assertions)]
-                eprintln!("[JSON Logic log] {:?}", val);
-                Ok(val)
-            }
+    /// Evaluate a cached expression with Value data directly (avoids JSON conversion).
+    ///
+    /// This is more efficient when context is already available as Value.
+    pub fn evaluate_cached_value(&mut self, expr: &CachedExpression, data: &Value) -> JsonLogicResult<Value> {
+        if let Some(ref bytecode) = expr.bytecode {
+            // For bytecode, we need to convert to EvalContext which expects specific variable layout
+            // For now, fall back to JSON path - bytecode optimization is separate
+            let json_data = data.to_json();
+            let context = EvalContext::from_json(&json_data, bytecode);
+            self.vm.execute(bytecode, &context)
+        } else {
+            // For AST evaluation, we can use Value directly
+            IterativeEvaluator::new().evaluate(&expr.ast, data)
         }
-    }
-
-    /// Get a variable from data by path
-    fn get_variable(&self, path: &str, data: &Value) -> Option<Value> {
-        if path.is_empty() {
-            return Some(data.clone());
-        }
-
-        let segments: Vec<&str> = path.split('.').collect();
-        let mut current = data.clone();
-
-        for segment in segments {
-            current = match current {
-                Value::Object(map) => map.get(segment)?.clone(),
-                Value::Array(arr) => {
-                    let idx: usize = segment.parse().ok()?;
-                    arr.get(idx)?.clone()
-                }
-                _ => return None,
-            };
-        }
-        Some(current)
-    }
-
-    /// Evaluate chained comparison (e.g., a < b < c)
-    fn eval_chain_comparison<F>(&self, exprs: &[Expr], data: &Value, cmp: F) -> JsonLogicResult<Value>
-    where
-        F: Fn(f64, f64) -> bool,
-    {
-        if exprs.len() < 2 {
-            return Ok(Value::Bool(false));
-        }
-
-        let mut prev = self.eval_expr(&exprs[0], data)?.to_number();
-        for expr in &exprs[1..] {
-            let curr = self.eval_expr(expr, data)?.to_number();
-            if !cmp(prev, curr) {
-                return Ok(Value::Bool(false));
-            }
-            prev = curr;
-        }
-        Ok(Value::Bool(true))
     }
 }
 

@@ -5,6 +5,7 @@
 
 use crate::config::{LlmEvaluatorConfig, OutputFormat};
 use crate::error::{LlmEvaluatorError, LlmEvaluatorResult};
+use crate::parsing;
 use async_trait::async_trait;
 use product_farm_core::{CoreError, CoreResult, LlmEvaluator, Value};
 use std::collections::HashMap;
@@ -63,24 +64,40 @@ mod client {
                 .json(&request)
                 .send()
                 .await
-                .map_err(|e| LlmEvaluatorError::ApiError(format!("Ollama request failed: {}", e)))?;
+                .map_err(|e| {
+                    // Network errors are retryable
+                    if e.is_connect() || e.is_timeout() {
+                        LlmEvaluatorError::network(format!("Ollama request failed: {}", e))
+                    } else {
+                        LlmEvaluatorError::ApiError(format!("Ollama request failed: {}", e))
+                    }
+                })?;
 
             if !response.status().is_success() {
                 let status = response.status();
+                let status_code = status.as_u16();
                 let error_body = response
                     .text()
                     .await
                     .unwrap_or_else(|_| "Unknown error".to_string());
-                return Err(LlmEvaluatorError::ApiError(format!(
-                    "Ollama API returned {}: {}",
-                    status, error_body
-                )));
+
+                // Categorize error by status code
+                return Err(match status_code {
+                    429 => LlmEvaluatorError::rate_limit(format!(
+                        "Ollama rate limit exceeded: {}", error_body
+                    )),
+                    500..=599 => LlmEvaluatorError::server_error(status_code, error_body),
+                    _ => LlmEvaluatorError::ApiError(format!(
+                        "Ollama API returned {}: {}",
+                        status, error_body
+                    )),
+                });
             }
 
             response
                 .json::<OllamaResponse>()
                 .await
-                .map_err(|e| LlmEvaluatorError::ApiError(format!("Failed to parse Ollama response: {}", e)))
+                .map_err(|e| LlmEvaluatorError::ParseError(format!("Failed to parse Ollama response: {}", e)))
         }
 
         /// Check if Ollama is available and the model is loaded
@@ -219,22 +236,14 @@ impl OllamaLlmEvaluator {
             }
 
             OutputFormat::Boolean => {
-                let text = response_text.trim().to_lowercase();
-                let value = text.contains("true") || text.contains("yes") || text == "1";
+                let value = parsing::parse_boolean(response_text)?;
                 if let Some(name) = output_names.first() {
                     outputs.insert(name.clone(), Value::Bool(value));
                 }
             }
 
             OutputFormat::Number => {
-                // Extract first number from response
-                let num: f64 = response_text
-                    .chars()
-                    .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
-                    .collect::<String>()
-                    .parse()
-                    .map_err(|e| LlmEvaluatorError::ParseError(format!("Failed to parse number: {}", e)))?;
-
+                let num = parsing::parse_number(response_text)?;
                 if let Some(name) = output_names.first() {
                     if num.fract() == 0.0 {
                         outputs.insert(name.clone(), Value::Int(num as i64));

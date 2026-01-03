@@ -6,10 +6,8 @@ use product_farm_core::Value;
 use rust_decimal::Decimal;
 use smallvec::SmallVec;
 
+use crate::config::Config;
 use crate::{CompiledBytecode, JsonLogicError, JsonLogicResult, OpCode};
-
-/// Maximum stack depth to prevent overflow
-const MAX_STACK_DEPTH: usize = 1024;
 
 /// Execution context containing variable values
 pub struct EvalContext {
@@ -452,7 +450,7 @@ impl VM {
     /// Push value onto stack
     #[inline(always)]
     fn push(&mut self, value: Value) -> JsonLogicResult<()> {
-        if self.stack.len() >= MAX_STACK_DEPTH {
+        if self.stack.len() >= Config::global().bytecode_stack_limit {
             return Err(JsonLogicError::StackOverflow);
         }
         self.stack.push(value);
@@ -502,6 +500,12 @@ fn loose_equals(a: &Value, b: &Value) -> bool {
         (Value::Float(a), Value::Int(b)) => *a == (*b as f64),
         (Value::Int(a), Value::Decimal(b)) => Decimal::from(*a) == *b,
         (Value::Decimal(a), Value::Int(b)) => *a == Decimal::from(*b),
+        (Value::Float(a), Value::Decimal(b)) => {
+            Decimal::try_from(*a).ok().map_or(false, |d| d == *b)
+        }
+        (Value::Decimal(a), Value::Float(b)) => {
+            Decimal::try_from(*b).ok().map_or(false, |d| *a == d)
+        }
 
         // String to number coercion
         (Value::String(s), Value::Int(i)) => s.parse::<i64>().ok() == Some(*i),
@@ -525,6 +529,12 @@ fn compare_values(a: &Value, b: &Value) -> Option<std::cmp::Ordering> {
         (Value::Float(a), Value::Int(b)) => a.partial_cmp(&(*b as f64)),
         (Value::Int(a), Value::Decimal(b)) => Decimal::from(*a).partial_cmp(b),
         (Value::Decimal(a), Value::Int(b)) => a.partial_cmp(&Decimal::from(*b)),
+        (Value::Float(a), Value::Decimal(b)) => {
+            Decimal::try_from(*a).ok().and_then(|d| d.partial_cmp(b))
+        }
+        (Value::Decimal(a), Value::Float(b)) => {
+            Decimal::try_from(*b).ok().and_then(|d| a.partial_cmp(&d))
+        }
 
         _ => None,
     }
@@ -553,6 +563,18 @@ fn sub_values(a: &Value, b: &Value) -> Value {
         (Value::Decimal(a), Value::Decimal(b)) => Value::Decimal(*a - *b),
         (Value::Int(a), Value::Float(b)) => Value::Float(*a as f64 - b),
         (Value::Float(a), Value::Int(b)) => Value::Float(a - *b as f64),
+        (Value::Int(a), Value::Decimal(b)) => Value::Decimal(Decimal::from(*a) - *b),
+        (Value::Decimal(a), Value::Int(b)) => Value::Decimal(*a - Decimal::from(*b)),
+        (Value::Float(a), Value::Decimal(b)) => {
+            Decimal::try_from(*a)
+                .map(|d| Value::Decimal(d - *b))
+                .unwrap_or(Value::Null)
+        }
+        (Value::Decimal(a), Value::Float(b)) => {
+            Decimal::try_from(*b)
+                .map(|d| Value::Decimal(*a - d))
+                .unwrap_or(Value::Null)
+        }
         _ => Value::Null,
     }
 }
@@ -565,14 +587,32 @@ fn mul_values(a: &Value, b: &Value) -> Value {
         (Value::Decimal(a), Value::Decimal(b)) => Value::Decimal(*a * *b),
         (Value::Int(a), Value::Float(b)) => Value::Float(*a as f64 * b),
         (Value::Float(a), Value::Int(b)) => Value::Float(a * *b as f64),
+        (Value::Int(a), Value::Decimal(b)) => Value::Decimal(Decimal::from(*a) * *b),
+        (Value::Decimal(a), Value::Int(b)) => Value::Decimal(*a * Decimal::from(*b)),
+        (Value::Float(a), Value::Decimal(b)) => {
+            Decimal::try_from(*a)
+                .map(|d| Value::Decimal(d * *b))
+                .unwrap_or(Value::Null)
+        }
+        (Value::Decimal(a), Value::Float(b)) => {
+            Decimal::try_from(*b)
+                .map(|d| Value::Decimal(*a * d))
+                .unwrap_or(Value::Null)
+        }
         _ => Value::Null,
     }
 }
 
 /// Divide two values
 fn div_values(a: &Value, b: &Value) -> JsonLogicResult<Value> {
-    let divisor = b.as_float().unwrap_or(0.0);
-    if divisor == 0.0 {
+    // Check for division by zero
+    let is_zero = match b {
+        Value::Int(i) => *i == 0,
+        Value::Float(f) => *f == 0.0,
+        Value::Decimal(d) => d.is_zero(),
+        _ => false,
+    };
+    if is_zero {
         return Err(JsonLogicError::DivisionByZero);
     }
 
@@ -581,19 +621,44 @@ fn div_values(a: &Value, b: &Value) -> JsonLogicResult<Value> {
         (Value::Float(a), Value::Float(b)) => Value::Float(a / b),
         (Value::Int(a), Value::Float(b)) => Value::Float(*a as f64 / b),
         (Value::Float(a), Value::Int(b)) => Value::Float(a / *b as f64),
+        (Value::Decimal(a), Value::Decimal(b)) => Value::Decimal(*a / *b),
+        (Value::Int(a), Value::Decimal(b)) => Value::Decimal(Decimal::from(*a) / *b),
+        (Value::Decimal(a), Value::Int(b)) => Value::Decimal(*a / Decimal::from(*b)),
+        (Value::Float(a), Value::Decimal(b)) => {
+            Decimal::try_from(*a)
+                .map(|d| Value::Decimal(d / *b))
+                .unwrap_or(Value::Null)
+        }
+        (Value::Decimal(a), Value::Float(b)) => {
+            Decimal::try_from(*b)
+                .map(|d| Value::Decimal(*a / d))
+                .unwrap_or(Value::Null)
+        }
         _ => Value::Null,
     })
 }
 
 /// Modulo two values
 fn mod_values(a: &Value, b: &Value) -> JsonLogicResult<Value> {
-    let divisor = b.as_int().unwrap_or(0);
-    if divisor == 0 {
+    // Check for division by zero
+    let is_zero = match b {
+        Value::Int(i) => *i == 0,
+        Value::Float(f) => *f == 0.0,
+        Value::Decimal(d) => d.is_zero(),
+        _ => false,
+    };
+    if is_zero {
         return Err(JsonLogicError::DivisionByZero);
     }
 
     Ok(match (a, b) {
         (Value::Int(a), Value::Int(b)) => Value::Int(a % b),
+        (Value::Float(a), Value::Float(b)) => Value::Float(a % b),
+        (Value::Decimal(a), Value::Decimal(b)) => Value::Decimal(*a % *b),
+        (Value::Int(a), Value::Float(b)) => Value::Float(*a as f64 % b),
+        (Value::Float(a), Value::Int(b)) => Value::Float(a % *b as f64),
+        (Value::Int(a), Value::Decimal(b)) => Value::Decimal(Decimal::from(*a) % *b),
+        (Value::Decimal(a), Value::Int(b)) => Value::Decimal(*a % Decimal::from(*b)),
         _ => Value::Null,
     })
 }
@@ -748,5 +813,55 @@ mod tests {
             json!({"x": 5}),  // y is missing
         );
         assert_eq!(result, Value::Int(25));  // 5 + 20
+    }
+
+    #[test]
+    fn test_vm_nary_subtraction() {
+        // Binary subtraction: 10 - 3 = 7
+        let result = eval(json!({"-": [10, 3]}), json!({}));
+        assert_eq!(result, Value::Int(7));
+
+        // N-ary subtraction: 10 - 3 - 2 - 1 = 4 (left-associative)
+        let result = eval(json!({"-": [10, 3, 2, 1]}), json!({}));
+        assert_eq!(result, Value::Int(4));
+
+        // Another test: 1 - 2 - 3 - 4 = -8
+        let result = eval(json!({"-": [1, 2, 3, 4]}), json!({}));
+        assert_eq!(result, Value::Int(-8));
+
+        // Unary negation: -5
+        let result = eval(json!({"-": [5]}), json!({}));
+        assert_eq!(result, Value::Int(-5));
+
+        // Mixed int/float: should return Float
+        let result = eval(json!({"-": [10.0, 3, 2]}), json!({}));
+        assert_eq!(result, Value::Float(5.0));
+    }
+
+    #[test]
+    fn test_vm_chain_comparison() {
+        // 1 < 5 < 10 should be true (1 < 5 AND 5 < 10)
+        let result = eval(json!({"<": [1, 5, 10]}), json!({}));
+        assert_eq!(result, Value::Bool(true));
+
+        // 1 < 5 < 3 should be false (1 < 5 is true, but 5 < 3 is false)
+        let result = eval(json!({"<": [1, 5, 3]}), json!({}));
+        assert_eq!(result, Value::Bool(false));
+
+        // 10 > 5 > 1 should be true
+        let result = eval(json!({">": [10, 5, 1]}), json!({}));
+        assert_eq!(result, Value::Bool(true));
+
+        // 10 > 5 > 8 should be false (10 > 5 is true, but 5 > 8 is false)
+        let result = eval(json!({">": [10, 5, 8]}), json!({}));
+        assert_eq!(result, Value::Bool(false));
+
+        // 4-element chain: 1 < 2 < 3 < 4 should be true
+        let result = eval(json!({"<": [1, 2, 3, 4]}), json!({}));
+        assert_eq!(result, Value::Bool(true));
+
+        // 4-element chain with failure: 1 < 2 < 5 < 4 should be false (5 < 4 is false)
+        let result = eval(json!({"<": [1, 2, 5, 4]}), json!({}));
+        assert_eq!(result, Value::Bool(false));
     }
 }

@@ -9,7 +9,7 @@ use product_farm_core::{AbstractAttribute, LlmEvaluator, NoOpLlmEvaluator, Rule}
 use product_farm_llm_evaluator::{
     RuleEngineLlmConfig, ClaudeLlmEvaluator, OllamaLlmEvaluator,
 };
-use product_farm_rule_engine::RuleExecutor;
+use product_farm_rule_engine::{RuleDag, RuleExecutor};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -63,7 +63,10 @@ impl ProductRegistry {
     /// Anthropic:
     /// - `RULE_ENGINE_ANTHROPIC_API_KEY`: Anthropic API key (required)
     /// - `RULE_ENGINE_ANTHROPIC_MODEL`: Model to use (default: claude-sonnet-4-20250514)
-    pub fn from_env() -> Self {
+    ///
+    /// # Errors
+    /// Returns an error if the LLM provider cannot be initialized (e.g., missing API key).
+    pub fn from_env() -> LoaderResult<Self> {
         let env_config = RuleEngineLlmConfig::from_env();
         let provider = env_config.default_provider();
 
@@ -74,46 +77,34 @@ impl ProductRegistry {
 
         let llm_evaluator: Arc<dyn LlmEvaluator> = match provider.to_lowercase().as_str() {
             "anthropic" | "claude" => {
-                match ClaudeLlmEvaluator::from_env() {
-                    Ok(evaluator) => {
-                        tracing::info!("Initialized Claude LLM evaluator");
-                        Arc::new(evaluator)
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            error = %e,
-                            "Failed to initialize Claude evaluator, falling back to NoOp"
-                        );
-                        Arc::new(NoOpLlmEvaluator::new())
-                    }
-                }
+                let evaluator = ClaudeLlmEvaluator::from_env()
+                    .map_err(|e| LoaderError::LlmInitializationFailed(format!(
+                        "Failed to initialize Claude LLM evaluator: {}",
+                        e
+                    )))?;
+                tracing::info!("Initialized Claude LLM evaluator");
+                Arc::new(evaluator)
             }
             "ollama" | _ => {
-                match OllamaLlmEvaluator::from_env() {
-                    Ok(evaluator) => {
-                        tracing::info!(
-                            model = %env_config.ollama.model,
-                            base_url = %env_config.ollama.base_url,
-                            "Initialized Ollama LLM evaluator"
-                        );
-                        Arc::new(evaluator)
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            error = %e,
-                            "Failed to initialize Ollama evaluator, falling back to NoOp"
-                        );
-                        Arc::new(NoOpLlmEvaluator::new())
-                    }
-                }
+                let evaluator = OllamaLlmEvaluator::from_env()
+                    .map_err(|e| LoaderError::LlmInitializationFailed(format!(
+                        "Failed to initialize Ollama LLM evaluator: {}",
+                        e
+                    )))?;
+                tracing::info!(
+                    model = %env_config.ollama.model,
+                    base_url = %env_config.ollama.base_url,
+                    "Initialized Ollama LLM evaluator"
+                );
+                Arc::new(evaluator)
             }
         };
 
-        Self {
+        Ok(Self {
             schemas: HashMap::new(),
             executor: RuleExecutor::new(),
             llm_evaluator,
-        }
+        })
     }
 
     /// Get the current LLM configuration summary for debugging.
@@ -134,7 +125,18 @@ impl ProductRegistry {
     }
 
     /// Register a master schema.
+    ///
+    /// Validates the schema for circular dependencies before registering.
     pub fn register(&mut self, schema: MasterSchema) -> LoaderResult<()> {
+        // Validate for circular dependencies at registration time
+        if !schema.rules.is_empty() {
+            RuleDag::from_rules(&schema.rules)
+                .map_err(|e| LoaderError::CircularDependency(format!(
+                    "Product '{}': {}",
+                    schema.product.id, e
+                )))?;
+        }
+
         let product_id = schema.product.id.to_string();
         self.schemas.insert(product_id, schema);
         Ok(())
@@ -279,13 +281,8 @@ impl ProductRegistry {
             .ok_or_else(|| LoaderError::FunctionNotFound(function_name.to_string()))?
             .clone();
 
-        // Build execution context from state using hashbrown HashMap (as required by ExecutionContext)
-        let input_map: hashbrown::HashMap<String, product_farm_core::Value> = state
-            .inner()
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-        let mut context = ExecutionContext::new(input_map);
+        // Build execution context from state (no conversion needed - both use hashbrown)
+        let mut context = ExecutionContext::new(state.to_hashbrown());
 
         let mut executed_rules = Vec::new();
         let mut outputs = std::collections::HashMap::new();
@@ -313,7 +310,7 @@ impl ProductRegistry {
                 }
 
                 // Prepare inputs from context
-                let inputs: std::collections::HashMap<String, product_farm_core::Value> = state.inner().clone();
+                let inputs = state.to_std_hashmap();
 
                 // Get config from rule - fail fast if missing or incomplete
                 let config: std::collections::HashMap<String, product_farm_core::Value> = target_rule
@@ -354,9 +351,10 @@ impl ProductRegistry {
                     .map_err(|_| LoaderError::Internal("No tokio runtime available".into()))?;
 
                 let llm = self.llm_evaluator.clone();
+                // Errors are automatically converted: LlmEvaluatorError -> CoreError::LlmError -> LoaderError::Core
                 let llm_result = rt.block_on(async {
                     llm.evaluate(&config, &inputs, &output_names).await
-                }).map_err(|e| LoaderError::Internal(format!("LLM evaluation error: {}", e)))?;
+                })?;
 
                 // Store results
                 for (key, value) in llm_result {
@@ -451,13 +449,8 @@ impl ProductRegistry {
             .ok_or_else(|| LoaderError::FunctionNotFound(function_name.to_string()))?
             .clone();
 
-        // Build execution context
-        let input_map: hashbrown::HashMap<String, product_farm_core::Value> = state
-            .inner()
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-        let mut context = ExecutionContext::new(input_map);
+        // Build execution context (no conversion needed - both use hashbrown)
+        let mut context = ExecutionContext::new(state.to_hashbrown());
 
         let mut executed_rules = Vec::new();
         let mut outputs = std::collections::HashMap::new();
@@ -483,7 +476,7 @@ impl ProductRegistry {
                     return Err(LoaderError::LlmNotConfigured);
                 }
 
-                let inputs: std::collections::HashMap<String, product_farm_core::Value> = state.inner().clone();
+                let inputs = state.to_std_hashmap();
 
                 let config: std::collections::HashMap<String, product_farm_core::Value> = target_rule
                     .evaluator
@@ -505,9 +498,9 @@ impl ProductRegistry {
                     .collect();
 
                 // Async LLM evaluation (non-blocking)
+                // Errors are automatically converted: LlmEvaluatorError -> CoreError::LlmError -> LoaderError::Core
                 let llm = self.llm_evaluator.clone();
-                let llm_result = llm.evaluate(&config, &inputs, &output_names).await
-                    .map_err(|e| LoaderError::Internal(format!("LLM evaluation error: {}", e)))?;
+                let llm_result = llm.evaluate(&config, &inputs, &output_names).await?;
 
                 for (key, value) in llm_result {
                     outputs.insert(key.clone(), value.clone());
@@ -583,13 +576,8 @@ impl ProductRegistry {
         let mut all_outputs = std::collections::HashMap::new();
         let mut all_executed = Vec::new();
 
-        // Build context from state
-        let input_map: hashbrown::HashMap<String, product_farm_core::Value> = state
-            .inner()
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-        let mut context = ExecutionContext::new(input_map);
+        // Build context from state (no conversion needed - both use hashbrown)
+        let mut context = ExecutionContext::new(state.to_hashbrown());
 
         // Execute JSON Logic rules with parallel DAG execution
         if !json_logic_rules.is_empty() {
@@ -625,12 +613,9 @@ impl ProductRegistry {
                 return Err(LoaderError::LlmNotConfigured);
             }
 
-            // Build DAG for LLM rules
-            let llm_dag = RuleDag::from_rules(&llm_rules)
-                .map_err(|e| LoaderError::Internal(format!("LLM DAG error: {}", e)))?;
-
-            let llm_levels = llm_dag.execution_levels()
-                .map_err(|e| LoaderError::Internal(format!("LLM levels error: {}", e)))?;
+            // Build DAG for LLM rules (errors converted via RuleEngineError -> LoaderError::RuleEngine)
+            let llm_dag = RuleDag::from_rules(&llm_rules)?;
+            let llm_levels = llm_dag.execution_levels()?;
 
             tracing::info!(
                 llm_rules = llm_rules.len(),
@@ -644,7 +629,8 @@ impl ProductRegistry {
                 if level.len() == 1 {
                     // Single rule - execute directly
                     let rule_id = &level[0];
-                    let rule = llm_rules.iter().find(|r| &r.id == rule_id).unwrap();
+                    let rule = llm_rules.iter().find(|r| &r.id == rule_id)
+                        .ok_or_else(|| LoaderError::FunctionNotFound(rule_id.to_string()))?;
                     let result = self.execute_llm_rule_async(rule, &context).await?;
                     for (key, value) in result {
                         context.set(key.clone(), value.clone());
@@ -653,8 +639,14 @@ impl ProductRegistry {
                     all_executed.push(rule_id.to_string());
                 } else {
                     // Multiple rules - execute in parallel
-                    let futures: Vec<_> = level.iter().map(|rule_id| {
-                        let rule = llm_rules.iter().find(|r| &r.id == rule_id).unwrap().clone();
+                    let rules_for_level: Result<Vec<_>, LoaderError> = level.iter().map(|rule_id| {
+                        llm_rules.iter().find(|r| &r.id == rule_id)
+                            .cloned()
+                            .ok_or_else(|| LoaderError::FunctionNotFound(rule_id.to_string()))
+                    }).collect();
+                    let rules_for_level = rules_for_level?;
+
+                    let futures: Vec<_> = rules_for_level.into_iter().map(|rule| {
                         let ctx_snapshot = context.clone();
                         let llm = self.llm_evaluator.clone();
                         async move {
@@ -731,8 +723,8 @@ impl ProductRegistry {
             .map(|a| a.path.to_string())
             .collect();
 
-        llm_evaluator.evaluate(&config, &inputs, &output_names).await
-            .map_err(|e| LoaderError::Internal(format!("LLM evaluation error: {}", e)))
+        // Errors are automatically converted: CoreError::LlmError -> LoaderError::Core
+        Ok(llm_evaluator.evaluate(&config, &inputs, &output_names).await?)
     }
 }
 

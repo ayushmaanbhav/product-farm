@@ -14,10 +14,9 @@ use std::sync::{Arc, RwLock};
 
 use product_farm_core::Value;
 
-use crate::{CompiledBytecode, Compiler, EvalContext, Evaluator, Expr, JsonLogicResult, VM};
-
-/// Number of evaluations before promoting from Tier 0 to Tier 1
-pub const PROMOTION_THRESHOLD: u64 = 100;
+use crate::config::Config;
+use crate::iter_eval::IterativeEvaluator;
+use crate::{CompiledBytecode, Compiler, EvalContext, Expr, JsonLogicResult, VM};
 
 /// Compilation tier for a rule
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -81,7 +80,7 @@ impl CompiledRule {
 
     /// Check if this rule should be promoted to a higher tier (uses default threshold)
     pub fn should_promote(&self) -> bool {
-        self.should_promote_at(PROMOTION_THRESHOLD)
+        self.should_promote_at(Config::global().bytecode_promotion_threshold)
     }
 
     /// Check if this rule should be promoted with a custom threshold
@@ -110,8 +109,9 @@ impl CompiledRule {
 
         match self.tier {
             CompilationTier::Ast => {
-                let evaluator = Evaluator::new();
-                evaluator.evaluate_ast(&self.ast, data)
+                // Use loop-based evaluator (no recursion, prevents stack overflow)
+                let data_val = Value::from_json(data);
+                IterativeEvaluator::new().evaluate(&self.ast, &data_val)
             }
             CompilationTier::Bytecode | CompilationTier::Jit => {
                 if let Some(ref bytecode) = self.bytecode {
@@ -119,9 +119,9 @@ impl CompiledRule {
                     let mut vm = VM::new();
                     vm.execute(bytecode, &context)
                 } else {
-                    // Fallback to AST if bytecode not available
-                    let evaluator = Evaluator::new();
-                    evaluator.evaluate_ast(&self.ast, data)
+                    // Fallback to loop-based evaluator if bytecode not available
+                    let data_val = Value::from_json(data);
+                    IterativeEvaluator::new().evaluate(&self.ast, &data_val)
                 }
             }
         }
@@ -191,7 +191,7 @@ impl RuleCache {
     pub fn new() -> Self {
         Self {
             rules: RwLock::new(HashMap::new()),
-            promotion_threshold: PROMOTION_THRESHOLD,
+            promotion_threshold: Config::global().bytecode_promotion_threshold,
         }
     }
 

@@ -57,6 +57,7 @@ mod claude;
 mod ollama;
 mod prompt;
 mod executor;
+mod parsing;
 pub mod env_config;
 
 pub use config::{LlmEvaluatorConfig, OutputFormat};

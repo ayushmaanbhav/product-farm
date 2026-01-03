@@ -63,6 +63,16 @@ pub enum CoreError {
     #[error("Serialization error: {0}")]
     SerializationError(String),
 
+    /// LLM evaluation error with detailed information.
+    /// Contains: error_type, message, and optional status_code for API errors.
+    #[error("LLM error ({error_type}): {message}")]
+    LlmError {
+        error_type: String,
+        message: String,
+        status_code: Option<u16>,
+        is_retryable: bool,
+    },
+
     /// Internal error
     #[error("Internal error: {0}")]
     Internal(String),

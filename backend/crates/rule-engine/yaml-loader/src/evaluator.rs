@@ -2,9 +2,9 @@
 //!
 //! Provides the `evaluate` function for executing rules against state.
 
+use hashbrown::HashMap;
 use product_farm_core::Value;
 use product_farm_rule_engine::ExecutionContext;
-use std::collections::HashMap;
 
 /// Evaluation state - flexible key-value store.
 #[derive(Debug, Clone, Default)]
@@ -49,6 +49,16 @@ impl State {
         &self.values
     }
 
+    /// Convert to hashbrown HashMap (zero-cost, returns clone of inner).
+    pub fn to_hashbrown(&self) -> HashMap<String, Value> {
+        self.values.clone()
+    }
+
+    /// Convert to std::collections::HashMap (for LLM evaluator compatibility).
+    pub fn to_std_hashmap(&self) -> std::collections::HashMap<String, Value> {
+        self.values.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
+
     /// Convert from JSON value.
     pub fn from_json(json: serde_json::Value) -> Self {
         let mut state = Self::new();
@@ -89,7 +99,7 @@ pub struct EvalResult {
     pub state: State,
 
     /// Computed output values.
-    pub outputs: HashMap<String, Value>,
+    pub outputs: std::collections::HashMap<String, Value>,
 
     /// Names of rules that were executed.
     pub executed_rules: Vec<String>,

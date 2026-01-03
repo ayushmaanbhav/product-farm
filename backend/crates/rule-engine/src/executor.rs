@@ -78,41 +78,80 @@ impl ExecutionResult {
 }
 
 /// The main rule executor
-#[derive(Debug, Default)]
+///
+/// Thread-safe: compiled rules are wrapped in Arc for cheap cloning and sharing.
+/// After calling `compile_rules()`, the executor can be cloned and shared across
+/// threads. Each thread should have its own `ExecutionContext`.
+#[derive(Debug, Clone)]
 pub struct RuleExecutor {
-    /// JSON Logic evaluator
-    evaluator: Evaluator,
-    /// Compiled rules cache
-    compiled_rules: HashMap<RuleId, CompiledRule>,
+    /// Compiled rules cache (Arc-wrapped for thread-safe sharing)
+    compiled_rules: Arc<HashMap<RuleId, CompiledRule>>,
+}
+
+impl Default for RuleExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RuleExecutor {
     /// Create a new executor
     pub fn new() -> Self {
         Self {
-            evaluator: Evaluator::new(),
-            compiled_rules: HashMap::new(),
+            compiled_rules: Arc::new(HashMap::new()),
         }
     }
 
     /// Pre-compile a set of rules
+    ///
+    /// Note: This mutates the executor. After compilation is complete,
+    /// the executor can be cloned and shared across threads for execution.
     pub fn compile_rules(&mut self, rules: &[Rule]) -> RuleEngineResult<()> {
+        // Get mutable access to inner map (Arc::make_mut handles CoW)
+        let map = Arc::make_mut(&mut self.compiled_rules);
         for rule in rules {
-            if !self.compiled_rules.contains_key(&rule.id) {
+            if !map.contains_key(&rule.id) {
                 let compiled = CompiledRule::compile(rule.clone())?;
-                self.compiled_rules.insert(rule.id.clone(), compiled);
+                map.insert(rule.id.clone(), compiled);
             }
         }
         Ok(())
+    }
+
+    /// Compile rules locally (for use with &self methods)
+    ///
+    /// Returns a local map containing only the rules that weren't in the shared cache.
+    /// This allows execute() to work with &self while still compiling on-demand.
+    fn compile_rules_local(&self, rules: &[Rule]) -> RuleEngineResult<HashMap<RuleId, CompiledRule>> {
+        let mut local = HashMap::new();
+        for rule in rules {
+            if !self.compiled_rules.contains_key(&rule.id) && !local.contains_key(&rule.id) {
+                let compiled = CompiledRule::compile(rule.clone())?;
+                local.insert(rule.id.clone(), compiled);
+            }
+        }
+        Ok(local)
+    }
+
+    /// Get a compiled rule, checking both shared cache and local map
+    fn get_compiled_rule<'a>(
+        &'a self,
+        rule_id: &RuleId,
+        local: &'a HashMap<RuleId, CompiledRule>,
+    ) -> Option<&'a CompiledRule> {
+        self.compiled_rules.get(rule_id).or_else(|| local.get(rule_id))
     }
 
     /// Execute rules in topological order with parallel execution within levels
     ///
     /// Rules within the same level have no dependencies on each other and
     /// are executed in parallel using rayon.
+    ///
+    /// Note: This method compiles rules internally if needed. For best performance
+    /// with repeated executions, pre-compile rules using `compile_rules()`.
     #[instrument(skip(self, rules, context))]
     pub fn execute(
-        &mut self,
+        &self,
         rules: &[Rule],
         context: &mut ExecutionContext,
     ) -> RuleEngineResult<ExecutionResult> {
@@ -122,7 +161,7 @@ impl RuleExecutor {
     /// Execute rules sequentially (for comparison/debugging)
     #[instrument(skip(self, rules, context))]
     pub fn execute_sequential(
-        &mut self,
+        &self,
         rules: &[Rule],
         context: &mut ExecutionContext,
     ) -> RuleEngineResult<ExecutionResult> {
@@ -131,7 +170,7 @@ impl RuleExecutor {
 
     /// Internal execution with configurable parallelism
     fn execute_with_parallelism(
-        &mut self,
+        &self,
         rules: &[Rule],
         context: &mut ExecutionContext,
         parallel: bool,
@@ -140,10 +179,22 @@ impl RuleExecutor {
 
         // Build DAG
         let dag = RuleDag::from_rules(rules)?;
+
+        // Validate that all rule inputs are satisfied (either by other rules or context)
+        let available_inputs = context.available_inputs();
+        let missing = dag.find_missing_inputs(&available_inputs);
+        if !missing.is_empty() {
+            let missing_deps: Vec<(String, String)> = missing
+                .into_iter()
+                .map(|(rule_id, dep)| (format!("{:?}", rule_id), dep))
+                .collect();
+            return Err(RuleEngineError::MissingDependencies(missing_deps));
+        }
+
         let levels = dag.execution_levels()?;
 
-        // Pre-compile all rules
-        self.compile_rules(rules)?;
+        // Compile any rules not already in the cache into a local map
+        let local_compiled = self.compile_rules_local(rules)?;
 
         let mut rule_results = Vec::with_capacity(rules.len());
 
@@ -151,7 +202,7 @@ impl RuleExecutor {
         for level in &levels {
             if parallel && level.len() > 1 {
                 // Parallel execution for this level
-                let level_results = self.execute_level_parallel(level, context)?;
+                let level_results = self.execute_level_parallel(level, context, &local_compiled)?;
 
                 // Update context with all outputs from this level
                 for result in &level_results {
@@ -163,7 +214,7 @@ impl RuleExecutor {
             } else {
                 // Sequential execution (single rule or parallel disabled)
                 for rule_id in level {
-                    let result = self.execute_rule(rule_id, context)?;
+                    let result = self.execute_rule(rule_id, context, &local_compiled)?;
                     rule_results.push(result);
                 }
             }
@@ -193,30 +244,31 @@ impl RuleExecutor {
         &self,
         level: &[RuleId],
         context: &ExecutionContext,
+        local_compiled: &HashMap<RuleId, CompiledRule>,
     ) -> RuleEngineResult<Vec<RuleResult>> {
-        // Snapshot the context data once for all rules in this level
-        let context_data = context.to_json();
+        // Snapshot the context data once for all rules in this level (avoids JSON conversion)
+        let context_data = context.to_value();
 
-        // Thread-safe collection for results
+        // Thread-safe collection for results and errors with rule IDs
         let results: RwLock<Vec<RuleResult>> = RwLock::new(Vec::with_capacity(level.len()));
-        let errors: RwLock<Vec<RuleEngineError>> = RwLock::new(Vec::new());
+        let errors: RwLock<Vec<(RuleId, RuleEngineError)>> = RwLock::new(Vec::new());
 
         // Execute rules in parallel
         level.par_iter().for_each(|rule_id| {
-            match self.execute_rule_with_data(rule_id, &context_data) {
+            match self.execute_rule_with_data(rule_id, &context_data, local_compiled) {
                 Ok(result) => {
                     results.write().push(result);
                 }
                 Err(e) => {
-                    errors.write().push(e);
+                    errors.write().push((rule_id.clone(), e));
                 }
             }
         });
 
-        // Check for errors
+        // Check for errors - aggregate all errors with rule names
         let errors = errors.into_inner();
         if !errors.is_empty() {
-            return Err(errors.into_iter().next().unwrap());
+            return Err(RuleEngineError::MultipleRuleFailures(errors));
         }
 
         Ok(results.into_inner())
@@ -226,9 +278,10 @@ impl RuleExecutor {
     fn execute_rule_with_data(
         &self,
         rule_id: &RuleId,
-        context_data: &serde_json::Value,
+        context_data: &Value,
+        local_compiled: &HashMap<RuleId, CompiledRule>,
     ) -> RuleEngineResult<RuleResult> {
-        let compiled = self.compiled_rules.get(rule_id)
+        let compiled = self.get_compiled_rule(rule_id, local_compiled)
             .ok_or_else(|| RuleEngineError::RuleNotFound(format!("{:?}", rule_id)))?;
 
         let start = std::time::Instant::now();
@@ -236,9 +289,9 @@ impl RuleExecutor {
         // Create a thread-local evaluator for parallel execution
         let mut evaluator = Evaluator::new();
 
-        // Evaluate the expression
+        // Evaluate the expression using Value directly (more efficient for AST tier)
         let value = evaluator
-            .evaluate_cached(&compiled.expression, context_data)
+            .evaluate_cached_value(&compiled.expression, context_data)
             .map_err(|e| RuleEngineError::EvaluationError(format!(
                 "Rule '{:?}' evaluation failed: {}",
                 rule_id, e
@@ -272,21 +325,25 @@ impl RuleExecutor {
 
     /// Execute a single rule
     fn execute_rule(
-        &mut self,
+        &self,
         rule_id: &RuleId,
         context: &mut ExecutionContext,
+        local_compiled: &HashMap<RuleId, CompiledRule>,
     ) -> RuleEngineResult<RuleResult> {
-        let compiled = self.compiled_rules.get(rule_id)
+        let compiled = self.get_compiled_rule(rule_id, local_compiled)
             .ok_or_else(|| RuleEngineError::RuleNotFound(format!("{:?}", rule_id)))?;
 
         let start = std::time::Instant::now();
 
-        // Build data JSON from context
-        let data = context.to_json();
+        // Build data Value from context (avoids JSON conversion for AST evaluation)
+        let data = context.to_value();
 
-        // Evaluate the expression
-        let value = self.evaluator
-            .evaluate_cached(&compiled.expression, &data)
+        // Create a local evaluator for this execution
+        let mut evaluator = Evaluator::new();
+
+        // Evaluate the expression using Value directly (more efficient for AST tier)
+        let value = evaluator
+            .evaluate_cached_value(&compiled.expression, &data)
             .map_err(|e| RuleEngineError::EvaluationError(format!(
                 "Rule '{:?}' evaluation failed: {}",
                 rule_id, e
@@ -333,7 +390,7 @@ impl RuleExecutor {
 
     /// Clear the compiled rules cache
     pub fn clear_cache(&mut self) {
-        self.compiled_rules.clear();
+        Arc::make_mut(&mut self.compiled_rules).clear();
     }
 }
 
@@ -367,7 +424,7 @@ mod tests {
             })),
         ];
 
-        let mut executor = RuleExecutor::new();
+        let executor = RuleExecutor::new();
         let mut context = ExecutionContext::from_json(&json!({
             "input": 21
         }));
@@ -392,7 +449,7 @@ mod tests {
             })),
         ];
 
-        let mut executor = RuleExecutor::new();
+        let executor = RuleExecutor::new();
         let mut context = ExecutionContext::from_json(&json!({
             "input": 5
         }));
@@ -426,7 +483,7 @@ mod tests {
             })),
         ];
 
-        let mut executor = RuleExecutor::new();
+        let executor = RuleExecutor::new();
 
         // Test senior discount
         let mut ctx = ExecutionContext::from_json(&json!({
@@ -457,7 +514,7 @@ mod tests {
             make_rule("p", &["b", "c"], &["d"], json!({"+": [{"var": "b"}, {"var": "c"}]})),
         ];
 
-        let mut executor = RuleExecutor::new();
+        let executor = RuleExecutor::new();
         let mut context = ExecutionContext::from_json(&json!({"input": 10}));
 
         let result = executor.execute(&rules, &mut context).unwrap();
@@ -496,7 +553,7 @@ mod tests {
             make_rule("p", &["b", "c"], &["d"], json!({"+": [{"var": "b"}, {"var": "c"}]})),
         ];
 
-        let mut executor = RuleExecutor::new();
+        let executor = RuleExecutor::new();
         let mut context = ExecutionContext::from_json(&json!({"input": 10}));
 
         // Test parallel execution
@@ -530,12 +587,12 @@ mod tests {
         let input_data = json!({"input": 10});
 
         // Parallel execution
-        let mut executor_par = RuleExecutor::new();
+        let executor_par = RuleExecutor::new();
         let mut ctx_par = ExecutionContext::from_json(&input_data);
         let result_par = executor_par.execute(&rules, &mut ctx_par).unwrap();
 
         // Sequential execution
-        let mut executor_seq = RuleExecutor::new();
+        let executor_seq = RuleExecutor::new();
         let mut ctx_seq = ExecutionContext::from_json(&input_data);
         let result_seq = executor_seq.execute_sequential(&rules, &mut ctx_seq).unwrap();
 
@@ -572,7 +629,7 @@ mod tests {
             .with_outputs(["final_result".to_string()]);
         rules.push(final_rule);
 
-        let mut executor = RuleExecutor::new();
+        let executor = RuleExecutor::new();
         let mut context = ExecutionContext::from_json(&json!({"input": 1}));
 
         let result = executor.execute(&rules, &mut context).unwrap();
@@ -586,5 +643,52 @@ mod tests {
         assert_eq!(result.get_output("out_0").unwrap().to_number(), 1.0);
         assert_eq!(result.get_output("out_50").unwrap().to_number(), 51.0);
         assert_eq!(result.get_output("out_99").unwrap().to_number(), 100.0);
+    }
+
+    #[test]
+    fn test_missing_dependency_error() {
+        // Create a rule that requires an input that doesn't exist
+        let rule = Rule::from_json_logic("p", "r1", json!({"+": [{"var": "missing_input"}, 10]}))
+            .with_inputs(["missing_input".to_string()])
+            .with_outputs(["result".to_string()]);
+
+        let executor = RuleExecutor::new();
+        // Context without the required input
+        let mut context = ExecutionContext::from_json(&json!({"other_input": 5}));
+
+        let result = executor.execute(&[rule], &mut context);
+
+        // Should fail with MissingDependencies error
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        match err {
+            RuleEngineError::MissingDependencies(deps) => {
+                assert_eq!(deps.len(), 1);
+                assert!(deps[0].1.contains("missing_input"));
+            }
+            other => panic!("Expected MissingDependencies error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_dependency_satisfied_by_other_rule() {
+        // Rule A outputs "intermediate", Rule B requires "intermediate"
+        let rule_a = Rule::from_json_logic("p", "rule_a", json!({"+": [{"var": "input"}, 10]}))
+            .with_inputs(["input".to_string()])
+            .with_outputs(["intermediate".to_string()]);
+
+        let rule_b = Rule::from_json_logic("p", "rule_b", json!({"*": [{"var": "intermediate"}, 2]}))
+            .with_inputs(["intermediate".to_string()])
+            .with_outputs(["result".to_string()]);
+
+        let executor = RuleExecutor::new();
+        let mut context = ExecutionContext::from_json(&json!({"input": 5}));
+
+        // Should succeed because "intermediate" is produced by rule_a
+        let result = executor.execute(&[rule_a, rule_b], &mut context).unwrap();
+
+        // input=5 -> intermediate=15 -> result=30
+        assert_eq!(result.get_output("intermediate").unwrap().to_number(), 15.0);
+        assert_eq!(result.get_output("result").unwrap().to_number(), 30.0);
     }
 }
