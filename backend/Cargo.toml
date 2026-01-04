@@ -45,7 +45,7 @@ rust_decimal = { version = "1.32", features = ["serde", "serde-with-str"] }
 # gRPC
 tonic = "0.10"
 prost = "0.12"
-tonic-build = "0.10"
+tonic-build = "0.14"
 
 # HTTP server
 axum = "0.7"
