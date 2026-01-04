@@ -139,10 +139,9 @@ impl Evaluator {
     /// This is more efficient when context is already available as Value.
     pub fn evaluate_cached_value(&mut self, expr: &CachedExpression, data: &Value) -> JsonLogicResult<Value> {
         if let Some(ref bytecode) = expr.bytecode {
-            // For bytecode, we need to convert to EvalContext which expects specific variable layout
-            // For now, fall back to JSON path - bytecode optimization is separate
-            let json_data = data.to_json();
-            let context = EvalContext::from_json(&json_data, bytecode);
+            // Use from_value to avoid expensive JSON conversion of entire data
+            // This only extracts the variables needed by the bytecode
+            let context = EvalContext::from_value(data, bytecode);
             self.vm.execute(bytecode, &context)
         } else {
             // For AST evaluation, we can use Value directly

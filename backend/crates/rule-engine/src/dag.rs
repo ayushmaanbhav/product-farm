@@ -8,7 +8,7 @@
 
 use hashbrown::{HashMap, HashSet};
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::algo::{toposort, is_cyclic_directed};
+use petgraph::algo::toposort;
 use petgraph::Direction;
 use product_farm_core::{Rule, RuleId};
 use crate::error::{RuleEngineError, RuleEngineResult};
@@ -71,11 +71,14 @@ impl RuleDag {
         // Second pass: add edges based on dependencies
         dag.build_edges()?;
 
-        // Check for cycles
-        if is_cyclic_directed(&dag.graph) {
-            return Err(RuleEngineError::CyclicDependency(
-                "Cycle detected in rule dependencies".into()
-            ));
+        // Check for cycles using toposort (iterative, unlike is_cyclic_directed which is recursive)
+        // This avoids stack overflow with deep dependency chains (100k+ levels)
+        if let Err(cycle) = toposort(&dag.graph, None) {
+            let node = &dag.graph[cycle.node_id()];
+            return Err(RuleEngineError::CyclicDependency(format!(
+                "Cycle detected at rule: {:?}",
+                node.id
+            )));
         }
 
         Ok(dag)

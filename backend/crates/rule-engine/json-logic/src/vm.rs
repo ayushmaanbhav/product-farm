@@ -57,6 +57,48 @@ impl EvalContext {
 
         Self { values }
     }
+
+    /// Build context from Value directly (avoids JSON conversion overhead)
+    ///
+    /// This is more efficient when data is already available as Value,
+    /// as it avoids converting the entire data structure to JSON.
+    pub fn from_value(
+        data: &Value,
+        bytecode: &CompiledBytecode,
+    ) -> Self {
+        let mut values = vec![Value::Null; bytecode.variable_names.len()];
+
+        for (name, idx) in &bytecode.variable_map {
+            if let Some(value) = get_value_path(data, name) {
+                values[*idx as usize] = value.clone();
+            }
+        }
+
+        Self { values }
+    }
+}
+
+/// Get a value from Value by dot-separated path
+fn get_value_path<'a>(data: &'a Value, path: &str) -> Option<&'a Value> {
+    if path.is_empty() {
+        return Some(data);
+    }
+
+    let mut current = data;
+    for segment in path.split('.') {
+        match current {
+            Value::Object(map) => {
+                current = map.get(segment)?;
+            }
+            Value::Array(arr) => {
+                let idx: usize = segment.parse().ok()?;
+                current = arr.get(idx)?;
+            }
+            _ => return None,
+        }
+    }
+
+    Some(current)
 }
 
 impl Default for EvalContext {

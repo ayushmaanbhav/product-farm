@@ -6,7 +6,6 @@
 //! - Caching of compiled expressions
 
 use hashbrown::HashMap;
-use parking_lot::RwLock;
 use product_farm_core::{Rule, RuleId, Value};
 use product_farm_json_logic::{CachedExpression, Evaluator, compile};
 use rayon::prelude::*;
@@ -198,25 +197,45 @@ impl RuleExecutor {
 
         let mut rule_results = Vec::with_capacity(rules.len());
 
+        // Build the data Value once and update it incrementally
+        // This avoids O(n^2) cloning for large rule sets
+        let mut data = context.to_value();
+
         // Execute level by level
+        // Only update `data` during execution - context is updated at the end
         for level in &levels {
             if parallel && level.len() > 1 {
-                // Parallel execution for this level
-                let level_results = self.execute_level_parallel(level, context, &local_compiled)?;
+                // Parallel execution for this level - pass pre-computed data directly
+                let level_results = self.execute_level_parallel(level, &data, &local_compiled)?;
 
-                // Update context with all outputs from this level
-                for result in &level_results {
-                    for (key, value) in &result.outputs {
-                        context.set(key.clone(), value.clone());
+                // Update data with all outputs from this level (skip context update for now)
+                if let Value::Object(ref mut map) = data {
+                    for result in &level_results {
+                        for (key, value) in &result.outputs {
+                            map.insert(key.clone(), value.clone());
+                        }
                     }
                 }
                 rule_results.extend(level_results);
             } else {
                 // Sequential execution (single rule or parallel disabled)
                 for rule_id in level {
-                    let result = self.execute_rule(rule_id, context, &local_compiled)?;
+                    let result = self.execute_rule_with_data(rule_id, &data, &local_compiled)?;
+                    // Update data incrementally (skip context update for now)
+                    if let Value::Object(ref mut map) = data {
+                        for (key, value) in &result.outputs {
+                            map.insert(key.clone(), value.clone());
+                        }
+                    }
                     rule_results.push(result);
                 }
+            }
+        }
+
+        // Bulk update context from data at the end (avoids redundant updates during execution)
+        if let Value::Object(ref map) = data {
+            for (key, value) in map.iter() {
+                context.set(key.clone(), value.clone());
             }
         }
 
@@ -240,38 +259,41 @@ impl RuleExecutor {
     }
 
     /// Execute a level of rules in parallel using rayon
+    /// Uses rayon's collect() pattern instead of RwLock for zero-contention parallelism
     fn execute_level_parallel(
         &self,
         level: &[RuleId],
-        context: &ExecutionContext,
+        context_data: &Value,
         local_compiled: &HashMap<RuleId, CompiledRule>,
     ) -> RuleEngineResult<Vec<RuleResult>> {
-        // Snapshot the context data once for all rules in this level (avoids JSON conversion)
-        let context_data = context.to_value();
+        // Use rayon's collect() - each thread builds a local buffer, then merges
+        // This is zero-contention compared to RwLock
+        // context_data is passed in pre-computed to avoid redundant to_value() calls
+        let collected: Vec<Result<RuleResult, (RuleId, RuleEngineError)>> = level
+            .par_iter()
+            .map(|rule_id| {
+                self.execute_rule_with_data(rule_id, context_data, local_compiled)
+                    .map_err(|e| (rule_id.clone(), e))
+            })
+            .collect();
 
-        // Thread-safe collection for results and errors with rule IDs
-        let results: RwLock<Vec<RuleResult>> = RwLock::new(Vec::with_capacity(level.len()));
-        let errors: RwLock<Vec<(RuleId, RuleEngineError)>> = RwLock::new(Vec::new());
+        // Partition results and errors
+        let mut results = Vec::with_capacity(level.len());
+        let mut errors = Vec::new();
 
-        // Execute rules in parallel
-        level.par_iter().for_each(|rule_id| {
-            match self.execute_rule_with_data(rule_id, &context_data, local_compiled) {
-                Ok(result) => {
-                    results.write().push(result);
-                }
-                Err(e) => {
-                    errors.write().push((rule_id.clone(), e));
-                }
+        for item in collected {
+            match item {
+                Ok(result) => results.push(result),
+                Err(e) => errors.push(e),
             }
-        });
+        }
 
         // Check for errors - aggregate all errors with rule names
-        let errors = errors.into_inner();
         if !errors.is_empty() {
             return Err(RuleEngineError::MultipleRuleFailures(errors));
         }
 
-        Ok(results.into_inner())
+        Ok(results)
     }
 
     /// Execute a single rule with pre-computed context data (for parallel execution)
@@ -314,56 +336,6 @@ impl RuleExecutor {
             execution_time_ns = execution_time_ns,
             parallel = true,
             "Rule executed (parallel)"
-        );
-
-        Ok(RuleResult {
-            rule_id: rule_id.clone(),
-            outputs,
-            execution_time_ns,
-        })
-    }
-
-    /// Execute a single rule
-    fn execute_rule(
-        &self,
-        rule_id: &RuleId,
-        context: &mut ExecutionContext,
-        local_compiled: &HashMap<RuleId, CompiledRule>,
-    ) -> RuleEngineResult<RuleResult> {
-        let compiled = self.get_compiled_rule(rule_id, local_compiled)
-            .ok_or_else(|| RuleEngineError::RuleNotFound(format!("{:?}", rule_id)))?;
-
-        let start = std::time::Instant::now();
-
-        // Build data Value from context (avoids JSON conversion for AST evaluation)
-        let data = context.to_value();
-
-        // Create a local evaluator for this execution
-        let mut evaluator = Evaluator::new();
-
-        // Evaluate the expression using Value directly (more efficient for AST tier)
-        let value = evaluator
-            .evaluate_cached_value(&compiled.expression, &data)
-            .map_err(|e| RuleEngineError::EvaluationError(format!(
-                "Rule '{:?}' evaluation failed: {}",
-                rule_id, e
-            )))?;
-
-        let execution_time_ns = start.elapsed().as_nanos() as u64;
-
-        // Store results for each output attribute
-        let mut outputs = Vec::new();
-        for output_path in &compiled.rule.output_attributes {
-            let output_str = output_path.path.as_str().to_string();
-            context.set(output_str.clone(), value.clone());
-            outputs.push((output_str, value.clone()));
-        }
-
-        debug!(
-            rule_id = ?rule_id,
-            outputs = ?outputs,
-            execution_time_ns = execution_time_ns,
-            "Rule executed"
         );
 
         Ok(RuleResult {

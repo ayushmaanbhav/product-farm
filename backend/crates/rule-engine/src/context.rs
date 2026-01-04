@@ -8,6 +8,7 @@
 use hashbrown::HashMap;
 use product_farm_core::Value;
 use std::sync::Arc;
+use std::cell::RefCell;
 
 /// The execution context holds all data available during rule evaluation
 #[derive(Debug, Clone)]
@@ -18,6 +19,11 @@ pub struct ExecutionContext {
     computed: HashMap<String, Value>,
     /// Metadata about the execution
     metadata: HashMap<String, Value>,
+    /// Cached serde_json::Value representation (lazy, updated incrementally)
+    #[allow(clippy::type_complexity)]
+    cached_json_value: RefCell<Option<serde_json::Value>>,
+    /// Cached Value representation for evaluator (lazy, updated incrementally)
+    cached_eval_value: RefCell<Option<Value>>,
 }
 
 impl ExecutionContext {
@@ -27,6 +33,8 @@ impl ExecutionContext {
             input: Arc::new(input),
             computed: HashMap::new(),
             metadata: HashMap::new(),
+            cached_json_value: RefCell::new(None),
+            cached_eval_value: RefCell::new(None),
         }
     }
 
@@ -88,7 +96,26 @@ impl ExecutionContext {
 
     /// Set a computed value
     pub fn set(&mut self, key: impl Into<String>, value: Value) {
-        self.computed.insert(key.into(), value);
+        let key_str = key.into();
+
+        // Update cached JSON value incrementally if it exists
+        if let Some(ref mut cached) = *self.cached_json_value.borrow_mut() {
+            if let serde_json::Value::Object(ref mut map) = cached {
+                // Convert Value to serde_json::Value using serialization
+                if let Ok(json_val) = serde_json::to_value(&value) {
+                    map.insert(key_str.clone(), json_val);
+                }
+            }
+        }
+
+        // Update cached eval Value incrementally if it exists
+        if let Some(ref mut cached) = *self.cached_eval_value.borrow_mut() {
+            if let Value::Object(ref mut map) = cached {
+                map.insert(key_str.clone(), value.clone());
+            }
+        }
+
+        self.computed.insert(key_str, value);
     }
 
     /// Set metadata
@@ -149,8 +176,16 @@ impl ExecutionContext {
     /// Convert context to Value for evaluation (avoids JSON intermediate step).
     ///
     /// This is more efficient than `to_json()` when the evaluator can work with Value directly.
-    /// Converts flat dot-separated paths into nested structures for proper var navigation.
+    /// Uses caching - the Value is built once and updated incrementally via set().
+    /// For simple keys (no dots), returns a flat Object. Dot-separated paths are converted
+    /// to nested structures for proper var navigation.
     pub fn to_value(&self) -> Value {
+        // Check if we have a cached value
+        if let Some(cached) = self.cached_eval_value.borrow().as_ref() {
+            return cached.clone();
+        }
+
+        // Build the value from scratch
         let mut root = std::collections::HashMap::new();
 
         // Helper to insert a value at a dot-separated path into a nested structure
@@ -191,7 +226,12 @@ impl ExecutionContext {
             insert_at_path(&mut root, k, v.clone());
         }
 
-        Value::Object(root)
+        let result = Value::Object(root);
+
+        // Cache the result
+        *self.cached_eval_value.borrow_mut() = Some(result.clone());
+
+        result
     }
 
     /// Convert context to JSON for evaluation

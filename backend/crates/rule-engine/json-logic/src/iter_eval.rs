@@ -742,7 +742,7 @@ fn map_next<'a>(
     mapper: &'a Expr,
     mut remaining: Vec<Value>,
     mut results: Vec<Value>,
-    data: &Value,
+    _data: &Value,
     work: &mut Vec<WorkItem<'a>>,
     values: &mut Vec<Value>,
 ) -> JsonLogicResult<()> {
@@ -766,7 +766,7 @@ fn filter_next<'a>(
     predicate: &'a Expr,
     mut remaining: Vec<Value>,
     results: Vec<Value>,
-    data: &Value,
+    _data: &Value,
     work: &mut Vec<WorkItem<'a>>,
     values: &mut Vec<Value>,
 ) -> JsonLogicResult<()> {
@@ -804,7 +804,7 @@ fn filter_check<'a>(
 fn reduce_next<'a>(
     reducer: &'a Expr,
     mut remaining: Vec<Value>,
-    data: &Value,
+    _data: &Value,
     work: &mut Vec<WorkItem<'a>>,
     values: &mut Vec<Value>,
 ) -> JsonLogicResult<()> {
@@ -836,7 +836,7 @@ fn reduce_next<'a>(
 fn all_next<'a>(
     predicate: &'a Expr,
     mut remaining: Vec<Value>,
-    data: &Value,
+    _data: &Value,
     work: &mut Vec<WorkItem<'a>>,
     values: &mut Vec<Value>,
 ) -> JsonLogicResult<()> {
@@ -862,7 +862,7 @@ fn all_next<'a>(
 fn some_next<'a>(
     predicate: &'a Expr,
     mut remaining: Vec<Value>,
-    data: &Value,
+    _data: &Value,
     work: &mut Vec<WorkItem<'a>>,
     values: &mut Vec<Value>,
 ) -> JsonLogicResult<()> {
@@ -888,7 +888,7 @@ fn some_next<'a>(
 fn none_next<'a>(
     predicate: &'a Expr,
     mut remaining: Vec<Value>,
-    data: &Value,
+    _data: &Value,
     work: &mut Vec<WorkItem<'a>>,
     values: &mut Vec<Value>,
 ) -> JsonLogicResult<()> {
@@ -968,7 +968,7 @@ fn missing_next<'a>(
     let key_val = eval_to_value(&keys[0], data, work, values)?;
     let key_str = key_val.to_display_string();
 
-    if get_variable(&key_str, data).is_none() {
+    if get_variable_ref(&key_str, data).is_none() {
         missing.push(Value::String(key_str));
     }
 
@@ -998,7 +998,7 @@ fn missing_some_next<'a>(
     let key_val = eval_to_value(&keys[0], data, work, values)?;
     let key_str = key_val.to_display_string();
 
-    if get_variable(&key_str, data).is_some() {
+    if get_variable_ref(&key_str, data).is_some() {
         found += 1;
     } else {
         missing.push(Value::String(key_str));
@@ -1058,6 +1058,7 @@ fn not(values: &mut Vec<Value>) -> JsonLogicResult<()> {
 }
 
 /// Log and pass through
+#[allow(unused_variables)]
 fn log_value(values: &mut Vec<Value>) -> JsonLogicResult<()> {
     let val = values.last().ok_or(JsonLogicError::StackOverflow)?;
     #[cfg(debug_assertions)]
@@ -1148,26 +1149,32 @@ fn combine(op: CombineOp, count: usize, values: &mut Vec<Value>) -> JsonLogicRes
     Ok(())
 }
 
-/// Get a variable from data by path
-fn get_variable(path: &str, data: &Value) -> Option<Value> {
+/// Get a variable from data by path (returns reference to avoid cloning)
+fn get_variable_ref<'a>(path: &str, data: &'a Value) -> Option<&'a Value> {
     if path.is_empty() {
-        return Some(data.clone());
+        return Some(data);
     }
 
-    let segments: Vec<&str> = path.split('.').collect();
-    let mut current = data.clone();
+    let mut current = data;
 
-    for segment in segments {
+    // Use iterator instead of collecting to Vec to avoid allocation
+    for segment in path.split('.') {
         current = match current {
-            Value::Object(map) => map.get(segment)?.clone(),
+            Value::Object(map) => map.get(segment)?,
             Value::Array(arr) => {
                 let idx: usize = segment.parse().ok()?;
-                arr.get(idx)?.clone()
+                arr.get(idx)?
             }
             _ => return None,
         };
     }
     Some(current)
+}
+
+/// Get a variable from data by path (clones the result for ownership)
+#[inline]
+fn get_variable(path: &str, data: &Value) -> Option<Value> {
+    get_variable_ref(path, data).cloned()
 }
 
 /// Convenience function for one-shot evaluation using iterative evaluator
