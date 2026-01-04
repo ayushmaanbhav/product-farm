@@ -24,7 +24,7 @@ tracing = { workspace = true }
 async-trait = "0.1"
 
 # HTTP client for AI API calls (optional)
-reqwest = { version = "0.11", features = ["json"], optional = true }
+reqwest = { version = "0.13", features = ["json"], optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
