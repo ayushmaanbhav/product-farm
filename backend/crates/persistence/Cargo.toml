@@ -11,8 +11,8 @@ default = []
 dgraph = ["dep:dgraph-tonic", "dep:base64"]
 
 [dependencies]
-product-farm-core = { path = "../core" }
-product-farm-json-logic = { path = "../rule-engine/json-logic" }
+product-farm-core = { path = "../core", version = "0.2.0" }
+product-farm-json-logic = { path = "../rule-engine/json-logic", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

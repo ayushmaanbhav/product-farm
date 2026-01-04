@@ -18,5 +18,5 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-product-farm-json-logic = { path = "../json-logic" }
-product-farm-core = { path = "../../core" }
+product-farm-json-logic = { path = "../json-logic", version = "0.2.0" }
+product-farm-core = { path = "../../core", version = "0.2.0" }
