@@ -50,7 +50,7 @@ tonic-build = "0.10"
 # HTTP server
 axum = "0.7"
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "trace"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Database (DGraph)
 # dgraph-tonic = "0.8"  # Will add when implementing persistence
