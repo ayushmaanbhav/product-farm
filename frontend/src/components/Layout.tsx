@@ -14,6 +14,7 @@ import {
   Boxes,
   Database,
   List,
+  Sparkles,
 } from 'lucide-react';
 
 const navigation = [
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Attributes', href: '/attributes', icon: Layers },
   { name: 'Functions', href: '/functionalities', icon: Boxes },
   { name: 'Rules', href: '/rules', icon: GitBranch },
+  { name: 'Explorer', href: '/explorer', icon: Sparkles },
 ];
 
 export function Layout() {

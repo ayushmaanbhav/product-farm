@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { Dashboard, Products, Attributes, Rules, Settings, Functionalities, Datatypes, Enumerations } from '@/pages';
+import { Dashboard, Products, Attributes, Rules, Settings, Functionalities, Datatypes, Enumerations, RulesExplorer } from '@/pages';
 import './index.css';
 
 function App() {
@@ -15,6 +15,7 @@ function App() {
           <Route path="attributes" element={<Attributes />} />
           <Route path="functionalities" element={<Functionalities />} />
           <Route path="rules" element={<Rules />} />
+          <Route path="explorer" element={<RulesExplorer />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
