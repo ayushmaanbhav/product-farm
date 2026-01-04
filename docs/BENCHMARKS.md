@@ -16,9 +16,11 @@ Comprehensive performance data for Product-FARM's rule evaluation engine, demons
 | **Rule Evaluation (Bytecode)** | ~330ns |
 | **Single-thread Throughput** | 3M+ evals/sec |
 | **Multi-thread Throughput** | 22M+ evals/sec |
+| **Large-Scale Execution** | 96,000 rules/sec (1M rules) |
+| **100k Chain Execution** | 907ms |
 | **Compilation Speedup** | 3.5x |
 | **Test Coverage** | 85% |
-| **Backend Tests** | 234+ |
+| **Backend Tests** | 551+ |
 | **E2E Test Suites** | 9 |
 
 <div class="callout callout-performance">
@@ -113,6 +115,29 @@ Multi-level dependency chains:
 <div class="callout callout-info">
 <strong>Parallel Scaling:</strong> Parallel execution speedup improves with DAG depth as more rules can execute concurrently within each level.
 </div>
+
+### Large-Scale Stress Tests
+
+Production-scale benchmarks on **16-core Linux system** using rayon parallel execution:
+
+| Test Pattern | Rules | Variables | Levels | Time | Throughput |
+|--------------|-------|-----------|--------|------|------------|
+| 100k Chain | 100,000 | 100,001 | 100,000 | 907ms | 110k/sec |
+| 10k Diamond | 10,002 | 10,003 | 3 | 5ms | 2M/sec |
+| 100×1000 Lattice | 100,001 | 100,002 | 1,000 | 445ms | 225k/sec |
+| 10×10k Cascades | 100,000 | 100,010 | 10,000 | 650ms | 154k/sec |
+| Tree (depth 8, branch 4) | 87,382 | 87,383 | 9 | 34ms | 2.6M/sec |
+| 100 Mesh Groups (50 nodes) | 5,100 | 5,200 | 51 | 3ms | 1.7M/sec |
+| Independent Rules | 597,515 | 598,515 | 1 | 445ms | 1.3M/sec |
+| **Full Combined Test** | **1,000,000** | **1,001,114** | **100,000** | **10.4s** | **96k/sec** |
+
+**Test Environment:**
+- CPU: 16 cores (Linux 6.8.0)
+- RAM: 64GB
+- Rust: stable (release mode with LTO)
+- Parallelism: rayon with 16 worker threads
+
+**Total tests passing: 551 across workspace**
 
 ---
 
@@ -222,12 +247,17 @@ Product-FARM uses Rust's ownership model - no GC pauses:
 
 ### Backend Tests
 
-| Category | Tests | Coverage |
-|----------|-------|----------|
-| Unit Tests | 180 | 88% |
-| Integration Tests | 42 | 82% |
-| API Tests | 12 | 90% |
-| **Total** | **234** | **85%** |
+| Crate | Tests | Notes |
+|-------|-------|-------|
+| core | 19 | Value types, serialization |
+| json-logic | 358 | VM, compiler, evaluator, iter_eval |
+| farmscript | 21 | Parser, interpreter |
+| rule-engine | 60 | DAG, executor, context, 1M stress tests |
+| yaml-loader | 65 | Schema, registry, interpreter |
+| llm-evaluator | 18 | Claude, Ollama providers |
+| persistence | 10 | DGraph operations |
+| api | 31 | REST, gRPC, validation |
+| **Total** | **551** | All passing |
 
 ### E2E Test Suites
 
